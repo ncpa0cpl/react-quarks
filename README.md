@@ -1,16 +1,16 @@
-# React Particles
+# React Quarks
 #### Quarks is a simple, lightweight and easy to use state management library for React.
 
 ## Installation
 
-> npm install react-particles
+> npm install rc-quarks
 
 ## Basics
 
-Import the `quark` method from the `react-particles` package.
+Import the `quark` method from the `rc-quarks` package.
 
 ```ts
-import { quark } from "react-particles";
+import { quarks } from "rc-quarks";
 ```
 
 Create a new quark
