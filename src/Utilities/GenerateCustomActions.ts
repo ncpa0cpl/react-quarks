@@ -1,0 +1,29 @@
+import type {
+  ParseActions,
+  QuarkActions,
+  QuarkContext,
+  QuarkSetterFn,
+} from "../Quark.types";
+
+/**
+ * @internal
+ */
+export function generateCustomActions<
+  T,
+  ARGS extends any[],
+  A extends QuarkActions<T, ARGS>
+>(
+  self: QuarkContext<T, any>,
+  setState: QuarkSetterFn<T>,
+  actions: A
+): ParseActions<A> {
+  return Object.fromEntries(
+    Object.entries(actions).map(([actionName, actionMethod]) => {
+      const wrappedAction = (...args: ARGS) => {
+        const newState = actionMethod(self.value, ...args);
+        setState(newState);
+      };
+      return [actionName, wrappedAction];
+    })
+  ) as unknown as ParseActions<A>;
+}
