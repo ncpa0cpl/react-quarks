@@ -3,9 +3,10 @@ import type {
   ParseSelectors,
   Quark,
   QuarkActions,
-  QuarkComparatorFn,
+  QuarkConfig,
   QuarkContext,
   QuarkEffects,
+  QuarkObjectOptions,
   QuarkSelectors,
 } from "./Quark.types";
 import { generateCustomActions } from "./Utilities/GenerateCustomActions";
@@ -16,6 +17,19 @@ import { generateUseHook } from "./Utilities/GenerateUseHook";
 import { initiateEffects } from "./Utilities/InitiateEffects";
 import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 
+/**
+ * Creates a new quark object.
+ *
+ * @param initValue Initial data of the quark.
+ * @param config Config allows for adding custom actions and selectors to the quark
+ *   as well as changing when subscribed component should update.
+ * @param effects Allows for adding side effects to the quark, those effects will be
+ *   performed after any change to the quark state. Effects take three arguments,
+ *
+ *   - [`arg_0`] - previous state
+ *   - [`arg_1`] - new/current state
+ *   - [`arg_2`] - all of the actions of the quark (including `set()`)
+ */
 export function quark<
   T,
   ARGS extends any[],
@@ -24,21 +38,9 @@ export function quark<
   E extends QuarkEffects<T, ParseActions<Exclude<A, undefined>>>
 >(
   initValue: T,
-  config: {
-    shouldUpdate?: QuarkComparatorFn;
-    actions?: A;
-    selectors?: S;
-  } = {},
+  config: QuarkConfig<A, S> = {},
   effects?: E
-): Quark<
-  T,
-  {
-    shouldUpdate: QuarkComparatorFn;
-    actions: A;
-    selectors: S;
-    effects: E;
-  }
-> {
+): Quark<T, QuarkObjectOptions<A, S, E>> {
   const self: QuarkContext<T, ParseActions<A>> = {
     value: initValue,
     effects: new Set(),

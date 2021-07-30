@@ -7,3 +7,4 @@ tests
 jest.config.js
 postcss.config.js
 scripts
+__tests__
