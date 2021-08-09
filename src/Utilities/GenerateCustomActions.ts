@@ -13,7 +13,7 @@ export function generateCustomActions<
   ET
 >(
   self: QuarkContext<T, any, ET>,
-  setState: QuarkSetterFn<T>,
+  setState: QuarkSetterFn<T | ET>,
   actions: A
 ): ParseActions<A> {
   return Object.fromEntries(

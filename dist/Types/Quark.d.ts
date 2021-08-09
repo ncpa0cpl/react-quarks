@@ -2,10 +2,12 @@ import type { ParseActions } from "./Actions";
 import type { GetMiddlewareTypes } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
 export declare type StateGenerator<T> = (oldVal: T) => T;
-export declare type InternalStateSetter<T> = StateGenerator<T> | T;
-export declare type StateSetter<T, ET> = InternalStateSetter<T> | ET;
+export declare type StatePromise<T> = Promise<T>;
+export declare type InternalStateSetter<T> = StatePromise<T> | T;
+export declare type StateSetter<T, ET> = InternalStateSetter<T> | InternalStateSetter<ET> | StateGenerator<T | ET>;
 export declare type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
-export declare type QuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
+export declare type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
+export declare type QuarkSetterFn<T> = (newVal: T | StateGenerator<T> | StatePromise<T>) => void;
 export declare type QuarkGetterFn<T> = () => T;
 export declare type Quark<T, C extends {
     actions?: any;

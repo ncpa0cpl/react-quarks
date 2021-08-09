@@ -1,6 +1,6 @@
-import type { InternalStateSetter, StateGenerator } from "../Types";
+import type { StateGenerator } from "../Types";
 
 /** @internal */
-export function isGenerator<T>(v: InternalStateSetter<T>): v is StateGenerator<T> {
+export function isGenerator<T, ET>(v: any): v is StateGenerator<T | ET> {
   return typeof v === "function";
 }

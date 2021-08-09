@@ -1,28 +1,23 @@
-import type {
-  InternalStateSetter,
-  QuarkContext,
-  QuarkSetterFn,
-  StateSetter,
-} from "../Types";
+import type { QuarkContext } from "../Types";
 
 export function applyMiddlewares<T, ET>(
   self: QuarkContext<T, any, ET>,
-  value: StateSetter<T, any>,
-  setterFn: QuarkSetterFn<T>
+  value: T | ET,
+  setterFn: (v: T) => void
 ) {
   const middlewares = self.middlewares;
 
-  const applyMiddlewareOfIndex = (index: number, v: InternalStateSetter<T>) => {
+  const applyMiddlewareOfIndex = (index: number, v: T | ET) => {
     const nextMiddleware = middlewares[index];
     if (nextMiddleware) {
       nextMiddleware(
         self.value,
-        value,
+        v,
         (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue),
         setterFn
       );
     } else {
-      setterFn(v);
+      setterFn(v as T);
     }
   };
 

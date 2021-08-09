@@ -37,8 +37,12 @@ export function quark<
   ARGS extends any[],
   A extends QuarkActions<T, ARGS>,
   S extends QuarkSelectors<T>,
-  M extends QuarkMiddleware<T, any>[],
-  E extends QuarkEffects<T, ParseActions<Exclude<A, undefined>>>
+  E extends QuarkEffects<
+    T,
+    ParseActions<Exclude<A, undefined>>,
+    GetMiddlewareTypes<M>
+  >,
+  M extends QuarkMiddleware<T, any>[] = never[]
 >(
   initValue: T,
   config: QuarkConfig<A, S, M> = {},
@@ -58,7 +62,7 @@ export function quark<
 
   const customActions = generateCustomActions(
     self,
-    setterWithMiddlewares,
+    setterWithMiddlewares as any,
     config?.actions ?? {}
   ) as ParseActions<A>;
   self.customActions = customActions;
@@ -70,7 +74,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, setterWithMiddlewares, get);
+  const use = generateUseHook(self, setterWithMiddlewares as any, get);
 
   const useSelector = generateSelectHook(self);
 
@@ -83,5 +87,5 @@ export function quark<
     useSelector,
     ...customActions,
     ...customSelectors,
-  };
+  } as any;
 }

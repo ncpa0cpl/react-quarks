@@ -1,10 +1,16 @@
-import type { QuarkSetterFn } from "./Quark";
-
 export type QuarkMiddleware<T, ET> = (
   currentState: T,
   value: T | ET,
-  resume: (value: T) => void,
-  set: QuarkSetterFn<T>
+  /**
+   * Resumes the standard state update flow with the value provided in the `value`
+   * argument. This argument is what any following middlewares will receive.
+   */
+  resume: (value: T | ET) => void,
+  /**
+   * Interrupts the standard update flow and immediately updates the state with the
+   * `value` specified in the argument. Any following middlewares will be skipped.
+   */
+  set: (value: T) => void
 ) => void;
 
 type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I : never;

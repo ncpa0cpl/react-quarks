@@ -6,7 +6,7 @@ import type { ParseSelectors, QuarkSelector } from "./Selectors";
 /** @internal */
 export type QuarkContext<T, A, ET> = {
   value: T;
-  effects: Set<QuarkCustomEffect<T, A>>;
+  effects: Set<QuarkCustomEffect<T, A, ET>>;
   subscribers: Set<QuarkSubscriber<T>>;
   customActions: A | undefined;
   middlewares: QuarkMiddleware<T, ET>[];
@@ -16,16 +16,24 @@ export type QuarkContext<T, A, ET> = {
 
 export type StateGenerator<T> = (oldVal: T) => T;
 
-export type InternalStateSetter<T> = StateGenerator<T> | T;
+export type StatePromise<T> = Promise<T>;
 
-export type StateSetter<T, ET> = InternalStateSetter<T> | ET;
+export type InternalStateSetter<T> = StatePromise<T> | T;
+
+export type StateSetter<T, ET> = [ET] extends [never]
+  ? InternalStateSetter<T> | StateGenerator<T>
+  : InternalStateSetter<T | ET> | StateGenerator<T | ET>;
 
 /** @internal */
 export type QuarkSubscriber<T> = (currentState: T) => void;
 
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
-export type QuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
+export type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
+
+export type QuarkSetterFn<T> = (
+  newVal: T | StateGenerator<T> | StatePromise<T>
+) => void;
 
 export type QuarkGetterFn<T> = () => T;
 
