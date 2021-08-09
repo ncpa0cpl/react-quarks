@@ -4,13 +4,11 @@ import type {
   QuarkContext,
   QuarkGetterFn,
   QuarkSetterFn,
-} from "../Quark.types";
+} from "../Types";
 
-/**
- * @internal
- */
-export function generateUseHook<T, A extends ParseActions<any>>(
-  self: QuarkContext<T, A>,
+/** @internal */
+export function generateUseHook<T, A extends ParseActions<any>, ET>(
+  self: QuarkContext<T, A, ET>,
   set: QuarkSetterFn<T>,
   get: QuarkGetterFn<T>
 ) {

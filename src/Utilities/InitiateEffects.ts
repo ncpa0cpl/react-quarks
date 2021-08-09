@@ -1,10 +1,8 @@
-import type { QuarkContext, QuarkEffects } from "../Quark.types";
+import type { QuarkContext, QuarkEffects } from "../Types";
 
-/**
- * @internal
- */
-export function initiateEffects<T>(
-  self: QuarkContext<T, any>,
+/** @internal */
+export function initiateEffects<T, ET>(
+  self: QuarkContext<T, any, ET>,
   effects: QuarkEffects<T, any>
 ) {
   for (const [_, effect] of Object.entries(effects)) {

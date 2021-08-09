@@ -1,4 +1,5 @@
 import type {
+  GetMiddlewareTypes,
   ParseActions,
   ParseSelectors,
   Quark,
@@ -6,11 +7,12 @@ import type {
   QuarkConfig,
   QuarkContext,
   QuarkEffects,
+  QuarkMiddleware,
   QuarkObjectOptions,
   QuarkSelectors,
-} from "./Quark.types";
+} from "./Types";
 import { generateCustomActions } from "./Utilities/GenerateCustomActions";
-import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectros";
+import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
 import { generateSelectHook } from "./Utilities/GenerateSelectHook";
 import { generateSetter } from "./Utilities/GenerateSetter";
 import { generateUseHook } from "./Utilities/GenerateUseHook";
@@ -35,26 +37,28 @@ export function quark<
   ARGS extends any[],
   A extends QuarkActions<T, ARGS>,
   S extends QuarkSelectors<T>,
+  M extends QuarkMiddleware<T, any>[],
   E extends QuarkEffects<T, ParseActions<Exclude<A, undefined>>>
 >(
   initValue: T,
-  config: QuarkConfig<A, S> = {},
+  config: QuarkConfig<A, S, M> = {},
   effects?: E
-): Quark<T, QuarkObjectOptions<A, S, E>> {
-  const self: QuarkContext<T, ParseActions<A>> = {
+): Quark<T, QuarkObjectOptions<A, S, M, E>> {
+  const self: QuarkContext<T, ParseActions<A>, GetMiddlewareTypes<M>> = {
     value: initValue,
     effects: new Set(),
     subscribers: new Set(),
     customActions: undefined,
+    middlewares: config.middlewares ?? [],
 
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
   };
 
-  const set = generateSetter(self);
+  const { setterWithMiddlewares } = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
-    set,
+    setterWithMiddlewares,
     config?.actions ?? {}
   ) as ParseActions<A>;
   self.customActions = customActions;
@@ -66,7 +70,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, set, get);
+  const use = generateUseHook(self, setterWithMiddlewares, get);
 
   const useSelector = generateSelectHook(self);
 
@@ -74,7 +78,7 @@ export function quark<
 
   return {
     get,
-    set,
+    set: setterWithMiddlewares,
     use,
     useSelector,
     ...customActions,

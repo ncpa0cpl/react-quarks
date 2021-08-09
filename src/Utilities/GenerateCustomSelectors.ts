@@ -4,13 +4,11 @@ import type {
   QuarkContext,
   QuarkCustomSelector,
   QuarkSelectors,
-} from "../Quark.types";
+} from "../Types";
 
-/**
- * @internal
- */
-function generateCustomSelectHook<T, U>(
-  self: QuarkContext<T, any>,
+/** @internal */
+function generateCustomSelectHook<T, U, ET>(
+  self: QuarkContext<T, any, ET>,
   selector: QuarkCustomSelector<T, U>
 ) {
   return (shouldComponentUpdate?: QuarkComparatorFn) => {
@@ -45,11 +43,9 @@ function generateCustomSelectHook<T, U>(
   };
 }
 
-/**
- * @internal
- */
-export function generateCustomSelectors<T>(
-  self: QuarkContext<T, any>,
+/** @internal */
+export function generateCustomSelectors<T, ET>(
+  self: QuarkContext<T, any, ET>,
   selectors: QuarkSelectors<T>
 ) {
   return Object.fromEntries(

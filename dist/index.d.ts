@@ -1,2 +1,2 @@
 export { quark } from "./Quark";
-export * from "./Quark.types";
+export * from "./Types/index";
