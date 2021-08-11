@@ -77,7 +77,10 @@ export function asyncUpdatesController<T>(): AsyncUpdateController<T> {
 
     currentAsyncUpdate = CancelablePromise<T>(p);
 
-    currentAsyncUpdate.then(stateUpdate);
+    currentAsyncUpdate.then((v) => {
+      stateUpdate(v);
+      currentAsyncUpdate = undefined;
+    });
   };
 
   return {
