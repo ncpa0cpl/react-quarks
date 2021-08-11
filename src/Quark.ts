@@ -11,13 +11,15 @@ import type {
   QuarkObjectOptions,
   QuarkSelectors,
 } from "./Types";
-import { generateCustomActions } from "./Utilities/GenerateCustomActions";
-import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
-import { generateSelectHook } from "./Utilities/GenerateSelectHook";
-import { generateSetter } from "./Utilities/GenerateSetter";
-import { generateUseHook } from "./Utilities/GenerateUseHook";
-import { initiateEffects } from "./Utilities/InitiateEffects";
-import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
+import {
+  generateCustomActions,
+  generateCustomSelectors,
+  generateSelectHook,
+  generateSetter,
+  generateUseHook,
+  initiateEffects,
+  isUpdateNecessary,
+} from "./Utilities";
 
 /**
  * Creates a new quark object.
@@ -58,11 +60,11 @@ export function quark<
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
   };
 
-  const { setterWithMiddlewares } = generateSetter(self);
+  const { applyMiddlewaresAndUpdateState } = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
-    setterWithMiddlewares as any,
+    applyMiddlewaresAndUpdateState,
     config?.actions ?? {}
   ) as ParseActions<A>;
   self.customActions = customActions;
@@ -74,7 +76,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, setterWithMiddlewares as any, get);
+  const use = generateUseHook(self, applyMiddlewaresAndUpdateState, get);
 
   const useSelector = generateSelectHook(self);
 
@@ -82,10 +84,10 @@ export function quark<
 
   return {
     get,
-    set: setterWithMiddlewares,
+    set: applyMiddlewaresAndUpdateState,
     use,
     useSelector,
     ...customActions,
     ...customSelectors,
-  } as any;
+  };
 }

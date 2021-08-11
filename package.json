@@ -8,6 +8,7 @@
     "url": "https://github.com/ncpa0cpl/react-particles.git"
   },
   "scripts": {
+    "tsc": "tsc --noEmit",
     "build": "tsc",
     "test": "jest"
   },

@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import type { QuarkMiddleware, QuarkType } from "../src";
 import { quark } from "../src";
+import { sleep } from "./helpers";
 
 describe("quark()", () => {
   describe("correctly works outside react", () => {
@@ -22,6 +23,7 @@ describe("quark()", () => {
       q.set(promise);
 
       await promise;
+      await sleep(0);
 
       expect(q.get()).toMatchObject({ value: 999 });
     });
@@ -47,10 +49,12 @@ describe("quark()", () => {
       expect(q.get()).toEqual("A");
 
       await promiseA;
+      await sleep(0);
 
       expect(q.get()).toEqual("FOO");
 
       await promiseB;
+      await sleep(0);
 
       expect(q.get()).toEqual("FOO");
 
@@ -75,10 +79,12 @@ describe("quark()", () => {
       expect(q.get()).toEqual("CORGE");
 
       await promiseC;
+      await sleep(0);
 
       expect(q.get()).toEqual("CORGE");
 
       await promiseD;
+      await sleep(0);
 
       expect(q.get()).toEqual("CORGE");
     });
@@ -109,7 +115,7 @@ describe("quark()", () => {
     });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
-        const fooMiddleware: QuarkMiddleware<string, 1 | 2> = (_, value, resume) => {
+        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = (_, value, resume) => {
           if (typeof value === "number") {
             resume({ 1: "BAR", 2: "BAZ" }[value]);
           } else {
@@ -117,7 +123,7 @@ describe("quark()", () => {
           }
         };
 
-        const q = quark("FOO", { middlewares: [fooMiddleware] });
+        const q = quark("FOO", { middlewares: [mapMiddleware] });
 
         q.set(1);
 
@@ -133,21 +139,24 @@ describe("quark()", () => {
           value,
           resume
         ) => {
-          resume(value * 2);
+          if (typeof value === "number") resume(value * 2);
+          else resume(value);
         };
         const subtractMiddleware: QuarkMiddleware<number, number> = (
           _,
           value,
           resume
         ) => {
-          resume(value - 1);
+          if (typeof value === "number") resume(value - 1);
+          else resume(value);
         };
         const squareMiddleware: QuarkMiddleware<number, number> = (
           _,
           value,
           resume
         ) => {
-          resume(value ** 2);
+          if (typeof value === "number") resume(value ** 2);
+          else resume(value);
         };
 
         const q = quark(0, {
@@ -157,6 +166,29 @@ describe("quark()", () => {
         q.set(2);
 
         expect(q.get()).toEqual((2 * 2 - 1) ** 2);
+      });
+      it("set() correctly omits following middlewares", () => {
+        const firstMiddleware: QuarkMiddleware<any, number> = (
+          state,
+          value,
+          resume,
+          set
+        ) => {
+          if (typeof value === "number") return set(`${value}`);
+          return resume(value);
+        };
+        const secondMiddleware: QuarkMiddleware<any, undefined> = jest.fn(
+          (state, value, resume, set) => {
+            resume(undefined);
+          }
+        );
+
+        const q = quark("FOO", { middlewares: [firstMiddleware, secondMiddleware] });
+
+        q.set(2);
+
+        expect(q.get()).toEqual("2");
+        expect(secondMiddleware).toBeCalledTimes(0);
       });
     });
     describe("correctly executes side effect", () => {

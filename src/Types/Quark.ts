@@ -16,13 +16,15 @@ export type QuarkContext<T, A, ET> = {
 
 export type StateGenerator<T> = (oldVal: T) => T;
 
-export type StatePromise<T> = Promise<T>;
+// export type StatePromise<T> = Promise<T>;
 
-export type InternalStateSetter<T> = StatePromise<T> | T;
+// export type InternalStateSetter<T> = StatePromise<T> | T;
 
-export type StateSetter<T, ET> = [ET] extends [never]
-  ? InternalStateSetter<T> | StateGenerator<T>
-  : InternalStateSetter<T | ET> | StateGenerator<T | ET>;
+export type StateSetter<QuarkType, MiddlewareTypes> = [MiddlewareTypes] extends [
+  never
+]
+  ? QuarkType | Promise<QuarkType> | StateGenerator<QuarkType>
+  : QuarkType | MiddlewareTypes | Promise<QuarkType> | StateGenerator<QuarkType>;
 
 /** @internal */
 export type QuarkSubscriber<T> = (currentState: T) => void;
@@ -31,8 +33,8 @@ export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
 export type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
 
-export type QuarkSetterFn<T> = (
-  newVal: T | StateGenerator<T> | StatePromise<T>
+export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
+  newVal: StateSetter<QuarkType, MiddlewareTypes>
 ) => void;
 
 export type QuarkGetterFn<T> = () => T;

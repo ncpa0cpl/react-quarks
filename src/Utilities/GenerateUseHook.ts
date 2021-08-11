@@ -9,7 +9,7 @@ import type {
 /** @internal */
 export function generateUseHook<T, A extends ParseActions<any>, ET>(
   self: QuarkContext<T, A, ET>,
-  set: QuarkSetterFn<T | ET>,
+  set: QuarkSetterFn<T, ET>,
   get: QuarkGetterFn<T>
 ) {
   return () => {
