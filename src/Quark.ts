@@ -58,6 +58,10 @@ export function quark<
     middlewares: config.middlewares ?? [],
 
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
+
+    configOptions: {
+      allowRaceConditions: config.allowRaceConditions ?? false,
+    },
   };
 
   const { applyMiddlewaresAndUpdateState } = generateSetter(self);

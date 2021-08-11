@@ -1,3 +1,5 @@
+import type { QuarkContext } from "../../Types";
+
 type CancelablePromise<T = void> = {
   then<R = void>(onFulfilled: (v: T) => Promise<R> | void): Promise<R | void>;
   cancel(): void;
@@ -65,10 +67,13 @@ export type AsyncUpdateController<T> = {
   preventLastAsyncUpdate: () => void;
 };
 
-export function asyncUpdatesController<T>(): AsyncUpdateController<T> {
+export function asyncUpdatesController<T>(
+  self: QuarkContext<T, any, any>
+): AsyncUpdateController<T> {
   let currentAsyncUpdate: CancelablePromise<T> | undefined;
 
   const preventLastAsyncUpdate = () => {
+    if (self.configOptions.allowRaceConditions) return;
     currentAsyncUpdate?.cancel();
     currentAsyncUpdate = undefined;
   };

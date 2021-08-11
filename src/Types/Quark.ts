@@ -12,6 +12,10 @@ export type QuarkContext<T, A, ET> = {
   middlewares: QuarkMiddleware<T, ET>[];
 
   stateComparator: QuarkComparatorFn;
+
+  configOptions: {
+    allowRaceConditions: boolean;
+  };
 };
 
 export type StateGenerator<T> = (oldVal: T) => T;
