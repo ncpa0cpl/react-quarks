@@ -1,6 +1,6 @@
 import { cloneDeep as _cloneDeep } from "lodash";
 import type { QuarkMiddleware } from "../../Types";
-import { StateUpdateHistory } from "./UpdateHistory";
+import { getStateUpdateHistory } from "./UpdateHistory";
 
 function getValueType(val: any) {
   if (val instanceof Promise) return "Promise";
@@ -18,6 +18,7 @@ export function createDebugHistoryMiddleware(options: {
   trace?: boolean;
 }): QuarkMiddleware<any, undefined> {
   const { name, trace = true } = options;
+  const StateUpdateHistory = getStateUpdateHistory();
   const quarkHistoryTracker = StateUpdateHistory.track(name);
   return (getState, newValue, resume, _, type) => {
     switch (type) {

@@ -21,10 +21,20 @@ function createStateUpdateHistory() {
   return { track, showHistory };
 }
 
-export const StateUpdateHistory = createStateUpdateHistory();
+let StateUpdateHistory: ReturnType<typeof createStateUpdateHistory> | undefined;
 
-if (global.window) {
-  Object.assign(global.window, { __quark_history_tracker__: StateUpdateHistory });
-} else if (global) {
-  Object.assign(global, { __quark_history_tracker__: StateUpdateHistory });
+export function getStateUpdateHistory() {
+  if (StateUpdateHistory) return StateUpdateHistory;
+
+  StateUpdateHistory = createStateUpdateHistory();
+
+  if (window) {
+    Object.assign(window, { __quark_history_tracker__: StateUpdateHistory });
+  } else if (global && global.window) {
+    Object.assign(global.window, { __quark_history_tracker__: StateUpdateHistory });
+  } else if (global) {
+    Object.assign(global, { __quark_history_tracker__: StateUpdateHistory });
+  }
+
+  return StateUpdateHistory;
 }
