@@ -1,10 +1,4 @@
-import { generateCustomActions } from "./Utilities/GenerateCustomActions";
-import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
-import { generateSelectHook } from "./Utilities/GenerateSelectHook";
-import { generateSetter } from "./Utilities/GenerateSetter";
-import { generateUseHook } from "./Utilities/GenerateUseHook";
-import { initiateEffects } from "./Utilities/InitiateEffects";
-import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
+import { generateCustomActions, generateCustomSelectors, generateSelectHook, generateSetter, generateUseHook, initiateEffects, isUpdateNecessary, } from "./Utilities";
 /**
  * Creates a new quark object.
  *
@@ -27,17 +21,17 @@ export function quark(initValue, config = {}, effects) {
         middlewares: config.middlewares ?? [],
         stateComparator: config.shouldUpdate ?? isUpdateNecessary,
     };
-    const { setterWithMiddlewares } = generateSetter(self);
-    const customActions = generateCustomActions(self, setterWithMiddlewares, config?.actions ?? {});
+    const { applyMiddlewaresAndUpdateState } = generateSetter(self);
+    const customActions = generateCustomActions(self, applyMiddlewaresAndUpdateState, config?.actions ?? {});
     self.customActions = customActions;
     const customSelectors = generateCustomSelectors(self, config?.selectors ?? {});
     const get = () => self.value;
-    const use = generateUseHook(self, setterWithMiddlewares, get);
+    const use = generateUseHook(self, applyMiddlewaresAndUpdateState, get);
     const useSelector = generateSelectHook(self);
     initiateEffects(self, effects ?? {});
     return {
         get,
-        set: setterWithMiddlewares,
+        set: applyMiddlewaresAndUpdateState,
         use,
         useSelector,
         ...customActions,

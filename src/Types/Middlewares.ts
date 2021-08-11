@@ -1,7 +1,7 @@
 import type { StateSetter } from "./Quark";
 
 export type QuarkMiddleware<T, ET> = (
-  currentState: T,
+  getState: () => T,
   value: StateSetter<T, ET>,
   /**
    * Resumes the standard state update flow with the value provided in the `value`

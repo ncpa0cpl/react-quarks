@@ -1,0 +1,126 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DebugHistoryMiddleware correctly handles async updates 1`] = `
+Object {
+  "0_q1": Array [
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
+        "value": "BAR",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAR",
+      "time": 1600000000000,
+    },
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
+        "value": "BAZ",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "BAR",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAZ",
+      "time": 1600000000100,
+    },
+  ],
+  "1_q1": Array [
+    Object {
+      "change": "Postponed",
+      "dispatchedUpdate": Object {
+        "type": "Promise",
+        "value": Promise {
+          "__quark_internal_is_promise_canceled__": true,
+        },
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "FOO",
+      "time": 1600000000200,
+    },
+    Object {
+      "change": "Postponed",
+      "dispatchedUpdate": Object {
+        "type": "Promise",
+        "value": Promise {
+          "__quark_internal_is_promise_canceled__": false,
+        },
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "FOO",
+      "time": 1600000000300,
+    },
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
+        "value": "BAZ",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "source": "Async-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAZ",
+      "time": 1600000000400,
+    },
+  ],
+}
+`;
+
+exports[`DebugHistoryMiddleware correctly saves updates to the history tracker 1`] = `
+Object {
+  "0_q1": Array [
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
+        "value": "BAR",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAR",
+      "time": 1600000000000,
+    },
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
+        "value": "BAZ",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "BAR",
+      },
+      "source": "Set-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAZ",
+      "time": 1600000000100,
+    },
+  ],
+}
+`;

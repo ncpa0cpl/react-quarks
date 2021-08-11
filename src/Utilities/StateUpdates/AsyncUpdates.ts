@@ -3,15 +3,48 @@ type CancelablePromise<T = void> = {
   cancel(): void;
 };
 
+function hasKey<K extends string>(obj: object, key: K): obj is Record<K, unknown> {
+  return key in obj;
+}
+
+const PROMISE_CANCEL_STATUS_PROPERTY = "__quark_internal_is_promise_canceled__";
+
+export function extractIsPromiseCanceled(promise: unknown) {
+  if (
+    typeof promise === "object" &&
+    promise !== null &&
+    hasKey(promise, PROMISE_CANCEL_STATUS_PROPERTY)
+  ) {
+    return promise[PROMISE_CANCEL_STATUS_PROPERTY] as boolean;
+  }
+}
+
+function assignCancelStatusToOriginalPromise(
+  promise: Promise<any>,
+  canceled: boolean
+) {
+  Object.assign(promise, { [PROMISE_CANCEL_STATUS_PROPERTY]: canceled });
+}
+
 function CancelablePromise<T = unknown>(
-  executor: (resolve: (value: T) => void, reject: (reason?: any) => void) => void
+  orgPromise: Promise<T>
 ): CancelablePromise<T> {
+  const executor: (
+    resolve: (value: T) => void,
+    reject: (reason?: any) => void
+  ) => void = (resolve, reject) => {
+    orgPromise.then(resolve);
+    orgPromise.catch(reject);
+  };
+
   let isCanceled = false;
   const p = new Promise(executor);
 
   p.catch((e) => {
     console.error("Asynchronous state update was unsuccessful due to an error:", e);
   });
+
+  assignCancelStatusToOriginalPromise(orgPromise, isCanceled);
 
   return {
     then(onFulfilled) {
@@ -22,6 +55,7 @@ function CancelablePromise<T = unknown>(
     },
     cancel() {
       isCanceled = true;
+      assignCancelStatusToOriginalPromise(orgPromise, isCanceled);
     },
   };
 }
@@ -41,10 +75,7 @@ export function asyncUpdatesController<T>(): AsyncUpdateController<T> {
   const dispatchAsyncUpdate = (p: Promise<T>, stateUpdate: (state: T) => void) => {
     preventLastAsyncUpdate();
 
-    currentAsyncUpdate = CancelablePromise<T>((resolve, reject) => {
-      p.then(resolve);
-      p.catch(reject);
-    });
+    currentAsyncUpdate = CancelablePromise<T>(p);
 
     currentAsyncUpdate.then(stateUpdate);
   };

@@ -9,7 +9,7 @@ export function applyMiddlewares<T, ET>(
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
       nextMiddleware(
-        self.value,
+        () => self.value,
         v,
         (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue),
         setterFn
