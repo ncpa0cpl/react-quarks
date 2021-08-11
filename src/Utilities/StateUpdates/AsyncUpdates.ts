@@ -70,6 +70,7 @@ export function asyncUpdatesController<T>(): AsyncUpdateController<T> {
 
   const preventLastAsyncUpdate = () => {
     currentAsyncUpdate?.cancel();
+    currentAsyncUpdate = undefined;
   };
 
   const dispatchAsyncUpdate = (p: Promise<T>, stateUpdate: (state: T) => void) => {
@@ -78,8 +79,8 @@ export function asyncUpdatesController<T>(): AsyncUpdateController<T> {
     currentAsyncUpdate = CancelablePromise<T>(p);
 
     currentAsyncUpdate.then((v) => {
-      stateUpdate(v);
       currentAsyncUpdate = undefined;
+      stateUpdate(v);
     });
   };
 

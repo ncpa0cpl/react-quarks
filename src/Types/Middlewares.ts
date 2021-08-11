@@ -1,4 +1,4 @@
-import type { StateSetter } from "./Quark";
+import type { QuarkUpdateType, StateSetter } from "./Quark";
 
 export type QuarkMiddleware<T, ET> = (
   getState: () => T,
@@ -12,7 +12,17 @@ export type QuarkMiddleware<T, ET> = (
    * Interrupts the standard update flow and immediately updates the state with the
    * `value` specified in the argument. Any following middlewares will be skipped.
    */
-  set: (value: StateSetter<T, never>) => void
+  set: (value: StateSetter<T, never>) => void,
+  /**
+   * Indicates if this state update was initiated directly via `set()` method call
+   * (type = 'sync') or via asynchronous state update (type = 'async').
+   *
+   * Asynchronous state updates will trigger each middleware up to two times, first
+   * time when the Promise object is passed to the `set()` method (type = `sync`),
+   * and once more if the promise resolves and it's result is saved as the new quark
+   * state (type = `async`).
+   */
+  updateType: QuarkUpdateType
 ) => void;
 
 type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I : never;

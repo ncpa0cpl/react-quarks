@@ -1,8 +1,9 @@
-import type { QuarkContext, StateSetter } from "../Types";
+import type { QuarkContext, QuarkUpdateType, StateSetter } from "../Types";
 
 export function applyMiddlewares<T, ET>(
   self: QuarkContext<T, any, ET>,
   value: StateSetter<T, ET>,
+  type: QuarkUpdateType,
   setterFn: (v: StateSetter<T, never>) => void
 ) {
   const applyMiddlewareOfIndex = (index: number, v: StateSetter<T, ET>) => {
@@ -12,7 +13,8 @@ export function applyMiddlewares<T, ET>(
         () => self.value,
         v,
         (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue),
-        setterFn
+        setterFn,
+        type
       );
     } else {
       setterFn(v as T);

@@ -39,6 +39,8 @@ export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
 
 export type QuarkGetterFn<T> = () => T;
 
+export type QuarkUpdateType = "sync" | "async";
+
 export type Quark<
   T,
   C extends { actions?: any; selectors?: any; middlewares?: any }

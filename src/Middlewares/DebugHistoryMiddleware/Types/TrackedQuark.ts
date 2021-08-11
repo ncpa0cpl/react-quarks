@@ -9,7 +9,7 @@ export type QuarkStateChangeHistoricalEntry = {
   initialState: HistoricalState;
   dispatchedUpdate: HistoricalState;
   stateAfterUpdate: unknown;
-  source: "Set-Dispatch" | "Async-Dispatch";
+  source: "Sync-Dispatch" | "Async-Dispatch";
   stackTrace: string | undefined;
 };
 
