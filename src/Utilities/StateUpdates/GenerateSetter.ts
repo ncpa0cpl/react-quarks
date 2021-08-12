@@ -6,7 +6,7 @@ import { unpackStateSetter } from "./UnpackStateSetter";
 
 /** @internal */
 export function generateSetter<T, A, ET>(self: QuarkContext<T, A, ET>) {
-  const asyncUpdates = asyncUpdatesController<T>();
+  const asyncUpdates = asyncUpdatesController<T>(self);
 
   const updateState = (
     setter: StateSetter<T, never>,

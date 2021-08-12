@@ -1,3 +1,4 @@
+import { addToGlobalSpace } from "./AddToGlobalSpace";
 import { initConsoleTools } from "./ConsoleTools";
 import { createTrackedQuark } from "./TrackedQuark";
 import type { TrackedQuark } from "./Types/TrackedQuark";
@@ -36,15 +37,8 @@ export function getStateUpdateHistory() {
 
   StateUpdateHistory = createStateUpdateHistory();
 
-  if (window) {
-    Object.assign(window, { __quark_history_tracker__: StateUpdateHistory });
-  } else if (global && global.window) {
-    Object.assign(global.window, { __quark_history_tracker__: StateUpdateHistory });
-  } else if (global) {
-    Object.assign(global, { __quark_history_tracker__: StateUpdateHistory });
-  }
+  addToGlobalSpace({ __quark_history_tracker__: StateUpdateHistory });
+  initConsoleTools();
 
   return StateUpdateHistory;
 }
-
-initConsoleTools();

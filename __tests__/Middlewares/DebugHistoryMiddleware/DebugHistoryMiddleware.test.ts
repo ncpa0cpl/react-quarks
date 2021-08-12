@@ -1,9 +1,9 @@
 import { createDebugHistoryMiddleware, quark } from "../../../src";
-import { StateUpdateHistory } from "../../../src/Middlewares/DebugHistoryMiddleware/UpdateHistory";
+import { getStateUpdateHistory } from "../../../src/Middlewares/DebugHistoryMiddleware/UpdateHistory";
 import { sleep } from "../../helpers";
 
 declare const global: {
-  __quark_history_tracker__: typeof StateUpdateHistory;
+  __quark_history_tracker__: ReturnType<typeof getStateUpdateHistory>;
 };
 
 const getTime = (() =>

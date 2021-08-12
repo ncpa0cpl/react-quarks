@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { hasKey } from "../../Utilities/GeneralPurposeUtilities";
 import { addToGlobalSpace } from "./AddToGlobalSpace";
 import type { HistoricalState, HistoryPropertiesKeys } from "./Types/TrackedQuark";
-import { StateUpdateHistory } from "./UpdateHistory";
+import { getStateUpdateHistory } from "./UpdateHistory";
 
 const PROPERTIES_FRIENDLY_NAMES_MAP: Record<HistoryPropertiesKeys, string> = {
   value: "Value:",
@@ -24,7 +24,7 @@ function parseHistoricalStateToString(obj: HistoricalState) {
 function printQuarkHistory(options?: { name?: string; showLast?: number }) {
   const { showLast = 16, name = undefined } = options ?? {};
 
-  const history = StateUpdateHistory;
+  const history = getStateUpdateHistory();
 
   const quarksHistories = history.getHistory();
 
