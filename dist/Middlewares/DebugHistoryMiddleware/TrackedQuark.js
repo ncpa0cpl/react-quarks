@@ -6,9 +6,11 @@ export function createTrackedQuark(name) {
             ...entry,
             time: Date.now(),
             change,
-            stateAfterUpdate: change === "Immediate"
-                ? entry.dispatchedUpdate.value
-                : entry.initialState.value,
+            stateAfterUpdate: change === "Postponed"
+                ? entry.initialState.value
+                : typeof entry.dispatchedUpdate.value === "function"
+                    ? entry.dispatchedUpdate.value(entry.initialState.value)
+                    : entry.dispatchedUpdate.value,
         });
     };
     return {

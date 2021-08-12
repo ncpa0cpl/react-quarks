@@ -9,7 +9,7 @@ function getValueType(val: any) {
 }
 
 function cloneDeep<T>(v: T): T {
-  if (v instanceof Promise) return v;
+  if (v instanceof Promise || typeof v === "function") return v;
   return _cloneDeep(v);
 }
 
@@ -22,7 +22,9 @@ export function createDebugHistoryMiddleware(options: {
   return (getState, newValue, resume, _, type) => {
     switch (type) {
       case "sync": {
-        const stackTrace = trace ? new Error().stack : undefined;
+        const stackTrace = trace
+          ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
+          : undefined;
         quarkHistoryTracker.addHistoryEntry({
           source: "Sync-Dispatch",
           stackTrace,

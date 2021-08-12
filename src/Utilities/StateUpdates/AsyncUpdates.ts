@@ -1,11 +1,9 @@
+import { hasKey } from "../GeneralPurposeUtilities";
+
 type CancelablePromise<T = void> = {
   then<R = void>(onFulfilled: (v: T) => Promise<R> | void): Promise<R | void>;
   cancel(): void;
 };
-
-function hasKey<K extends string>(obj: object, key: K): obj is Record<K, unknown> {
-  return key in obj;
-}
 
 const PROMISE_CANCEL_STATUS_PROPERTY = "__quark_internal_is_promise_canceled__";
 

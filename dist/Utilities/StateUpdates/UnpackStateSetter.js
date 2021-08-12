@@ -1,9 +1,12 @@
+import { applyMiddlewares } from "../ApplyMiddlewares";
 import { isGenerator } from "../IsGenerator";
 export function unpackStateSetter(self, asyncUpdates, setter) {
     if (setter instanceof Promise) {
         return {
             then(handler) {
-                asyncUpdates.dispatchAsyncUpdate(setter, handler);
+                asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
+                    applyMiddlewares(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
+                });
             },
         };
     }

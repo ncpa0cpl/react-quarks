@@ -1,3 +1,4 @@
+import { initConsoleTools } from "./ConsoleTools";
 import { createTrackedQuark } from "./TrackedQuark";
 import type { TrackedQuark } from "./Types/TrackedQuark";
 
@@ -10,6 +11,13 @@ function createStateUpdateHistory() {
     return quarkTrack;
   };
 
+  const getHistory = () => {
+    return trackedQuarks.map((t) => ({
+      name: t.name,
+      stateChangeHistory: t.stateChangeHistory,
+    }));
+  };
+
   const showHistory = () => {
     return Object.fromEntries(
       trackedQuarks.map((trackedQuark, index) => {
@@ -18,7 +26,7 @@ function createStateUpdateHistory() {
     );
   };
 
-  return { track, showHistory };
+  return { track, showHistory, getHistory };
 }
 
 export const StateUpdateHistory = createStateUpdateHistory();
@@ -28,3 +36,5 @@ if (global.window) {
 } else if (global) {
   Object.assign(global, { __quark_history_tracker__: StateUpdateHistory });
 }
+
+initConsoleTools();

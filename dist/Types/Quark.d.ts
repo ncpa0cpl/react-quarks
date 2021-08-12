@@ -9,6 +9,7 @@ export declare type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 export declare type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
 export declare type QuarkSetterFn<QuarkType, MiddlewareTypes> = (newVal: StateSetter<QuarkType, MiddlewareTypes>) => void;
 export declare type QuarkGetterFn<T> = () => T;
+export declare type QuarkUpdateType = "sync" | "async";
 export declare type Quark<T, C extends {
     actions?: any;
     selectors?: any;
