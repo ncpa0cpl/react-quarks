@@ -18,7 +18,7 @@ export function generateSetter(self) {
         });
     };
     const applyMiddlewaresAndUpdateState = (newVal, __internal_omit_render = false) => {
-        applyMiddlewares(self, newVal, (v) => updateState(v, __internal_omit_render));
+        applyMiddlewares(self, newVal, "sync", (v) => updateState(v, __internal_omit_render));
     };
     return {
         applyMiddlewaresAndUpdateState,

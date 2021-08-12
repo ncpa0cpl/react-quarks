@@ -4,4 +4,8 @@ export declare const StateUpdateHistory: {
     showHistory: () => {
         [k: string]: import("./Types/TrackedQuark").QuarkStateChangeHistoricalEntry[];
     };
+    getHistory: () => {
+        name: string;
+        stateChangeHistory: import("./Types/TrackedQuark").QuarkStateChangeHistoricalEntry[];
+    }[];
 };

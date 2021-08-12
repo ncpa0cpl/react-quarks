@@ -1,6 +1,4 @@
-function hasKey(obj, key) {
-    return key in obj;
-}
+import { hasKey } from "../GeneralPurposeUtilities";
 const PROMISE_CANCEL_STATUS_PROPERTY = "__quark_internal_is_promise_canceled__";
 export function extractIsPromiseCanceled(promise) {
     if (typeof promise === "object" &&
@@ -42,11 +40,15 @@ export function asyncUpdatesController() {
     let currentAsyncUpdate;
     const preventLastAsyncUpdate = () => {
         currentAsyncUpdate?.cancel();
+        currentAsyncUpdate = undefined;
     };
     const dispatchAsyncUpdate = (p, stateUpdate) => {
         preventLastAsyncUpdate();
         currentAsyncUpdate = CancelablePromise(p);
-        currentAsyncUpdate.then(stateUpdate);
+        currentAsyncUpdate.then((v) => {
+            currentAsyncUpdate = undefined;
+            stateUpdate(v);
+        });
     };
     return {
         dispatchAsyncUpdate,
