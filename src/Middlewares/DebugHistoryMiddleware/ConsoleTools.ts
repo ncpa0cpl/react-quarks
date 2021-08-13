@@ -1,21 +1,36 @@
 import { DateTime } from "luxon";
+import type { RecordValue } from "../../Types";
 import { hasKey } from "../../Utilities/GeneralPurposeUtilities";
 import { addToGlobalSpace } from "./AddToGlobalSpace";
-import type { HistoricalState, HistoryPropertiesKeys } from "./Types/TrackedQuark";
+import type {
+  HistoricalState,
+  HistoryPropertiesKeys,
+  QuarkStateChangeHistoricalEntry,
+} from "./Types/TrackedQuark";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
 const PROPERTIES_FRIENDLY_NAMES_MAP: Record<HistoryPropertiesKeys, string> = {
   value: "Value:",
   type: "Value Type:",
   change: "Value Change is:",
-  initialState: "Quark State Value before update:",
-  dispatchedUpdate: "Dispatched Value:",
+  initialState: "Previous state value:",
+  dispatchedUpdate: "Dispatched state value:",
   name: "Quark Name:",
   source: "Update Source:",
   stackTrace: "Stack Trace:",
-  stateAfterUpdate: "State Value after applying this update:",
+  stateAfterUpdate: "Next state value:",
   time: "Timestamp:",
 };
+
+const columns: HistoryPropertiesKeys[] = [
+  "initialState",
+  "dispatchedUpdate",
+  "stateAfterUpdate",
+  "change",
+  "source",
+  "time",
+  "stackTrace",
+];
 
 function parseHistoricalStateToString(obj: HistoricalState) {
   return `Type: ${obj.type}; Value: [${obj.value}]`;
@@ -28,19 +43,10 @@ function printQuarkHistory(options?: { name?: string; showLast?: number }) {
 
   const quarksHistories = history.getHistory();
 
-  const columns: HistoryPropertiesKeys[] = [
-    "initialState",
-    "dispatchedUpdate",
-    "stateAfterUpdate",
-    "change",
-    "source",
-    "time",
-    "stackTrace",
-  ];
-
   for (const quarkHistory of quarksHistories) {
     if (!name || quarkHistory.name === name) {
-      console.group(quarkHistory.name);
+      if (name) console.groupCollapsed(quarkHistory.name);
+      else console.group(quarkHistory.name);
 
       const table = quarkHistory.stateChangeHistory
         .reverse()
@@ -48,15 +54,15 @@ function printQuarkHistory(options?: { name?: string; showLast?: number }) {
         .map((entry) => {
           const columnValues = columns.map((propertyName): [string, unknown] => {
             const friendlyName = PROPERTIES_FRIENDLY_NAMES_MAP[propertyName];
-            const value = hasKey(entry, propertyName)
+            const value: RecordValue<QuarkStateChangeHistoricalEntry> = hasKey(
+              entry,
+              propertyName
+            )
               ? entry[propertyName]
               : undefined;
 
             if (typeof value === "object") {
-              return [
-                friendlyName,
-                parseHistoricalStateToString(value as HistoricalState),
-              ];
+              return [friendlyName, parseHistoricalStateToString(value)];
             }
 
             if (propertyName === "time") {

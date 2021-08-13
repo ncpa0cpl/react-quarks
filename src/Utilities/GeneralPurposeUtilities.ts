@@ -1,6 +1,6 @@
 export function hasKey<K extends string>(
   obj: object,
   key: K
-): obj is Record<K, unknown> {
+): obj is Record<K, any> {
   return key in obj;
 }
