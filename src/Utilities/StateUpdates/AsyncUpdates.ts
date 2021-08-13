@@ -32,25 +32,27 @@ function CancelablePromise<T = unknown>(
     resolve: (value: T) => void,
     reject: (reason?: any) => void
   ) => void = (resolve, reject) => {
-    orgPromise.then(resolve);
-    orgPromise.catch(reject);
+    orgPromise.then(resolve).catch(reject);
   };
 
   let isCanceled = false;
   const p = new Promise(executor);
 
-  p.catch((e) => {
-    console.error("Asynchronous state update was unsuccessful due to an error:", e);
-  });
-
   assignCancelStatusToOriginalPromise(orgPromise, isCanceled);
 
   return {
     then(onFulfilled) {
-      return p.then(async (v) => {
-        if (!isCanceled) return Promise.resolve(await onFulfilled(v));
-        else return Promise.resolve();
-      });
+      return p
+        .then(async (v) => {
+          if (!isCanceled) return Promise.resolve(await onFulfilled(v));
+          else return Promise.resolve();
+        })
+        .catch((e) => {
+          console.error(
+            "Asynchronous state update was unsuccessful due to an error:",
+            e
+          );
+        });
     },
     cancel() {
       isCanceled = true;
