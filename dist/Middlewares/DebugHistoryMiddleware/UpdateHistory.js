@@ -1,14 +1,16 @@
+import { addToGlobalSpace } from "./AddToGlobalSpace";
 import { initConsoleTools } from "./ConsoleTools";
 import { createTrackedQuark } from "./TrackedQuark";
 function createStateUpdateHistory() {
     const trackedQuarks = [];
-    const track = (name) => {
-        const quarkTrack = createTrackedQuark(name);
+    const track = (options) => {
+        const quarkTrack = createTrackedQuark(options);
         trackedQuarks.push(quarkTrack);
         return quarkTrack;
     };
     const getHistory = () => {
         return trackedQuarks.map((t) => ({
+            options: t.options,
             name: t.name,
             stateChangeHistory: t.stateChangeHistory,
         }));
@@ -18,13 +20,19 @@ function createStateUpdateHistory() {
             return [`${index}_${trackedQuark.name}`, trackedQuark.stateChangeHistory];
         }));
     };
-    return { track, showHistory, getHistory };
+    const clear = () => {
+        for (const q of trackedQuarks) {
+            q.clear();
+        }
+    };
+    return { track, showHistory, getHistory, clear };
 }
-export const StateUpdateHistory = createStateUpdateHistory();
-if (global.window) {
-    Object.assign(global.window, { __quark_history_tracker__: StateUpdateHistory });
+let StateUpdateHistory;
+export function getStateUpdateHistory() {
+    if (StateUpdateHistory)
+        return StateUpdateHistory;
+    StateUpdateHistory = createStateUpdateHistory();
+    addToGlobalSpace({ __quark_history_tracker__: StateUpdateHistory });
+    initConsoleTools();
+    return StateUpdateHistory;
 }
-else if (global) {
-    Object.assign(global, { __quark_history_tracker__: StateUpdateHistory });
-}
-initConsoleTools();

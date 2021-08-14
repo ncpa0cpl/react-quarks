@@ -10,15 +10,17 @@ export function unpackStateSetter(self, asyncUpdates, setter) {
             },
         };
     }
-    asyncUpdates.preventLastAsyncUpdate();
     if (isGenerator(setter)) {
         const state = setter(self.value);
         return {
             then(handler) {
-                handler(state);
+                applyMiddlewares(self, state, "sync", (v) => {
+                    unpackStateSetter(self, asyncUpdates, v).then(handler);
+                });
             },
         };
     }
+    asyncUpdates.preventLastAsyncUpdate();
     return {
         then(handler) {
             handler(setter);

@@ -1,5 +1,6 @@
 import { cloneDeep as _cloneDeep } from "lodash";
 import type { QuarkMiddleware } from "../../Types";
+import { extractIsPromiseCanceled } from "../../Utilities/StateUpdates/AsyncUpdates";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
 function getValueType(val: any) {
@@ -16,10 +17,21 @@ function cloneDeep<T>(v: T): T {
 export function createDebugHistoryMiddleware(options: {
   name: string;
   trace?: boolean;
+  realTimeLogging?: boolean;
+  useTablePrint?: boolean;
 }): QuarkMiddleware<any, undefined> {
-  const { name, trace = true } = options;
+  const {
+    name,
+    trace = true,
+    realTimeLogging = false,
+    useTablePrint = true,
+  } = options;
   const StateUpdateHistory = getStateUpdateHistory();
-  const quarkHistoryTracker = StateUpdateHistory.track(name);
+  const quarkHistoryTracker = StateUpdateHistory.track({
+    name,
+    realTimeLogging,
+    useTablePrint,
+  });
   return (getState, newValue, resume, _, type) => {
     switch (type) {
       case "sync": {
@@ -55,6 +67,29 @@ export function createDebugHistoryMiddleware(options: {
         });
         break;
       }
+    }
+
+    if (newValue instanceof Promise) {
+      newValue
+        .then((v) => {
+          const hasBeenCanceled = extractIsPromiseCanceled(newValue);
+          if (hasBeenCanceled) {
+            quarkHistoryTracker.addHistoryEntry({
+              dispatchedUpdate: {
+                type: getValueType(v),
+                value: cloneDeep(v),
+              },
+              initialState: {
+                type: "Value",
+                value: getState(),
+              },
+              source: "Async-Dispatch",
+              stackTrace: undefined,
+              isCanceled: true,
+            });
+          }
+        })
+        .catch((e) => {});
     }
 
     return resume(newValue);

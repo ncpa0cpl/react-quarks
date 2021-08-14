@@ -12,22 +12,22 @@ function assignCancelStatusToOriginalPromise(promise, canceled) {
 }
 function CancelablePromise(orgPromise) {
     const executor = (resolve, reject) => {
-        orgPromise.then(resolve);
-        orgPromise.catch(reject);
+        orgPromise.then(resolve).catch(reject);
     };
     let isCanceled = false;
     const p = new Promise(executor);
-    p.catch((e) => {
-        console.error("Asynchronous state update was unsuccessful due to an error:", e);
-    });
     assignCancelStatusToOriginalPromise(orgPromise, isCanceled);
     return {
         then(onFulfilled) {
-            return p.then(async (v) => {
+            return p
+                .then(async (v) => {
                 if (!isCanceled)
                     return Promise.resolve(await onFulfilled(v));
                 else
                     return Promise.resolve();
+            })
+                .catch((e) => {
+                console.error("Asynchronous state update was unsuccessful due to an error:", e);
             });
         },
         cancel() {
@@ -36,9 +36,11 @@ function CancelablePromise(orgPromise) {
         },
     };
 }
-export function asyncUpdatesController() {
+export function asyncUpdatesController(self) {
     let currentAsyncUpdate;
     const preventLastAsyncUpdate = () => {
+        if (self.configOptions.allowRaceConditions)
+            return;
         currentAsyncUpdate?.cancel();
         currentAsyncUpdate = undefined;
     };

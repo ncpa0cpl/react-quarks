@@ -1,2 +1,2 @@
-import type { TrackedQuark } from "./Types/TrackedQuark";
-export declare function createTrackedQuark(name: string): TrackedQuark;
+import type { TrackedQuark, TrackedQuarkParams } from "./Types/TrackedQuark";
+export declare function createTrackedQuark(options: TrackedQuarkParams): TrackedQuark;

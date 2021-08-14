@@ -1,5 +1,6 @@
 import { cloneDeep as _cloneDeep } from "lodash";
-import { StateUpdateHistory } from "./UpdateHistory";
+import { extractIsPromiseCanceled } from "../../Utilities/StateUpdates/AsyncUpdates";
+import { getStateUpdateHistory } from "./UpdateHistory";
 function getValueType(val) {
     if (val instanceof Promise)
         return "Promise";
@@ -13,13 +14,18 @@ function cloneDeep(v) {
     return _cloneDeep(v);
 }
 export function createDebugHistoryMiddleware(options) {
-    const { name, trace = true } = options;
-    const quarkHistoryTracker = StateUpdateHistory.track(name);
+    const { name, trace = true, realTimeLogging = false, useTablePrint = true, } = options;
+    const StateUpdateHistory = getStateUpdateHistory();
+    const quarkHistoryTracker = StateUpdateHistory.track({
+        name,
+        realTimeLogging,
+        useTablePrint,
+    });
     return (getState, newValue, resume, _, type) => {
         switch (type) {
             case "sync": {
                 const stackTrace = trace
-                    ? new Error().stack?.replace(/$Error\n at/, "Called from")
+                    ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
                     : undefined;
                 quarkHistoryTracker.addHistoryEntry({
                     source: "Sync-Dispatch",
@@ -50,6 +56,28 @@ export function createDebugHistoryMiddleware(options) {
                 });
                 break;
             }
+        }
+        if (newValue instanceof Promise) {
+            newValue
+                .then((v) => {
+                const hasBeenCanceled = extractIsPromiseCanceled(newValue);
+                if (hasBeenCanceled) {
+                    quarkHistoryTracker.addHistoryEntry({
+                        dispatchedUpdate: {
+                            type: getValueType(v),
+                            value: cloneDeep(v),
+                        },
+                        initialState: {
+                            type: "Value",
+                            value: getState(),
+                        },
+                        source: "Async-Dispatch",
+                        stackTrace: undefined,
+                        isCanceled: true,
+                    });
+                }
+            })
+                .catch((e) => { });
         }
         return resume(newValue);
     };

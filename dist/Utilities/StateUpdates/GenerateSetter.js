@@ -4,7 +4,7 @@ import { processStateUpdate } from "./ProcessStateUpdate";
 import { unpackStateSetter } from "./UnpackStateSetter";
 /** @internal */
 export function generateSetter(self) {
-    const asyncUpdates = asyncUpdatesController();
+    const asyncUpdates = asyncUpdatesController(self);
     const updateState = (setter, __internal_omit_render = false) => {
         unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
             const previousState = self.value;

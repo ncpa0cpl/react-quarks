@@ -1,7 +1,7 @@
 import type { ParseActions } from "./Actions";
 import type { GetMiddlewareTypes } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
-export declare type StateGenerator<T> = (oldVal: T) => T;
+export declare type StateGenerator<T> = (oldVal: T) => T | Promise<T>;
 export declare type StateSetter<QuarkType, MiddlewareTypes> = [MiddlewareTypes] extends [
     never
 ] ? QuarkType | Promise<QuarkType> | StateGenerator<QuarkType> : QuarkType | MiddlewareTypes | Promise<QuarkType> | StateGenerator<QuarkType>;

@@ -11,6 +11,7 @@ export type QuarkStateChangeHistoricalEntry = {
   stateAfterUpdate: unknown;
   source: "Sync-Dispatch" | "Async-Dispatch";
   stackTrace: string | undefined;
+  isCanceled?: true;
 };
 
 export type AddHistoryEntryParam = Omit<
@@ -18,7 +19,14 @@ export type AddHistoryEntryParam = Omit<
   "time" | "change" | "stateAfterUpdate"
 >;
 
+export type TrackedQuarkParams = {
+  name: string;
+  realTimeLogging: boolean;
+  useTablePrint: boolean;
+};
+
 export type TrackedQuark = {
+  options: TrackedQuarkParams;
   name: string;
   stateChangeHistory: QuarkStateChangeHistoricalEntry[];
   addHistoryEntry(entry: AddHistoryEntryParam): void;
@@ -29,7 +37,7 @@ type KeysOf<T extends object> = {
   [K in keyof T]: K extends string ? K : "";
 }[keyof T];
 
-export type HistoryPropertiesKeys =
-  | KeysOf<HistoricalState>
-  | KeysOf<QuarkStateChangeHistoricalEntry>
-  | "name";
+export type HistoryPropertiesKeys = Exclude<
+  KeysOf<HistoricalState> | KeysOf<QuarkStateChangeHistoricalEntry> | "name",
+  undefined
+>;

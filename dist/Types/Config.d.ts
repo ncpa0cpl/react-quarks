@@ -77,6 +77,12 @@ export declare type QuarkConfig<A, S, M extends QuarkMiddleware<any, any>[]> = {
      */
     selectors?: S;
     middlewares?: M;
+    /**
+     * By default asynchronous state updates are canceled if another update is
+     * dispatched later on, this allows for avoiding race conditions. You can opt-out
+     * of this behavior by setting this option to `true`.
+     */
+    allowRaceConditions?: boolean;
 };
 export declare type QuarkObjectOptions<A, S, M, E> = {
     shouldUpdate: QuarkComparatorFn;

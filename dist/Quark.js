@@ -20,6 +20,9 @@ export function quark(initValue, config = {}, effects) {
         customActions: undefined,
         middlewares: config.middlewares ?? [],
         stateComparator: config.shouldUpdate ?? isUpdateNecessary,
+        configOptions: {
+            allowRaceConditions: config.allowRaceConditions ?? false,
+        },
     };
     const { applyMiddlewaresAndUpdateState } = generateSetter(self);
     const customActions = generateCustomActions(self, applyMiddlewaresAndUpdateState, config?.actions ?? {});
