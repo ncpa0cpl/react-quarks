@@ -4,10 +4,12 @@ exports[`DebugHistoryMiddleware correctly handles async updates 1`] = `
 Object {
   "0_q1": Array [
     Object {
-      "change": "Immediate",
+      "change": "Postponed",
       "dispatchedUpdate": Object {
-        "type": "Value",
-        "value": "BAR",
+        "type": "Promise",
+        "value": Promise {
+          "__quark_internal_is_promise_canceled__": true,
+        },
       },
       "initialState": Object {
         "type": "Value",
@@ -15,33 +17,14 @@ Object {
       },
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAR",
-      "time": 1600000000000,
-    },
-    Object {
-      "change": "Immediate",
-      "dispatchedUpdate": Object {
-        "type": "Value",
-        "value": "BAZ",
-      },
-      "initialState": Object {
-        "type": "Value",
-        "value": "BAR",
-      },
-      "source": "Sync-Dispatch",
-      "stackTrace": undefined,
-      "stateAfterUpdate": "BAZ",
+      "stateAfterUpdate": "FOO",
       "time": 1600000000100,
     },
-  ],
-  "1_q1": Array [
     Object {
       "change": "Postponed",
       "dispatchedUpdate": Object {
-        "type": "Promise",
-        "value": Promise {
-          "__quark_internal_is_promise_canceled__": true,
-        },
+        "type": "Generator",
+        "value": [Function],
       },
       "initialState": Object {
         "type": "Value",
@@ -104,7 +87,22 @@ Object {
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
       "stateAfterUpdate": "BAR",
-      "time": 1600000000000,
+      "time": 1600000000100,
+    },
+    Object {
+      "change": "Postponed",
+      "dispatchedUpdate": Object {
+        "type": "Generator",
+        "value": [Function],
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "BAR",
+      },
+      "source": "Sync-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAR",
+      "time": 1600000000200,
     },
     Object {
       "change": "Immediate",
@@ -119,7 +117,7 @@ Object {
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
       "stateAfterUpdate": "BAZ",
-      "time": 1600000000100,
+      "time": 1600000000300,
     },
   ],
 }

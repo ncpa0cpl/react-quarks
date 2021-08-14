@@ -9,8 +9,8 @@ import type {
 export function generateCustomActions<
   T,
   ARGS extends any[],
-  A extends QuarkActions<T, ARGS>,
-  ET
+  ET,
+  A extends QuarkActions<T, ET, ARGS>
 >(
   self: QuarkContext<T, any, ET>,
   setState: QuarkSetterFn<T, ET>,

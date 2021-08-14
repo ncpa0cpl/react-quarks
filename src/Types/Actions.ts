@@ -1,11 +1,13 @@
-export type QuarkCustomAction<T, ARGS extends any[]> = (
+import type { StateSetter } from "./Quark";
+
+export type QuarkCustomAction<T, ET, ARGS extends any[]> = (
   quarkState: T,
   ...args: ARGS
-) => T;
+) => StateSetter<T, ET>;
 
-export type QuarkActions<T, ARGS extends any[]> = Record<
+export type QuarkActions<T, ET, ARGS extends any[]> = Record<
   string,
-  QuarkCustomAction<T, ARGS>
+  QuarkCustomAction<T, ET, ARGS>
 >;
 export type ParseSingleAction<A> = A extends (
   arg_0: any,

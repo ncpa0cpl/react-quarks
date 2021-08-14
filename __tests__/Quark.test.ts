@@ -42,7 +42,7 @@ describe("quark()", () => {
         }, 30);
       });
 
-      q.set(promiseB);
+      q.set(() => promiseB);
 
       q.set(promiseA);
 
@@ -72,7 +72,7 @@ describe("quark()", () => {
 
       q.set(promiseC);
 
-      q.set(promiseD);
+      q.set(() => promiseD);
 
       q.set("CORGE");
 
@@ -327,6 +327,20 @@ describe("quark()", () => {
 
       expect(state.result.current.get()).toMatchObject({ value: 5 });
     });
+    it("use() and local set() work correctly for async updates", async () => {
+      const q = quark({ value: 0 });
+
+      const state = renderHook(() => q.use());
+
+      expect(state.result.current.get()).toMatchObject({ value: 0 });
+
+      await act(async () => {
+        state.result.current.set(() => Promise.resolve({ value: 5 }));
+        await sleep(0);
+      });
+
+      expect(state.result.current.get()).toMatchObject({ value: 5 });
+    });
     it("use() correctly exposes custom actions", () => {
       const q = quark(
         { value: 0 },
@@ -339,6 +353,27 @@ describe("quark()", () => {
 
       act(() => {
         state.result.current.increment();
+      });
+
+      expect(state.result.current.get()).toMatchObject({ value: 1 });
+    });
+    it("use() correctly exposes custom actions with async updates", async () => {
+      const q = quark(
+        { value: 0 },
+        {
+          actions: {
+            incrementAsync: (s) => Promise.resolve({ value: s.value + 1 }),
+          },
+        }
+      );
+
+      const state = renderHook(() => q.use());
+
+      expect(state.result.current.get()).toMatchObject({ value: 0 });
+
+      await act(async () => {
+        state.result.current.incrementAsync();
+        await sleep(0);
       });
 
       expect(state.result.current.get()).toMatchObject({ value: 1 });

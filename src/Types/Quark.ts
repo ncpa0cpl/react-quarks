@@ -18,7 +18,7 @@ export type QuarkContext<T, A, ET> = {
   };
 };
 
-export type StateGenerator<T> = (oldVal: T) => T;
+export type StateGenerator<T> = (oldVal: T) => T | Promise<T>;
 
 // export type StatePromise<T> = Promise<T>;
 

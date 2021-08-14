@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import type {
   AddHistoryEntryParam,
   QuarkStateChangeHistoricalEntry,
@@ -8,12 +9,13 @@ export function createTrackedQuark(name: string): TrackedQuark {
   const stateChangeHistory: QuarkStateChangeHistoricalEntry[] = [];
 
   const addHistoryEntry = (entry: AddHistoryEntryParam) => {
-    const change =
-      entry.dispatchedUpdate.type === "Promise" ? "Postponed" : "Immediate";
+    const change = ["Promise", "Generator"].includes(entry.dispatchedUpdate.type)
+      ? "Postponed"
+      : "Immediate";
 
     stateChangeHistory.push({
       ...entry,
-      time: Date.now(),
+      time: DateTime.now().toMillis(),
       change,
       stateAfterUpdate:
         change === "Postponed"
@@ -24,9 +26,14 @@ export function createTrackedQuark(name: string): TrackedQuark {
     });
   };
 
+  const clear = () => {
+    stateChangeHistory.splice(0);
+  };
+
   return {
     name,
     stateChangeHistory,
     addHistoryEntry,
+    clear,
   };
 }

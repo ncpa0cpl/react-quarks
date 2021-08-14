@@ -22,6 +22,7 @@ export type TrackedQuark = {
   name: string;
   stateChangeHistory: QuarkStateChangeHistoricalEntry[];
   addHistoryEntry(entry: AddHistoryEntryParam): void;
+  clear(): void;
 };
 
 type KeysOf<T extends object> = {

@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { createDebugHistoryMiddleware, quark } from "../../../src";
 import { getStateUpdateHistory } from "../../../src/Middlewares/DebugHistoryMiddleware/UpdateHistory";
 import { sleep } from "../../helpers";
@@ -6,30 +7,40 @@ declare const global: {
   __quark_history_tracker__: ReturnType<typeof getStateUpdateHistory>;
 };
 
-const getTime = (() =>
-  (function* timeGenerator() {
-    let start = 1600000000000;
-    while (true) {
-      yield start;
-      start += 100;
-    }
-  })())();
+function* timeGenerator() {
+  let start = 1600000000000;
+  while (true) {
+    yield start;
+    start += 100;
+  }
+  return start;
+}
 
-jest.spyOn(Date, "now").mockImplementation(() => getTime.next().value);
+let getTime = timeGenerator();
+
+jest
+  .spyOn(DateTime, "now")
+  .mockImplementation(() => DateTime.fromMillis(getTime.next().value));
 
 describe("DebugHistoryMiddleware", () => {
-  it("correctly saves updates to the history tracker", () => {
-    const q = quark("FOO", {
-      middlewares: [createDebugHistoryMiddleware({ name: "q1", trace: false })],
-    });
+  let q = quark("FOO", {
+    middlewares: [createDebugHistoryMiddleware({ name: "q1", trace: false })],
+  });
 
+  beforeEach(() => {
+    getTime = timeGenerator();
+    q.set("FOO");
+    global?.__quark_history_tracker__?.clear();
+  });
+
+  it("correctly saves updates to the history tracker", () => {
     expect(q.get()).toEqual("FOO");
 
     q.set("BAR");
 
     expect(q.get()).toEqual("BAR");
 
-    q.set("BAZ");
+    q.set(() => "BAZ");
 
     expect(q.get()).toEqual("BAZ");
 
@@ -39,15 +50,11 @@ describe("DebugHistoryMiddleware", () => {
   });
 
   it("correctly handles async updates", async () => {
-    const q = quark("FOO", {
-      middlewares: [createDebugHistoryMiddleware({ name: "q1", trace: false })],
-    });
-
     expect(q.get()).toEqual("FOO");
 
     q.set(Promise.resolve("BAR"));
 
-    q.set(Promise.resolve("BAZ"));
+    q.set(() => Promise.resolve("BAZ"));
 
     await sleep(0);
 

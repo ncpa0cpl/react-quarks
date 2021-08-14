@@ -37,7 +37,7 @@ import {
 export function quark<
   T,
   ARGS extends any[],
-  A extends QuarkActions<T, ARGS>,
+  A extends QuarkActions<T, GetMiddlewareTypes<M>, ARGS>,
   S extends QuarkSelectors<T>,
   E extends QuarkEffects<
     T,

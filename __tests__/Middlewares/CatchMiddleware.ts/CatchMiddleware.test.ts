@@ -36,6 +36,12 @@ describe("CatchMiddleware", () => {
 
         expect(q.get()).toMatchObject({ value: 999 });
 
+        q.set(() => Promise.resolve({ value: 321 }));
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ value: 321 });
+
         expect(onCatchMock).toBeCalledTimes(0);
       });
       it("set() correctly handles asynchronous updates", async () => {
@@ -55,7 +61,7 @@ describe("CatchMiddleware", () => {
 
         q.set(promiseB);
 
-        q.set(promiseA);
+        q.set(() => promiseA);
 
         expect(q.get()).toEqual("A");
 
@@ -81,7 +87,7 @@ describe("CatchMiddleware", () => {
           }, 30);
         });
 
-        q.set(promiseC);
+        q.set(() => promiseC);
 
         q.set(promiseD);
 
@@ -149,6 +155,22 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
+      it("use() and local set() work correctly for a promise generator", async () => {
+        const q = quark({ value: 1 }, { middlewares: [catchMiddleware] });
+
+        const state = renderHook(() => q.use());
+
+        expect(state.result.current.get()).toMatchObject({ value: 1 });
+
+        await act(async () => {
+          state.result.current.set((v) => Promise.resolve({ value: v.value + 2 }));
+          await sleep(0);
+        });
+
+        expect(state.result.current.get()).toMatchObject({ value: 3 });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+      });
     });
   });
 
@@ -167,12 +189,27 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
-      it("for promises", () => {
+
+      it("for promises", async () => {
         const q = quark("");
 
         expect(onCatchMock).toBeCalledTimes(0);
 
         expect(() => q.set(Promise.reject("foo"))).not.toThrow();
+
+        await sleep(0);
+
+        expect(onCatchMock).toBeCalledTimes(0);
+      });
+
+      it("for promise generators", async () => {
+        const q = quark("");
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.set(() => Promise.reject("foo"))).not.toThrow();
+
+        await sleep(0);
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
@@ -203,6 +240,18 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(0);
 
         expect(() => q.set(Promise.reject("bar"))).not.toThrow();
+
+        await sleep(0);
+
+        expect(onCatchMock).toBeCalledTimes(0);
+      });
+
+      it("for promise generators", async () => {
+        const q = quark("");
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
 
         await sleep(0);
 
@@ -240,6 +289,19 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
       });
+
+      it("for promise generators", async () => {
+        const q = quark("", { middlewares: [catchMiddleware] });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
+
+        await sleep(0);
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith("bar");
+      });
     });
     describe("within react", () => {
       it("for generators", () => {
@@ -267,6 +329,19 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(0);
 
         expect(() => q.set(Promise.reject("bar"))).not.toThrow();
+
+        await sleep(0);
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith("bar");
+      });
+
+      it("for promise generators", async () => {
+        const q = quark("", { middlewares: [catchMiddleware] });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
 
         await sleep(0);
 

@@ -27,7 +27,13 @@ function createStateUpdateHistory() {
     );
   };
 
-  return { track, showHistory, getHistory };
+  const clear = () => {
+    for (const q of trackedQuarks) {
+      q.clear();
+    }
+  };
+
+  return { track, showHistory, getHistory, clear };
 }
 
 let StateUpdateHistory: ReturnType<typeof createStateUpdateHistory> | undefined;

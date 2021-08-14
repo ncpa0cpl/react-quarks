@@ -6,18 +6,6 @@ export function createCatchMiddleware(params?: {
   const onCatch = params?.onCatch ?? (() => {});
 
   return (prevState, value, resume) => {
-    if (typeof value === "function") {
-      try {
-        const newValue = value(prevState);
-        if (newValue instanceof Promise) {
-          value.catch((e: unknown) => onCatch(e));
-          return resume(value);
-        }
-      } catch (e) {
-        return onCatch(e);
-      }
-    }
-
     if (value instanceof Promise) {
       value.catch((e) => onCatch(e));
       return resume(value);
