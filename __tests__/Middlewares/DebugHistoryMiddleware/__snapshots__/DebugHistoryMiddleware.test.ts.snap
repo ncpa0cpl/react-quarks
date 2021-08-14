@@ -56,6 +56,22 @@ Object {
       "change": "Immediate",
       "dispatchedUpdate": Object {
         "type": "Value",
+        "value": "BAR",
+      },
+      "initialState": Object {
+        "type": "Value",
+        "value": "FOO",
+      },
+      "isCanceled": true,
+      "source": "Async-Dispatch",
+      "stackTrace": undefined,
+      "stateAfterUpdate": "BAR",
+      "time": 1600000000400,
+    },
+    Object {
+      "change": "Immediate",
+      "dispatchedUpdate": Object {
+        "type": "Value",
         "value": "BAZ",
       },
       "initialState": Object {
@@ -65,7 +81,7 @@ Object {
       "source": "Async-Dispatch",
       "stackTrace": undefined,
       "stateAfterUpdate": "BAZ",
-      "time": 1600000000400,
+      "time": 1600000000500,
     },
   ],
 }
