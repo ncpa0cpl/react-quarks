@@ -1,7 +1,5 @@
 import React from "react";
-/**
- * @internal
- */
+/** @internal */
 export function generateSelectHook(self) {
     return (selector, shouldComponentUpdate) => {
         const [, forceRender] = React.useReducer((s) => s + 1, 0);

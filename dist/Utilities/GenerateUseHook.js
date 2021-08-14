@@ -1,7 +1,5 @@
 import React from "react";
-/**
- * @internal
- */
+/** @internal */
 export function generateUseHook(self, set, get) {
     return () => {
         const [, forceRender] = React.useReducer((s) => s + 1, 0);

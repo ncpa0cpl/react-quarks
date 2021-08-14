@@ -1,0 +1,1 @@
+export { generateSetter } from "./GenerateSetter";

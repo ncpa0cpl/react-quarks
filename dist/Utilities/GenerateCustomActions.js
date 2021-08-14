@@ -1,6 +1,4 @@
-/**
- * @internal
- */
+/** @internal */
 export function generateCustomActions(self, setState, actions) {
     return Object.fromEntries(Object.entries(actions).map(([actionName, actionMethod]) => {
         const wrappedAction = (...args) => {

@@ -1,10 +1,8 @@
 import React from "react";
-import type { QuarkComparatorFn, QuarkContext, QuarkSelector } from "../Quark.types";
+import type { QuarkComparatorFn, QuarkContext, QuarkSelector } from "../Types";
 
-/**
- * @internal
- */
-export function generateSelectHook<T, A>(self: QuarkContext<T, A>) {
+/** @internal */
+export function generateSelectHook<T, A, ET>(self: QuarkContext<T, A, ET>) {
   return <U>(
     selector: QuarkSelector<T, U>,
     shouldComponentUpdate?: QuarkComparatorFn

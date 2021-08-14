@@ -3,18 +3,17 @@ import type {
   QuarkActions,
   QuarkContext,
   QuarkSetterFn,
-} from "../Quark.types";
+} from "../Types";
 
-/**
- * @internal
- */
+/** @internal */
 export function generateCustomActions<
   T,
   ARGS extends any[],
-  A extends QuarkActions<T, ARGS>
+  ET,
+  A extends QuarkActions<T, ET, ARGS>
 >(
-  self: QuarkContext<T, any>,
-  setState: QuarkSetterFn<T>,
+  self: QuarkContext<T, any, ET>,
+  setState: QuarkSetterFn<T, ET>,
   actions: A
 ): ParseActions<A> {
   return Object.fromEntries(

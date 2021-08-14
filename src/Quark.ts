@@ -1,4 +1,5 @@
 import type {
+  GetMiddlewareTypes,
   ParseActions,
   ParseSelectors,
   Quark,
@@ -6,16 +7,19 @@ import type {
   QuarkConfig,
   QuarkContext,
   QuarkEffects,
+  QuarkMiddleware,
   QuarkObjectOptions,
   QuarkSelectors,
-} from "./Quark.types";
-import { generateCustomActions } from "./Utilities/GenerateCustomActions";
-import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectros";
-import { generateSelectHook } from "./Utilities/GenerateSelectHook";
-import { generateSetter } from "./Utilities/GenerateSetter";
-import { generateUseHook } from "./Utilities/GenerateUseHook";
-import { initiateEffects } from "./Utilities/InitiateEffects";
-import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
+} from "./Types";
+import {
+  generateCustomActions,
+  generateCustomSelectors,
+  generateSelectHook,
+  generateSetter,
+  generateUseHook,
+  initiateEffects,
+  isUpdateNecessary,
+} from "./Utilities";
 
 /**
  * Creates a new quark object.
@@ -33,28 +37,38 @@ import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 export function quark<
   T,
   ARGS extends any[],
-  A extends QuarkActions<T, ARGS>,
+  A extends QuarkActions<T, GetMiddlewareTypes<M>, ARGS>,
   S extends QuarkSelectors<T>,
-  E extends QuarkEffects<T, ParseActions<Exclude<A, undefined>>>
+  E extends QuarkEffects<
+    T,
+    ParseActions<Exclude<A, undefined>>,
+    GetMiddlewareTypes<M>
+  >,
+  M extends QuarkMiddleware<T, any>[] = never[]
 >(
   initValue: T,
-  config: QuarkConfig<A, S> = {},
+  config: QuarkConfig<A, S, M> = {},
   effects?: E
-): Quark<T, QuarkObjectOptions<A, S, E>> {
-  const self: QuarkContext<T, ParseActions<A>> = {
+): Quark<T, QuarkObjectOptions<A, S, M, E>> {
+  const self: QuarkContext<T, ParseActions<A>, GetMiddlewareTypes<M>> = {
     value: initValue,
     effects: new Set(),
     subscribers: new Set(),
     customActions: undefined,
+    middlewares: config.middlewares ?? [],
 
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
+
+    configOptions: {
+      allowRaceConditions: config.allowRaceConditions ?? false,
+    },
   };
 
-  const set = generateSetter(self);
+  const { applyMiddlewaresAndUpdateState } = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
-    set,
+    applyMiddlewaresAndUpdateState,
     config?.actions ?? {}
   ) as ParseActions<A>;
   self.customActions = customActions;
@@ -66,7 +80,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, set, get);
+  const use = generateUseHook(self, applyMiddlewaresAndUpdateState, get);
 
   const useSelector = generateSelectHook(self);
 
@@ -74,7 +88,7 @@ export function quark<
 
   return {
     get,
-    set,
+    set: applyMiddlewaresAndUpdateState,
     use,
     useSelector,
     ...customActions,

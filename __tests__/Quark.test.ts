@@ -1,10 +1,11 @@
 import { act, renderHook } from "@testing-library/react-hooks";
-import type { QuarkType } from "../src";
+import type { QuarkMiddleware, QuarkType } from "../src";
 import { quark } from "../src";
+import { sleep } from "./helpers";
 
 describe("quark()", () => {
   describe("correctly works outside react", () => {
-    it("set() correctly updates the state", () => {
+    it("set() correctly updates the state", async () => {
       const q = quark({ value: 0 });
 
       expect(q.get()).toMatchObject({ value: 0 });
@@ -16,6 +17,76 @@ describe("quark()", () => {
       q.set((prev) => ({ value: prev.value * 2 }));
 
       expect(q.get()).toMatchObject({ value: 12 });
+
+      const promise = Promise.resolve<{ value: number }>({ value: 999 });
+
+      q.set(promise);
+
+      await promise;
+      await sleep(0);
+
+      expect(q.get()).toMatchObject({ value: 999 });
+    });
+    it("set() correctly handles asynchronous updates", async () => {
+      const q = quark("A");
+
+      const promiseA = new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("FOO");
+        }, 20);
+      });
+
+      const promiseB = new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("BAR");
+        }, 30);
+      });
+
+      q.set(() => promiseB);
+
+      q.set(promiseA);
+
+      expect(q.get()).toEqual("A");
+
+      await promiseA;
+      await sleep(0);
+
+      expect(q.get()).toEqual("FOO");
+
+      await promiseB;
+      await sleep(0);
+
+      expect(q.get()).toEqual("FOO");
+
+      const promiseC = new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("BAZ");
+        }, 20);
+      });
+
+      const promiseD = new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("QUX");
+        }, 30);
+      });
+
+      q.set(promiseC);
+
+      q.set(() => promiseD);
+
+      q.set("CORGE");
+
+      expect(q.get()).toEqual("CORGE");
+
+      await promiseC;
+      await sleep(0);
+
+      expect(q.get()).toEqual("CORGE");
+
+      await promiseD;
+      await sleep(0);
+
+      expect(q.get()).toEqual("CORGE");
     });
     it("correctly executes custom actions", () => {
       const q = quark(
@@ -41,6 +112,84 @@ describe("quark()", () => {
       q.multiply(12);
 
       expect(q.get()).toMatchObject({ value: 12 });
+    });
+    describe("correctly handles middlewares", () => {
+      it("middleware correctly intercepts the values set", () => {
+        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = (_, value, resume) => {
+          if (typeof value === "number") {
+            resume({ 1: "BAR", 2: "BAZ" }[value]);
+          } else {
+            resume(value);
+          }
+        };
+
+        const q = quark("FOO", { middlewares: [mapMiddleware] });
+
+        q.set(1);
+
+        expect(q.get()).toEqual("BAR");
+
+        q.set("QUX");
+
+        expect(q.get()).toEqual("QUX");
+      });
+      it("resume() correctly pipes results from one middleware to the next", () => {
+        const multiplyMiddleware: QuarkMiddleware<number, number> = (
+          _,
+          value,
+          resume
+        ) => {
+          if (typeof value === "number") resume(value * 2);
+          else resume(value);
+        };
+        const subtractMiddleware: QuarkMiddleware<number, number> = (
+          _,
+          value,
+          resume
+        ) => {
+          if (typeof value === "number") resume(value - 1);
+          else resume(value);
+        };
+        const squareMiddleware: QuarkMiddleware<number, number> = (
+          _,
+          value,
+          resume
+        ) => {
+          if (typeof value === "number") resume(value ** 2);
+          else resume(value);
+        };
+
+        const q = quark(0, {
+          middlewares: [multiplyMiddleware, subtractMiddleware, squareMiddleware],
+        });
+
+        q.set(2);
+
+        expect(q.get()).toEqual((2 * 2 - 1) ** 2);
+      });
+      it("set() correctly omits following middlewares", () => {
+        const firstMiddleware: QuarkMiddleware<any, number> = (
+          state,
+          value,
+          resume,
+          set
+        ) => {
+          if (typeof value === "number") return set(`${value}`);
+          return resume(value);
+        };
+        const secondMiddleware: QuarkMiddleware<any, undefined> = jest.fn(
+          (state, value, resume, set) => {
+            resume(undefined);
+          }
+        );
+
+        const q = quark("FOO", { middlewares: [firstMiddleware, secondMiddleware] });
+
+        q.set(2);
+
+        expect(q.get()).toEqual("2");
+        expect(secondMiddleware).toBeCalledTimes(0);
+      });
     });
     describe("correctly executes side effect", () => {
       it("when set() is called", () => {
@@ -178,6 +327,20 @@ describe("quark()", () => {
 
       expect(state.result.current.get()).toMatchObject({ value: 5 });
     });
+    it("use() and local set() work correctly for async updates", async () => {
+      const q = quark({ value: 0 });
+
+      const state = renderHook(() => q.use());
+
+      expect(state.result.current.get()).toMatchObject({ value: 0 });
+
+      await act(async () => {
+        state.result.current.set(() => Promise.resolve({ value: 5 }));
+        await sleep(0);
+      });
+
+      expect(state.result.current.get()).toMatchObject({ value: 5 });
+    });
     it("use() correctly exposes custom actions", () => {
       const q = quark(
         { value: 0 },
@@ -190,6 +353,27 @@ describe("quark()", () => {
 
       act(() => {
         state.result.current.increment();
+      });
+
+      expect(state.result.current.get()).toMatchObject({ value: 1 });
+    });
+    it("use() correctly exposes custom actions with async updates", async () => {
+      const q = quark(
+        { value: 0 },
+        {
+          actions: {
+            incrementAsync: (s) => Promise.resolve({ value: s.value + 1 }),
+          },
+        }
+      );
+
+      const state = renderHook(() => q.use());
+
+      expect(state.result.current.get()).toMatchObject({ value: 0 });
+
+      await act(async () => {
+        state.result.current.incrementAsync();
+        await sleep(0);
       });
 
       expect(state.result.current.get()).toMatchObject({ value: 1 });
