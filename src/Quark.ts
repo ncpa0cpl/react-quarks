@@ -36,9 +36,10 @@ import {
  */
 export function quark<
   T,
-  ARGS extends any[],
-  A extends QuarkActions<T, GetMiddlewareTypes<M>, ARGS>,
-  S extends QuarkSelectors<T>,
+  ActionArgs extends any[],
+  SelectorArgs extends any[],
+  A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
+  S extends QuarkSelectors<T, SelectorArgs>,
   E extends QuarkEffects<
     T,
     ParseActions<Exclude<A, undefined>>,

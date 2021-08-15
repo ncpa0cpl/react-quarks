@@ -357,6 +357,25 @@ describe("quark()", () => {
 
       expect(state.result.current.get()).toMatchObject({ value: 1 });
     });
+    it("use() correctly exposes custom selectors with parameters", () => {
+      const q = quark(["a", "b", "c", "d"], {
+        selectors: {
+          useIndex(s, index: number) {
+            return s[index];
+          },
+        },
+      });
+
+      const state = renderHook((props) => q.useIndex(props.index), {
+        initialProps: { index: 2 },
+      });
+
+      expect(state.result.current.get()).toEqual("c");
+
+      state.rerender({ index: 0 });
+
+      expect(state.result.current.get()).toEqual("a");
+    });
     it("use() correctly exposes custom actions with async updates", async () => {
       const q = quark(
         { value: 0 },
