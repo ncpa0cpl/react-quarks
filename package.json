@@ -1,6 +1,6 @@
 {
   "name": "rc-quarks",
-  "version": "1.0.1-rc.0",
+  "version": "1.0.1-rc1",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

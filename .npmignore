@@ -1,0 +1,8 @@
+__tests__
+.vscode
+examples
+node_modules
+.eslintignore
+.eslintrc.json
+.prettierrc.json
+jest.config.js
