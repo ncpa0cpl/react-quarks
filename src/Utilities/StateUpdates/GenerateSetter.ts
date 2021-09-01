@@ -34,8 +34,5 @@ export function generateSetter<T, A, ET>(self: QuarkContext<T, A, ET>) {
     );
   };
 
-  return {
-    applyMiddlewaresAndUpdateState,
-    updateState,
-  };
+  return applyMiddlewaresAndUpdateState;
 }

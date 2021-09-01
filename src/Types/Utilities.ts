@@ -11,3 +11,7 @@ export type RecordValue<T extends object> = {
 export type IsUnknownOrAny<U> = (any extends U ? true : false) extends true
   ? true
   : false;
+
+export type Rewrap<T> = {
+  [K in keyof T]: T[K] extends object ? Rewrap<T[K]> : T[K];
+};

@@ -97,11 +97,12 @@ export type Quark<
    *     console.log(firstWord.get()); // Output: "Hello"
    *   }
    */
-  useSelector<U>(
-    selector: QuarkSelector<T, U>,
+  useSelector<R>(
+    selector: QuarkSelector<T, R>,
     shouldComponentUpdate?: QuarkComparatorFn
   ): {
-    get(): U | undefined;
+    get: () => R;
+    set: InternalQuarkSetterFn<R>;
   };
 } & ParseActions<C["actions"]> &
   ParseSelectors<C["selectors"]>;

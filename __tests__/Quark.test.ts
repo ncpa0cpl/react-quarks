@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react-hooks";
-import type { QuarkMiddleware, QuarkType } from "../src";
+import type { QuarkMiddleware, QuarkSelector, QuarkType } from "../src";
 import { quark } from "../src";
 import { sleep } from "./helpers";
 
@@ -493,7 +493,7 @@ describe("quark()", () => {
       const q = quark({ value1: 0, value2: 100 });
       const reRenderCounter = jest.fn();
 
-      const selectV1 = (a: QuarkType<typeof q>) => a.value1;
+      const selectV1: QuarkSelector<QuarkType<typeof q>, number> = (a) => a.value1;
 
       const state = renderHook(() => {
         reRenderCounter();
