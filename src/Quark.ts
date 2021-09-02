@@ -1,7 +1,6 @@
 import type {
   GetMiddlewareTypes,
   ParseActions,
-  ParseSelectors,
   Quark,
   QuarkActions,
   QuarkConfig,
@@ -76,8 +75,8 @@ export function quark<
 
   const customSelectors = generateCustomSelectors(
     self,
-    config?.selectors ?? {}
-  ) as ParseSelectors<S>;
+    config?.selectors ?? ({} as S)
+  );
 
   const get = () => self.value;
 

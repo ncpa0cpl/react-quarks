@@ -3,6 +3,8 @@ import type { QuarkCustomEffect } from "./Effects";
 import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
 
+export type QuarkConfigOptions = { allowRaceConditions: boolean };
+
 /** @internal */
 export type QuarkContext<T, A, ET> = {
   value: T;
@@ -13,9 +15,7 @@ export type QuarkContext<T, A, ET> = {
 
   stateComparator: QuarkComparatorFn;
 
-  configOptions: {
-    allowRaceConditions: boolean;
-  };
+  configOptions: QuarkConfigOptions;
 };
 
 export type StateGenerator<T> = (oldVal: T) => T | Promise<T>;

@@ -1,5 +1,10 @@
 import React from "react";
-import type { QuarkContext, QuarkCustomSelector, QuarkSelectors } from "../Types";
+import type {
+  ParseSelectors,
+  QuarkContext,
+  QuarkCustomSelector,
+  QuarkSelectors,
+} from "../Types";
 
 /** @internal */
 function generateCustomSelectHook<T, U, ET, ARGS extends any[]>(
@@ -41,14 +46,14 @@ function generateCustomSelectHook<T, U, ET, ARGS extends any[]>(
 }
 
 /** @internal */
-export function generateCustomSelectors<T, ET, ARGS extends any[]>(
+export function generateCustomSelectors<T, ET, S extends QuarkSelectors<T, any>>(
   self: QuarkContext<T, any, ET>,
-  selectors: QuarkSelectors<T, ARGS>
-) {
+  selectors: S
+): ParseSelectors<S> {
   return Object.fromEntries(
     Object.entries(selectors).map(([selectorName, selectorMethod]) => {
       const wrappedSelector = generateCustomSelectHook(self, selectorMethod);
       return [selectorName, wrappedSelector];
     })
-  );
+  ) as unknown as ParseSelectors<S>;
 }

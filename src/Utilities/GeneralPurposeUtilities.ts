@@ -1,4 +1,4 @@
-export function hasKey<K extends string>(
+export function hasKey<K extends string | number | symbol>(
   obj: object,
   key: K
 ): obj is Record<K, any> {

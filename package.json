@@ -9,6 +9,7 @@
   },
   "scripts": {
     "tsc": "tsc --noEmit",
+    "lint": "eslint .",
     "build": "tsc",
     "test": "jest"
   },
