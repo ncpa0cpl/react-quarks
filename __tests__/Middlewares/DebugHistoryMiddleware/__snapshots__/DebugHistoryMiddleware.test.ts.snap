@@ -8,7 +8,7 @@ Object {
       "dispatchedUpdate": Object {
         "type": "Promise",
         "value": Promise {
-          "__quark_internal_is_promise_canceled__": true,
+          Symbol(__quark_internal_is_promise_canceled__): true,
         },
       },
       "initialState": Object {
@@ -40,7 +40,7 @@ Object {
       "dispatchedUpdate": Object {
         "type": "Promise",
         "value": Promise {
-          "__quark_internal_is_promise_canceled__": false,
+          Symbol(__quark_internal_is_promise_canceled__): false,
         },
       },
       "initialState": Object {
