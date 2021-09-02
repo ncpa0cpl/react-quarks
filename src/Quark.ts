@@ -65,11 +65,11 @@ export function quark<
     },
   };
 
-  const { applyMiddlewaresAndUpdateState } = generateSetter(self);
+  const setState = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
-    applyMiddlewaresAndUpdateState,
+    setState,
     config?.actions ?? {}
   ) as ParseActions<A>;
   self.customActions = customActions;
@@ -81,7 +81,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, applyMiddlewaresAndUpdateState, get);
+  const use = generateUseHook(self, setState, get);
 
   const useSelector = generateSelectHook(self);
 
@@ -89,7 +89,7 @@ export function quark<
 
   return {
     get,
-    set: applyMiddlewaresAndUpdateState,
+    set: setState,
     use,
     useSelector,
     ...customActions,
