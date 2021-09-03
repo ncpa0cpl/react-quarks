@@ -45,7 +45,16 @@ function generateCustomSelectHook<T, U, ET, ARGS extends any[]>(
   };
 }
 
-/** @internal */
+/**
+ * Generate `selector` React Hooks based on the selectors defined in the Quark config.
+ *
+ * @param self Context of the Quark in question
+ * @param selectors An object containing selector definitions, each selector must be
+ *   a function accepting the Quark state value in it's first argument
+ * @returns An object with the same structure as `selectors` but each method it
+ *   contains is a React Hook
+ * @internal
+ */
 export function generateCustomSelectors<T, ET, S extends QuarkSelectors<T, any>>(
   self: QuarkContext<T, any, ET>,
   selectors: S

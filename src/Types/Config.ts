@@ -77,6 +77,29 @@ export type QuarkConfig<A, S, M extends QuarkMiddleware<any, any>[]> = {
    *   }
    */
   selectors?: S;
+  /**
+   * List of middleware methods that will be called on each dispatch, middleware
+   * receives the dispatched update before the Quark state is updates, it has the
+   * ability to modify that value, or prevent the update.
+   *
+   * A middleware is provided with 5 argument:
+   *
+   * - `arg_0` - getState(): T - method which return the current Quark state value
+   * - `arg_1` - value - dispatched value, this is the same as what is provided to the
+   *   `.set()` method
+   * - `arg_2` - resume(v: T) - this method will resume the standard update flow, value
+   *   provided to it will be forwarded to the next middleware
+   * - `arg_3` - set(v: T) - this method allows to break from the standard update flow
+   *   and set the state immediately
+   * - `arg_4` - updateType - QuarkUpdateType
+   *
+   * A middleware can be called multiple times for each single update, if the
+   * dispatched value is a Generator or a Promise, it will call the middleware with
+   * that Promise/Generator, unpack the value and call it again, then if the unpacked
+   * value is a again a Generator or a Promise it's unpacked once more and
+   * midllewares are called again, this repeats until a value that's not a promise or
+   * a function gets resolved.
+   */
   middlewares?: M;
   /**
    * By default asynchronous state updates are canceled if another update is

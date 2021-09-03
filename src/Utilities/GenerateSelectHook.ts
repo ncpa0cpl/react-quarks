@@ -1,7 +1,14 @@
 import React from "react";
 import type { QuarkComparatorFn, QuarkContext, QuarkSelector } from "../Types";
 
-/** @internal */
+/**
+ * Generate a 'selector' React Hook for this Quark.
+ *
+ * Selector hook allows for selecting part of the state and subscribing to it's changes.
+ *
+ * @param self Context of the Quark in question
+ * @internal
+ */
 export function generateSelectHook<T, A, ET>(self: QuarkContext<T, A, ET>) {
   return <U>(
     selector: QuarkSelector<T, U>,

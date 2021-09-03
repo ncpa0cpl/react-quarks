@@ -1,5 +1,11 @@
 import type { QuarkContext, StateSetter } from "../../Types";
 
+/**
+ * Run all the necessary action after the state has changed, propagate the effects
+ * and send events to the subscribers if necessary.
+ *
+ * @internal
+ */
 export function processStateUpdate<T, A, ET>(params: {
   self: QuarkContext<T, A, ET>;
   previousState: T;

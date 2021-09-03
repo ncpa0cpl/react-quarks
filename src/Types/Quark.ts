@@ -43,6 +43,15 @@ export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
 
 export type QuarkGetterFn<T> = () => T;
 
+/**
+ * Update type indicates where the update originates from.
+ *
+ * A `sync` type indicates the update was dispatched via `.set(<VALUE>)` method.
+ *
+ * An `async` type indicates the update was dispatched as a result of a resolved
+ * Promise that was dispatched via `.set(<VALUE>)` method. (dispatching a Promise
+ * itself is not considered `async`).
+ */
 export type QuarkUpdateType = "sync" | "async";
 
 export type Quark<

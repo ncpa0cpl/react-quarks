@@ -1,6 +1,10 @@
 import type { QuarkContext, QuarkEffects } from "../Types";
 
-/** @internal */
+/**
+ * Adds the provided effects to the Quark Context.
+ *
+ * @internal
+ */
 export function initiateEffects<T, ET>(
   self: QuarkContext<T, any, ET>,
   effects: QuarkEffects<T, any, ET>
