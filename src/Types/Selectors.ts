@@ -1,12 +1,11 @@
-export type QuarkSelector<T, U> = (value: T) => U;
-
-export type QuarkCustomSelector<T, ARGS extends any[], R = unknown> = (
-  quarkState: T,
+export type QuarkSelector<T, ARGS extends any[], R = unknown> = (
+  value: T,
   ...args: ARGS
 ) => R;
+
 export type QuarkSelectors<T, ARGS extends any[]> = Record<
   string,
-  QuarkCustomSelector<T, ARGS>
+  QuarkSelector<T, ARGS>
 >;
 
 export type ParseSingleSelector<S> = S extends (

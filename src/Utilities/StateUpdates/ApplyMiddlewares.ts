@@ -14,7 +14,7 @@ import type { QuarkContext, QuarkUpdateType, StateSetter } from "../../Types";
  * @internal
  */
 export function applyMiddlewares<T, ET>(
-  self: QuarkContext<T, any, ET>,
+  self: QuarkContext<T, ET>,
   value: StateSetter<T, ET>,
   type: QuarkUpdateType,
   setterFn: (v: StateSetter<T, never>) => void

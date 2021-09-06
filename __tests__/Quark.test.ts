@@ -1,7 +1,15 @@
 import { act, renderHook } from "@testing-library/react-hooks";
-import type { QuarkMiddleware, QuarkType } from "../src";
+import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
 import { quark } from "../src";
-import { sleep } from "./helpers";
+import {
+  array,
+  forAwait,
+  rndBool,
+  rndString,
+  rndTResolve,
+  sleep,
+  testPromiseGenerator,
+} from "./helpers";
 
 describe("quark()", () => {
   describe("correctly works outside react", () => {
@@ -192,25 +200,40 @@ describe("quark()", () => {
       });
     });
     describe("correctly executes side effect", () => {
+      type Q = {
+        value: number;
+        derivedValue: string;
+      };
+
+      const increment = (state: Q) => {
+        return { ...state, value: state.value + 1 };
+      };
+
+      const setDerivedValue = (state: Q, newDerivedValue: string) => {
+        return { ...state, derivedValue: newDerivedValue };
+      };
+
+      const deriveValue = (
+        prevState: Q,
+        newState: Q,
+        set: QuarkSetterFn<Q, never>
+      ) => {
+        if (prevState.value !== newState.value) {
+          set((v) => setDerivedValue(v, `${newState.value}`));
+        }
+      };
+
       it("when set() is called", () => {
         const q = quark(
           { value: 0, derivedValue: "0" },
           {
             actions: {
-              increment(state) {
-                return { ...state, value: state.value + 1 };
-              },
-              setDerivedValue(state, newDerivedValue: string) {
-                return { ...state, derivedValue: newDerivedValue };
-              },
+              increment,
+              setDerivedValue,
             },
           },
           {
-            deriveValue(prevState, newState, actions) {
-              if (prevState.value !== newState.value) {
-                actions.setDerivedValue(`${newState.value}`);
-              }
-            },
+            deriveValue,
           }
         );
 
@@ -225,20 +248,12 @@ describe("quark()", () => {
           { value: 0, derivedValue: "0" },
           {
             actions: {
-              increment(state) {
-                return { ...state, value: state.value + 1 };
-              },
-              setDerivedValue(state, newDerivedValue: string) {
-                return { ...state, derivedValue: newDerivedValue };
-              },
+              increment,
+              setDerivedValue,
             },
           },
           {
-            deriveValue(prevState, newState, actions) {
-              if (prevState.value !== newState.value) {
-                actions.setDerivedValue(`${newState.value}`);
-              }
-            },
+            deriveValue,
           }
         );
 
@@ -249,6 +264,53 @@ describe("quark()", () => {
         expect(q.get()).toMatchObject({ value: 1, derivedValue: "1" });
       });
       it("with nested effects", () => {
+        type Q = {
+          value: number;
+          derivedValue1: string;
+          derivedValue2: string;
+          derivedValue3: string;
+        };
+
+        const increment = (state: Q) => {
+          return { ...state, value: state.value + 1 };
+        };
+
+        const deriveValue1 = (
+          prevState: Q,
+          newState: Q,
+          set: QuarkSetterFn<Q, never>
+        ) => {
+          if (prevState.value !== newState.value) {
+            set((v) => ({ ...v, derivedValue1: `${v.value}` }));
+          }
+        };
+
+        const deriveValue2 = (
+          prevState: Q,
+          newState: Q,
+          set: QuarkSetterFn<Q, never>
+        ) => {
+          if (prevState.value !== newState.value) {
+            set((v) => ({
+              ...v,
+              derivedValue2: `${v.derivedValue1}-${v.derivedValue1}`,
+            }));
+          }
+        };
+
+        const deriveValue3 = (
+          prevState: Q,
+          newState: Q,
+          set: QuarkSetterFn<Q, never>
+        ) => {
+          if (prevState.value !== newState.value) {
+            set((v) => ({
+              ...v,
+              derivedValue3: `${v.derivedValue2}-${v.derivedValue2}`,
+            }));
+          }
+        };
+
         const q = quark(
           {
             value: 0,
@@ -258,40 +320,13 @@ describe("quark()", () => {
           },
           {
             actions: {
-              increment(state) {
-                return { ...state, value: state.value + 1 };
-              },
-              setDerivedValue1(state, newDerivedValue: string) {
-                return { ...state, derivedValue1: `${newDerivedValue}` };
-              },
-              setDerivedValue2(state, newDerivedValue: string) {
-                return { ...state, derivedValue2: `${newDerivedValue}` };
-              },
-              setDerivedValue3(state, newDerivedValue: string) {
-                return { ...state, derivedValue3: `${newDerivedValue}` };
-              },
+              increment,
             },
           },
           {
-            deriveValue1(prevState, newState, actions) {
-              if (prevState.value !== newState.value) {
-                actions.setDerivedValue1(`${newState.value}`);
-              }
-            },
-            deriveValue2(prevState, newState, actions) {
-              if (prevState.derivedValue1 !== newState.derivedValue1) {
-                actions.setDerivedValue2(
-                  `${newState.derivedValue1}-${newState.derivedValue1}`
-                );
-              }
-            },
-            deriveValue3(prevState, newState, actions) {
-              if (prevState.derivedValue2 !== newState.derivedValue2) {
-                actions.setDerivedValue3(
-                  `${newState.derivedValue2}-${newState.derivedValue2}`
-                );
-              }
-            },
+            deriveValue1,
+            deriveValue2,
+            deriveValue3,
           }
         );
 
@@ -313,6 +348,7 @@ describe("quark()", () => {
       });
     });
   });
+
   describe("correctly works in react context", () => {
     it("use() and local set() work correctly", () => {
       const q = quark({ value: 0 });
@@ -366,9 +402,14 @@ describe("quark()", () => {
         },
       });
 
-      const state = renderHook((props) => q.useIndex(props.index), {
-        initialProps: { index: 2 },
-      });
+      const state = renderHook(
+        (props) => {
+          return q.useIndex(props.index);
+        },
+        {
+          initialProps: { index: 2 },
+        }
+      );
 
       expect(state.result.current.get()).toEqual("c");
 
@@ -402,9 +443,9 @@ describe("quark()", () => {
         { value: 0 },
         { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, actions) {
+          assureEven(_, curr, set) {
             if (curr.value % 2 !== 0) {
-              actions.set({ value: curr.value + 1 });
+              set({ value: curr.value + 1 });
             }
           },
         }
@@ -425,9 +466,9 @@ describe("quark()", () => {
         { value: 0 },
         { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, actions) {
+          assureEven(_, curr, set) {
             if (curr.value % 2 !== 0) {
-              actions.set({ value: curr.value + 1 });
+              set({ value: curr.value + 1 });
             }
           },
         }
@@ -448,9 +489,9 @@ describe("quark()", () => {
         { value: 0 },
         { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, actions) {
+          assureEven(_, curr, set) {
             if (curr.value % 2 !== 0) {
-              actions.set({ value: curr.value + 1 });
+              set({ value: curr.value + 1 });
             }
           },
         }
@@ -471,9 +512,9 @@ describe("quark()", () => {
         { value: 0 },
         { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, actions) {
+          assureEven(_, curr, set) {
             if (curr.value % 2 !== 0) {
-              actions.set({ value: curr.value + 1 });
+              set({ value: curr.value + 1 });
             }
           },
         }
@@ -488,6 +529,42 @@ describe("quark()", () => {
       });
 
       expect(state.result.current.get()).toMatchObject({ value: 2 });
+    });
+    it("use() correctly rerenders when an effect dispatches a Promise", async () => {
+      const q = quark(
+        { value: 0, derivedValue: "0" },
+        { actions: { increment: (s) => ({ ...s, value: s.value + 1 }) } },
+        {
+          onValueChange(prev, current, set) {
+            if (prev.value !== current.value)
+              set(
+                sleep(10).then(() => ({
+                  ...current,
+                  derivedValue: `${current.value}`,
+                }))
+              );
+          },
+        }
+      );
+
+      const state = renderHook(() => q.use());
+
+      expect(state.result.current.get()).toMatchObject({
+        value: 0,
+        derivedValue: "0",
+      });
+
+      await act(async () => {
+        state.result.current.increment();
+        await sleep(12);
+      });
+
+      const currentQ = state.result.current.get();
+
+      expect(currentQ).toMatchObject({
+        value: 1,
+        derivedValue: "1",
+      });
     });
     it("useSelector() correctly avoids unnecessary re-renders", () => {
       const q = quark({ value1: 0, value2: 100 });
@@ -559,6 +636,633 @@ describe("quark()", () => {
       expect(q.get().value2).toEqual(55);
       expect(state.result.current.get()).toEqual(15);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("async updates correctly avoid race conditions", () => {
+    describe("for raw Promises", () => {
+      describe("for a async final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+          }
+
+          q.set(promises.generate(() => rndTResolve(expectedResult)));
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+
+        it("(batch size of 24)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+        });
+
+        it("(batch size of 64)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+        });
+
+        it("(batch size of 128)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+        });
+
+        it("(batch size of 256)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+        });
+
+        it("(batch size of 512)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+        });
+
+        it("(batch size of 1024)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+        });
+      });
+      describe("for a sync final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+          }
+
+          q.set(expectedResult);
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 1)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+        });
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+      });
+      describe("for a async generator final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+          }
+
+          q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+
+        it("(batch size of 24)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+        });
+
+        it("(batch size of 64)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+        });
+
+        it("(batch size of 128)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+        });
+
+        it("(batch size of 256)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+        });
+
+        it("(batch size of 512)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+        });
+
+        it("(batch size of 1024)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+        });
+      });
+      describe("for a sync generator final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+          }
+
+          q.set(() => expectedResult);
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 1)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+        });
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+      });
+    });
+
+    describe("for Promise generators", () => {
+      describe("for a async final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(() =>
+              promises.generate(() => rndTResolve({ value: rndString() }))
+            );
+          }
+
+          q.set(promises.generate(() => rndTResolve(expectedResult)));
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+
+        it("(batch size of 24)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+        });
+
+        it("(batch size of 64)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+        });
+
+        it("(batch size of 128)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+        });
+
+        it("(batch size of 256)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+        });
+
+        it("(batch size of 512)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+        });
+
+        it("(batch size of 1024)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+        });
+      });
+      describe("for a sync final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(() =>
+              promises.generate(() => rndTResolve({ value: rndString() }))
+            );
+          }
+
+          q.set(expectedResult);
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 1)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+        });
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+      });
+      describe("for a async generator final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(() =>
+              promises.generate(() => rndTResolve({ value: rndString() }))
+            );
+          }
+
+          q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+
+        it("(batch size of 24)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+        });
+
+        it("(batch size of 64)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+        });
+
+        it("(batch size of 128)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+        });
+
+        it("(batch size of 256)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+        });
+
+        it("(batch size of 512)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+        });
+
+        it("(batch size of 1024)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+        });
+      });
+      describe("for a sync generator final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            q.set(() =>
+              promises.generate(() => rndTResolve({ value: rndString() }))
+            );
+          }
+
+          q.set(() => expectedResult);
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 1)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+        });
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+      });
+    });
+
+    describe("for raw Promises and Promise generators together", () => {
+      describe("for a async final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            if (rndBool()) {
+              q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+            } else {
+              q.set(() =>
+                promises.generate(() => rndTResolve({ value: rndString() }))
+              );
+            }
+          }
+
+          if (rndBool()) q.set(promises.generate(() => rndTResolve(expectedResult)));
+          else q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+
+        it("(batch size of 24)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+        });
+
+        it("(batch size of 64)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+        });
+
+        it("(batch size of 128)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+        });
+
+        it("(batch size of 256)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+        });
+
+        it("(batch size of 512)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+        });
+
+        it("(batch size of 1024)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+        });
+      });
+      describe("for a sync generator final update", () => {
+        async function runTestWithRandomPromiseResolveTime(batchSize: number) {
+          const q = quark({ value: "foo" });
+
+          const setSpy = jest.spyOn(q, "set");
+
+          const expectedResult = { value: "bar" };
+
+          const promises = testPromiseGenerator();
+
+          for (const _ in array(batchSize)) {
+            if (rndBool())
+              q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+            else
+              q.set(() =>
+                promises.generate(() => rndTResolve({ value: rndString() }))
+              );
+          }
+
+          if (rndBool()) q.set(expectedResult);
+          else q.set(() => expectedResult);
+
+          await promises.waitForAll();
+
+          expect(setSpy).toBeCalledTimes(batchSize + 1);
+          expect(q.get()).toMatchObject(expectedResult);
+        }
+
+        it("(batch size of 1)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+        });
+
+        it("(batch size of 2)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+        });
+
+        it("(batch size of 4)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+        });
+
+        it("(batch size of 8)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+        });
+
+        it("(batch size of 16)", async () => {
+          expect.assertions(32 * 2);
+          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+        });
+      });
     });
   });
 });

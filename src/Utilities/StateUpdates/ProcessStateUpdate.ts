@@ -6,11 +6,11 @@ import type { QuarkContext, StateSetter } from "../../Types";
  *
  * @internal
  */
-export function processStateUpdate<T, A, ET>(params: {
-  self: QuarkContext<T, A, ET>;
+export function processStateUpdate<T, ET>(params: {
+  self: QuarkContext<T, ET>;
   previousState: T;
   omitNotifyingSubscribers: boolean;
-  updateStateWithMiddlewares: (v: StateSetter<T, ET>) => void;
+  updateStateWithMiddlewares: (v: StateSetter<T, ET>, omit_render?: boolean) => void;
 }) {
   const {
     omitNotifyingSubscribers,
@@ -22,13 +22,12 @@ export function processStateUpdate<T, A, ET>(params: {
   const shouldUpdate = self.stateComparator(self.value, previousState);
 
   const propagateSideEffects = () => {
-    const actions = {
-      ...(self.customActions as A),
-      set: updateStateWithMiddlewares,
+    const set = (value: StateSetter<T, ET>) => {
+      updateStateWithMiddlewares(value, !(value instanceof Promise));
     };
 
     for (const sideEffect of self.effects) {
-      sideEffect(previousState, self.value, actions);
+      sideEffect(previousState, self.value, set);
     }
   };
 

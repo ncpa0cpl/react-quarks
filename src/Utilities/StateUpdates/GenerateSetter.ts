@@ -15,7 +15,7 @@ import { unpackStateSetter } from "./UnpackStateSetter";
  *   new value.
  * @internal
  */
-export function generateSetter<T, A, ET>(self: QuarkContext<T, A, ET>) {
+export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
   const asyncUpdates = asyncUpdatesController<T>(self);
 
   /**
@@ -35,7 +35,7 @@ export function generateSetter<T, A, ET>(self: QuarkContext<T, A, ET>) {
           self,
           previousState,
           omitNotifyingSubscribers: __internal_omit_render,
-          updateStateWithMiddlewares: (v) => applyMiddlewaresAndUpdateState(v, true),
+          updateStateWithMiddlewares: applyMiddlewaresAndUpdateState,
         });
       })
     );

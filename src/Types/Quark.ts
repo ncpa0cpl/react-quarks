@@ -6,11 +6,11 @@ import type { ParseSelectors, QuarkSelector } from "./Selectors";
 export type QuarkConfigOptions = { allowRaceConditions: boolean };
 
 /** @internal */
-export type QuarkContext<T, A, ET> = {
+export type QuarkContext<T, ET> = {
   value: T;
-  effects: Set<QuarkCustomEffect<T, A, ET>>;
+  effects: Set<QuarkCustomEffect<T, ET>>;
   subscribers: Set<QuarkSubscriber<T>>;
-  customActions: A | undefined;
+  // customActions: A | undefined;
   middlewares: QuarkMiddleware<T, ET>[];
 
   stateComparator: QuarkComparatorFn;
@@ -106,11 +106,11 @@ export type Quark<
    *     console.log(firstWord.get()); // Output: "Hello"
    *   }
    */
-  useSelector<U>(
-    selector: QuarkSelector<T, U>,
-    shouldComponentUpdate?: QuarkComparatorFn
+  useSelector<ARGS extends any[], R>(
+    selector: QuarkSelector<T, ARGS, R>,
+    ...args: ARGS
   ): {
-    get(): U | undefined;
+    get(): R | undefined;
   };
 } & ParseActions<C["actions"]> &
   ParseSelectors<C["selectors"]>;

@@ -108,7 +108,7 @@ export type AsyncUpdateController<T> = {
  * @internal
  */
 export function asyncUpdatesController<T>(
-  self: QuarkContext<T, any, any>
+  self: QuarkContext<T, any>
 ): AsyncUpdateController<T> {
   let currentAsyncUpdate: CancelablePromise<T> | undefined;
 

@@ -39,22 +39,17 @@ export function quark<
   SelectorArgs extends any[],
   A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
   S extends QuarkSelectors<T, SelectorArgs>,
-  E extends QuarkEffects<
-    T,
-    ParseActions<Exclude<A, undefined>>,
-    GetMiddlewareTypes<M>
-  >,
+  E extends QuarkEffects<T, GetMiddlewareTypes<M>>,
   M extends QuarkMiddleware<T, any>[] = never[]
 >(
   initValue: T,
   config: QuarkConfig<A, S, M> = {},
   effects?: E
 ): Quark<T, QuarkObjectOptions<A, S, M, E>> {
-  const self: QuarkContext<T, ParseActions<A>, GetMiddlewareTypes<M>> = {
+  const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     effects: new Set(),
     subscribers: new Set(),
-    customActions: undefined,
     middlewares: config.middlewares ?? [],
 
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
@@ -71,7 +66,6 @@ export function quark<
     setState,
     config?.actions ?? {}
   ) as ParseActions<A>;
-  self.customActions = customActions;
 
   const customSelectors = generateCustomSelectors(
     self,
@@ -80,7 +74,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, setState, get);
+  const use = generateUseHook(self, customActions, setState, get);
 
   const useSelector = generateSelectHook(self);
 

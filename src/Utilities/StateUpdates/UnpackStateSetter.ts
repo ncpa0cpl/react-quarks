@@ -20,8 +20,8 @@ export type UnpackStateSetterResult<T> = {
  * @param setter Value dispatched as an update to be unpacked
  * @internal
  */
-export function unpackStateSetter<T, A, TE>(
-  self: QuarkContext<T, A, TE>,
+export function unpackStateSetter<T, TE>(
+  self: QuarkContext<T, TE>,
   asyncUpdates: AsyncUpdateController<T>,
   setter: StateSetter<T, never>
 ): UnpackStateSetterResult<T> {

@@ -1,5 +1,5 @@
 import React from "react";
-import type { QuarkComparatorFn, QuarkContext, QuarkSelector } from "../Types";
+import type { QuarkContext, QuarkSelector } from "../Types";
 
 /**
  * Generate a 'selector' React Hook for this Quark.
@@ -9,45 +9,34 @@ import type { QuarkComparatorFn, QuarkContext, QuarkSelector } from "../Types";
  * @param self Context of the Quark in question
  * @internal
  */
-export function generateSelectHook<T, A, ET>(self: QuarkContext<T, A, ET>) {
-  return <U>(
-    selector: QuarkSelector<T, U>,
-    shouldComponentUpdate?: QuarkComparatorFn
+export function generateSelectHook<T, ET>(self: QuarkContext<T, ET>) {
+  return <ARGS extends any[], R>(
+    selector: QuarkSelector<T, ARGS, R>,
+    ...args: ARGS
   ) => {
     const [, forceRender] = React.useReducer((s: number) => s + 1, 0);
-    const initVal = React.useMemo(() => selector(self.value), []);
-    const selectedValue = React.useRef<U>(initVal);
+
+    const [initVal] = React.useState(() => selector(self.value, ...args));
+    const selectedValue = React.useRef(initVal);
 
     const get = () => selectedValue.current;
 
     React.useEffect(() => {
-      const stateComparator = shouldComponentUpdate ?? ((a, b) => !Object.is(a, b));
-
-      const sv = selector(self.value);
-
-      if (stateComparator(sv, selectedValue.current)) {
-        selectedValue.current = sv;
-        forceRender();
-      }
-    }, [selector]);
-
-    React.useEffect(() => {
-      const stateComparator = shouldComponentUpdate ?? ((a, b) => !Object.is(a, b));
-
       const onValueChange = (newVal: T) => {
-        const sv = selector(newVal);
-        if (stateComparator(sv, selectedValue.current)) {
+        const sv = selector(newVal, ...args);
+        if (!Object.is(sv, selectedValue.current)) {
           selectedValue.current = sv;
           forceRender();
         }
       };
 
-      self.subscribers.add(onValueChange);
+      onValueChange(self.value);
 
+      self.subscribers.add(onValueChange);
       return () => {
         self.subscribers.delete(onValueChange);
       };
-    }, [selector, shouldComponentUpdate]);
+    }, [selector, ...args]);
 
     return {
       get,

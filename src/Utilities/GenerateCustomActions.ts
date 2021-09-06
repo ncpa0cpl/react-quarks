@@ -23,7 +23,7 @@ export function generateCustomActions<
   ET,
   A extends QuarkActions<T, ET, ARGS>
 >(
-  self: QuarkContext<T, any, ET>,
+  self: QuarkContext<T, ET>,
   setState: QuarkSetterFn<T, ET>,
   actions: A
 ): ParseActions<A> {

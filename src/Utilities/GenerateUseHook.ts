@@ -16,7 +16,8 @@ import type {
  * @internal
  */
 export function generateUseHook<T, A extends ParseActions<any>, ET>(
-  self: QuarkContext<T, A, ET>,
+  self: QuarkContext<T, ET>,
+  actions: A,
   set: QuarkSetterFn<T, ET>,
   get: QuarkGetterFn<T>
 ) {
@@ -36,7 +37,7 @@ export function generateUseHook<T, A extends ParseActions<any>, ET>(
     return {
       get,
       set,
-      ...((self.customActions as A) ?? ({} as A)),
+      ...actions,
     };
   };
 }
