@@ -1,27 +1,35 @@
-import { applyMiddlewares } from "../ApplyMiddlewares";
+import { applyMiddlewares } from "./ApplyMiddlewares";
 import { asyncUpdatesController } from "./AsyncUpdates";
 import { processStateUpdate } from "./ProcessStateUpdate";
 import { unpackStateSetter } from "./UnpackStateSetter";
-/** @internal */
+/**
+ * Generates a function that allows for updating the state of the Quark.
+ *
+ * Updating the state with this function will trigger the Quark middlewares.
+ *
+ * @param self Quark context
+ * @returns A method for updating the Quark state, this method can take as it's
+ *   argument the new state value, a generator function or a Promise resolving to the
+ *   new value.
+ * @internal
+ */
 export function generateSetter(self) {
     const asyncUpdates = asyncUpdatesController(self);
-    const updateState = (setter, __internal_omit_render = false) => {
-        unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
+    /**
+     * A method for updating the Quark state, this method can take as it's argument the
+     * new state value, a generator function or a Promise resolving to the new value.
+     */
+    const applyMiddlewaresAndUpdateState = (newVal, __internal_omit_render = false) => {
+        applyMiddlewares(self, newVal, "sync", (setter) => unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
             const previousState = self.value;
             self.value = newState;
             processStateUpdate({
                 self,
                 previousState,
                 omitNotifyingSubscribers: __internal_omit_render,
-                updateStateWithMiddlewares: (v) => applyMiddlewaresAndUpdateState(v, true),
+                updateStateWithMiddlewares: applyMiddlewaresAndUpdateState,
             });
-        });
+        }));
     };
-    const applyMiddlewaresAndUpdateState = (newVal, __internal_omit_render = false) => {
-        applyMiddlewares(self, newVal, "sync", (v) => updateState(v, __internal_omit_render));
-    };
-    return {
-        applyMiddlewaresAndUpdateState,
-        updateState,
-    };
+    return applyMiddlewaresAndUpdateState;
 }

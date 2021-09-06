@@ -17,24 +17,22 @@ export function quark(initValue, config = {}, effects) {
         value: initValue,
         effects: new Set(),
         subscribers: new Set(),
-        customActions: undefined,
         middlewares: config.middlewares ?? [],
         stateComparator: config.shouldUpdate ?? isUpdateNecessary,
         configOptions: {
             allowRaceConditions: config.allowRaceConditions ?? false,
         },
     };
-    const { applyMiddlewaresAndUpdateState } = generateSetter(self);
-    const customActions = generateCustomActions(self, applyMiddlewaresAndUpdateState, config?.actions ?? {});
-    self.customActions = customActions;
+    const setState = generateSetter(self);
+    const customActions = generateCustomActions(self, setState, config?.actions ?? {});
     const customSelectors = generateCustomSelectors(self, config?.selectors ?? {});
     const get = () => self.value;
-    const use = generateUseHook(self, applyMiddlewaresAndUpdateState, get);
+    const use = generateUseHook(self, customActions, setState, get);
     const useSelector = generateSelectHook(self);
     initiateEffects(self, effects ?? {});
     return {
         get,
-        set: applyMiddlewaresAndUpdateState,
+        set: setState,
         use,
         useSelector,
         ...customActions,

@@ -1,6 +1,14 @@
 import React from "react";
-/** @internal */
-export function generateUseHook(self, set, get) {
+/**
+ * Generate the react hook for this specific quark.
+ *
+ * @param self Context of the Quark in question
+ * @param set Function allowing for updating the current state of the Quark
+ * @param get Function that resolves the Quark state value
+ * @returns A React Hook function exposing this quark state and actions
+ * @internal
+ */
+export function generateUseHook(self, actions, set, get) {
     return () => {
         const [, forceRender] = React.useReducer((s) => s + 1, 0);
         React.useEffect(() => {
@@ -13,7 +21,7 @@ export function generateUseHook(self, set, get) {
         return {
             get,
             set,
-            ...(self.customActions ?? {}),
+            ...actions,
         };
     };
 }

@@ -1,6 +1,9 @@
 import type { ParseActions } from "./Actions";
 import type { GetMiddlewareTypes } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
+export declare type QuarkConfigOptions = {
+    allowRaceConditions: boolean;
+};
 export declare type StateGenerator<T> = (oldVal: T) => T | Promise<T>;
 export declare type StateSetter<QuarkType, MiddlewareTypes> = [MiddlewareTypes] extends [
     never
@@ -9,6 +12,15 @@ export declare type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 export declare type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
 export declare type QuarkSetterFn<QuarkType, MiddlewareTypes> = (newVal: StateSetter<QuarkType, MiddlewareTypes>) => void;
 export declare type QuarkGetterFn<T> = () => T;
+/**
+ * Update type indicates where the update originates from.
+ *
+ * A `sync` type indicates the update was dispatched via `.set(<VALUE>)` method.
+ *
+ * An `async` type indicates the update was dispatched as a result of a resolved
+ * Promise that was dispatched via `.set(<VALUE>)` method. (dispatching a Promise
+ * itself is not considered `async`).
+ */
 export declare type QuarkUpdateType = "sync" | "async";
 export declare type Quark<T, C extends {
     actions?: any;
@@ -63,7 +75,7 @@ export declare type Quark<T, C extends {
      *     console.log(firstWord.get()); // Output: "Hello"
      *   }
      */
-    useSelector<U>(selector: QuarkSelector<T, U>, shouldComponentUpdate?: QuarkComparatorFn): {
-        get(): U | undefined;
+    useSelector<ARGS extends any[], R>(selector: QuarkSelector<T, ARGS, R>, ...args: ARGS): {
+        get(): R | undefined;
     };
 } & ParseActions<C["actions"]> & ParseSelectors<C["selectors"]>;

@@ -1,7 +1,9 @@
-import type { QuarkContext } from "../../Types";
+/**
+ * Check if the passed promise has been dispatched to the Quark as update and canceled.
+ *
+ * If the provided promise has not been ever dispatched as update `undefined` will be returned.
+ *
+ * @param promise A Promise class instance
+ * @returns A boolean
+ */
 export declare function extractIsPromiseCanceled(promise: unknown): boolean | undefined;
-export declare type AsyncUpdateController<T> = {
-    dispatchAsyncUpdate: (p: Promise<T>, stateUpdate: (state: T) => void) => void;
-    preventLastAsyncUpdate: () => void;
-};
-export declare function asyncUpdatesController<T>(self: QuarkContext<T, any, any>): AsyncUpdateController<T>;

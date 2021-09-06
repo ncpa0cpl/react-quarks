@@ -77,7 +77,7 @@ export function createDebugHistoryMiddleware(options) {
                     });
                 }
             })
-                .catch((e) => { });
+                .catch(() => { });
         }
         return resume(newValue);
     };

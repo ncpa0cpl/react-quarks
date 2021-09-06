@@ -10,7 +10,6 @@ export type QuarkContext<T, ET> = {
   value: T;
   effects: Set<QuarkCustomEffect<T, ET>>;
   subscribers: Set<QuarkSubscriber<T>>;
-  // customActions: A | undefined;
   middlewares: QuarkMiddleware<T, ET>[];
 
   stateComparator: QuarkComparatorFn;

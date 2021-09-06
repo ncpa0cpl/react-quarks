@@ -1,35 +1,22 @@
-import React from "react";
+import { generateSelectHook } from ".";
 /** @internal */
-function generateCustomSelectHook(self, selector) {
-    return (...args) => {
-        const [, forceRender] = React.useReducer((s) => s + 1, 0);
-        const initVal = React.useMemo(() => selector(self.value, ...args), []);
-        const selectedValue = React.useRef(initVal);
-        const get = () => selectedValue.current;
-        React.useEffect(() => {
-            const stateComparator = (a, b) => !Object.is(a, b);
-            const onValueChange = (newVal) => {
-                const sv = selector(newVal, ...args);
-                if (stateComparator(sv, selectedValue.current)) {
-                    selectedValue.current = sv;
-                    forceRender();
-                }
-            };
-            onValueChange(self.value);
-            self.subscribers.add(onValueChange);
-            return () => {
-                self.subscribers.delete(onValueChange);
-            };
-        }, args);
-        return {
-            get,
-        };
-    };
+function generatePredefinedSelectHook(self, selector) {
+    const hook = generateSelectHook(self);
+    return (...args) => hook(selector, ...args);
 }
-/** @internal */
+/**
+ * Generate `selector` React Hooks based on the selectors defined in the Quark config.
+ *
+ * @param self Context of the Quark in question
+ * @param selectors An object containing selector definitions, each selector must be
+ *   a function accepting the Quark state value in it's first argument
+ * @returns An object with the same structure as `selectors` but each method it
+ *   contains is a React Hook
+ * @internal
+ */
 export function generateCustomSelectors(self, selectors) {
     return Object.fromEntries(Object.entries(selectors).map(([selectorName, selectorMethod]) => {
-        const wrappedSelector = generateCustomSelectHook(self, selectorMethod);
+        const wrappedSelector = generatePredefinedSelectHook(self, selectorMethod);
         return [selectorName, wrappedSelector];
     }));
 }

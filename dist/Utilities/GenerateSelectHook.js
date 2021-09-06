@@ -1,33 +1,32 @@
 import React from "react";
-/** @internal */
+/**
+ * Generate a 'selector' React Hook for this Quark.
+ *
+ * Selector hook allows for selecting part of the state and subscribing to it's changes.
+ *
+ * @param self Context of the Quark in question
+ * @internal
+ */
 export function generateSelectHook(self) {
-    return (selector, shouldComponentUpdate) => {
+    return (selector, ...args) => {
         const [, forceRender] = React.useReducer((s) => s + 1, 0);
-        const initVal = React.useMemo(() => selector(self.value), []);
+        const [initVal] = React.useState(() => selector(self.value, ...args));
         const selectedValue = React.useRef(initVal);
         const get = () => selectedValue.current;
         React.useEffect(() => {
-            const stateComparator = shouldComponentUpdate ?? ((a, b) => !Object.is(a, b));
-            const sv = selector(self.value);
-            if (stateComparator(sv, selectedValue.current)) {
-                selectedValue.current = sv;
-                forceRender();
-            }
-        }, [selector]);
-        React.useEffect(() => {
-            const stateComparator = shouldComponentUpdate ?? ((a, b) => !Object.is(a, b));
             const onValueChange = (newVal) => {
-                const sv = selector(newVal);
-                if (stateComparator(sv, selectedValue.current)) {
+                const sv = selector(newVal, ...args);
+                if (!Object.is(sv, selectedValue.current)) {
                     selectedValue.current = sv;
                     forceRender();
                 }
             };
+            onValueChange(self.value);
             self.subscribers.add(onValueChange);
             return () => {
                 self.subscribers.delete(onValueChange);
             };
-        }, [selector, shouldComponentUpdate]);
+        }, [selector, ...args]);
         return {
             get,
         };

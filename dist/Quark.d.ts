@@ -1,4 +1,4 @@
-import type { GetMiddlewareTypes, ParseActions, Quark, QuarkActions, QuarkConfig, QuarkEffects, QuarkMiddleware, QuarkObjectOptions, QuarkSelectors } from "./Types";
+import type { GetMiddlewareTypes, Quark, QuarkActions, QuarkConfig, QuarkEffects, QuarkMiddleware, QuarkObjectOptions, QuarkSelectors } from "./Types";
 /**
  * Creates a new quark object.
  *
@@ -12,4 +12,4 @@ import type { GetMiddlewareTypes, ParseActions, Quark, QuarkActions, QuarkConfig
  *   - [`arg_1`] - new/current state
  *   - [`arg_2`] - all of the actions of the quark (including `set()`)
  */
-export declare function quark<T, ActionArgs extends any[], SelectorArgs extends any[], A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>, S extends QuarkSelectors<T, SelectorArgs>, E extends QuarkEffects<T, ParseActions<Exclude<A, undefined>>, GetMiddlewareTypes<M>>, M extends QuarkMiddleware<T, any>[] = never[]>(initValue: T, config?: QuarkConfig<A, S, M>, effects?: E): Quark<T, QuarkObjectOptions<A, S, M, E>>;
+export declare function quark<T, ActionArgs extends any[], SelectorArgs extends any[], A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>, S extends QuarkSelectors<T, SelectorArgs>, E extends QuarkEffects<T, GetMiddlewareTypes<M>>, M extends QuarkMiddleware<T, any>[] = never[]>(initValue: T, config?: QuarkConfig<A, S, M>, effects?: E): Quark<T, QuarkObjectOptions<A, S, M, E>>;
