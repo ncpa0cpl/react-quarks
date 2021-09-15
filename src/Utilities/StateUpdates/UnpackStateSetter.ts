@@ -20,10 +20,10 @@ export type UnpackStateSetterResult<T> = {
  * @param setter Value dispatched as an update to be unpacked
  * @internal
  */
-export function unpackStateSetter<T, TE>(
-  self: QuarkContext<T, TE>,
-  asyncUpdates: AsyncUpdateController<T>,
-  setter: StateSetter<T, never>
+export function unpackStateSetter<T, ET>(
+  self: QuarkContext<T, ET>,
+  asyncUpdates: AsyncUpdateController<T, ET>,
+  setter: StateSetter<T, ET>
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
@@ -38,10 +38,10 @@ export function unpackStateSetter<T, TE>(
   }
 
   if (isGenerator<T>(setter)) {
-    const state = setter(self.value);
+    const s = setter(self.value);
     return {
       then(handler: (state: T) => void) {
-        applyMiddlewares(self, state, "sync", (v) => {
+        applyMiddlewares<T, ET>(self, s, "sync", (v) => {
           unpackStateSetter(self, asyncUpdates, v).then(handler);
         });
       },
@@ -52,7 +52,7 @@ export function unpackStateSetter<T, TE>(
 
   return {
     then(handler: (state: T) => void) {
-      handler(setter);
+      handler(setter as T);
     },
   };
 }

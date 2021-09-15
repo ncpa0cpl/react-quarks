@@ -1,7 +1,8 @@
+import type { GetMiddlewareTypes, QuarkCustomEffect } from ".";
 import type { QuarkMiddleware } from "./Middlewares";
 import type { QuarkComparatorFn } from "./Quark";
 
-export type QuarkConfig<A, S, M extends QuarkMiddleware<any, any>[]> = {
+export type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
   /**
    * This method defines when the subscribed component should update. It receives as
    * it's arguments the old quark state and the new state and returns a boolean.
@@ -101,6 +102,7 @@ export type QuarkConfig<A, S, M extends QuarkMiddleware<any, any>[]> = {
    * a function gets resolved.
    */
   middlewares?: M;
+  effect?: QuarkCustomEffect<T, GetMiddlewareTypes<M>>;
   /**
    * By default asynchronous state updates are canceled if another update is
    * dispatched later on, this allows for avoiding race conditions. You can opt-out
@@ -109,10 +111,10 @@ export type QuarkConfig<A, S, M extends QuarkMiddleware<any, any>[]> = {
   allowRaceConditions?: boolean;
 };
 
-export type QuarkObjectOptions<A, S, M, E> = {
+export type QuarkObjectOptions<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
   shouldUpdate: QuarkComparatorFn;
   actions: A;
   selectors: S;
-  effects: E;
+  effect: QuarkCustomEffect<T, GetMiddlewareTypes<M>>;
   middlewares: M;
 };

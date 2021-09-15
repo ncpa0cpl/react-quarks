@@ -9,36 +9,28 @@ import type { QuarkContext, StateSetter } from "../../Types";
 export function processStateUpdate<T, ET>(params: {
   self: QuarkContext<T, ET>;
   previousState: T;
-  omitNotifyingSubscribers: boolean;
-  updateStateWithMiddlewares: (v: StateSetter<T, ET>, omit_render?: boolean) => void;
+  applyMiddlewaresAndUpdateState: (v: StateSetter<T, ET>) => void;
+  dispatchEvent: (eventAction: () => void) => void;
 }) {
-  const {
-    omitNotifyingSubscribers,
-    previousState,
-    self,
-    updateStateWithMiddlewares,
-  } = params;
+  const { previousState, self, applyMiddlewaresAndUpdateState, dispatchEvent } =
+    params;
 
   const shouldUpdate = self.stateComparator(self.value, previousState);
 
-  const propagateSideEffects = () => {
-    const set = (value: StateSetter<T, ET>) => {
-      updateStateWithMiddlewares(value, !(value instanceof Promise));
-    };
-
-    for (const sideEffect of self.effects) {
-      sideEffect(previousState, self.value, set);
-    }
-  };
-
+  const subscribers = new Set(self.subscribers);
   const notifySubscribers = () => {
-    for (const subscriber of self.subscribers) {
+    for (const subscriber of subscribers) {
       subscriber(self.value);
     }
   };
 
   if (shouldUpdate) {
-    propagateSideEffects();
-    if (!omitNotifyingSubscribers) notifySubscribers();
+    if (self.sideEffect) {
+      self.sideEffect(previousState, self.value, applyMiddlewaresAndUpdateState);
+    }
+
+    dispatchEvent(() => {
+      notifySubscribers();
+    });
   }
 }

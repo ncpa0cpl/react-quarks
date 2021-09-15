@@ -5,7 +5,6 @@ import type {
   QuarkActions,
   QuarkConfig,
   QuarkContext,
-  QuarkEffects,
   QuarkMiddleware,
   QuarkObjectOptions,
   QuarkSelectors,
@@ -16,9 +15,9 @@ import {
   generateSelectHook,
   generateSetter,
   generateUseHook,
-  initiateEffects,
   isUpdateNecessary,
 } from "./Utilities";
+import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 
 /**
  * Creates a new quark object.
@@ -39,19 +38,17 @@ export function quark<
   SelectorArgs extends any[],
   A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
   S extends QuarkSelectors<T, SelectorArgs>,
-  E extends QuarkEffects<T, GetMiddlewareTypes<M>>,
   M extends QuarkMiddleware<T, any>[] = never[]
 >(
   initValue: T,
-  config: QuarkConfig<A, S, M> = {},
-  effects?: E
-): Quark<T, QuarkObjectOptions<A, S, M, E>> {
+  config: QuarkConfig<T, A, S, M> = {}
+): Quark<T, QuarkObjectOptions<T, A, S, M>> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
-    effects: new Set(),
     subscribers: new Set(),
     middlewares: config.middlewares ?? [],
 
+    sideEffect: config.effect,
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
 
     configOptions: {
@@ -78,13 +75,14 @@ export function quark<
 
   const useSelector = generateSelectHook(self);
 
-  initiateEffects(self, effects ?? {});
+  const subscribe = generateSubscribeFunction(self);
 
   return {
     get,
     set: setState,
     use,
     useSelector,
+    subscribe,
     ...customActions,
     ...customSelectors,
   };

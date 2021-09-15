@@ -5,4 +5,3 @@ export type QuarkCustomEffect<T, ET> = (
   newState: T,
   set: QuarkSetterFn<T, ET>
 ) => void;
-export type QuarkEffects<T, ET> = Record<string, QuarkCustomEffect<T, ET>>;

@@ -25,11 +25,18 @@ export function generateUseHook<T, A extends ParseActions<any>, ET>(
     const [, forceRender] = React.useReducer((s: number) => s + 1, 0);
 
     React.useEffect(() => {
-      const onValueChange = () => forceRender();
+      const context = {
+        reRender() {
+          forceRender();
+        },
+      };
+
+      const onValueChange = () => context.reRender();
 
       self.subscribers.add(onValueChange);
 
       return () => {
+        context.reRender = () => {};
         self.subscribers.delete(onValueChange);
       };
     }, []);

@@ -1,33 +1,44 @@
+import type { QuarkCustomEffect } from ".";
 import type { ParseActions } from "./Actions";
-import type { QuarkCustomEffect } from "./Effects";
 import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
+import type { QuarkSubscription } from "./Subscribe";
+
+type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
+  ? T
+  : T | Middlewares;
 
 export type QuarkConfigOptions = { allowRaceConditions: boolean };
 
 /** @internal */
 export type QuarkContext<T, ET> = {
   value: T;
-  effects: Set<QuarkCustomEffect<T, ET>>;
-  subscribers: Set<QuarkSubscriber<T>>;
-  middlewares: QuarkMiddleware<T, ET>[];
 
-  stateComparator: QuarkComparatorFn;
+  readonly subscribers: Set<QuarkSubscriber<T>>;
+  readonly middlewares: QuarkMiddleware<T, ET>[];
 
-  configOptions: QuarkConfigOptions;
+  readonly sideEffect?: QuarkCustomEffect<T, ET>;
+  readonly stateComparator: QuarkComparatorFn;
+
+  readonly configOptions: QuarkConfigOptions;
 };
 
-export type StateGenerator<T> = (oldVal: T) => T | Promise<T>;
+export type StateGenerator<T> = ((oldVal: T) => T) | ((oldVal: T) => Promise<T>);
 
-// export type StatePromise<T> = Promise<T>;
+type SyncSetter<QuarkType> = QuarkType | ((oldVal: QuarkType) => QuarkType);
 
-// export type InternalStateSetter<T> = StatePromise<T> | T;
+type AsyncSetter<QuarkType> =
+  | StateGenerator<QuarkType>
+  | Promise<QuarkType | StateGenerator<QuarkType>>;
 
-export type StateSetter<QuarkType, MiddlewareTypes> = [MiddlewareTypes] extends [
-  never
-]
-  ? QuarkType | Promise<QuarkType> | StateGenerator<QuarkType>
-  : QuarkType | MiddlewareTypes | Promise<QuarkType> | StateGenerator<QuarkType>;
+type StdSetter<QuarkType, MiddlewareTypes> =
+  | SyncSetter<QuarkType>
+  | AsyncSetter<WithMiddlewareType<QuarkType, MiddlewareTypes>>;
+
+export type StateSetter<QuarkType, MiddlewareTypes> = WithMiddlewareType<
+  StdSetter<QuarkType, MiddlewareTypes>,
+  MiddlewareTypes
+>;
 
 /** @internal */
 export type QuarkSubscriber<T> = (currentState: T) => void;
@@ -35,6 +46,14 @@ export type QuarkSubscriber<T> = (currentState: T) => void;
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
 export type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
+
+export type QuarkSyncSetFn<QuarkType, MiddlewareTypes> = (
+  newVal: WithMiddlewareType<SyncSetter<QuarkType>, MiddlewareTypes>
+) => void;
+
+export type QuarkAsyncSetFn<QuarkType, MiddlewareTypes> = (
+  newVal: AsyncSetter<WithMiddlewareType<QuarkType, MiddlewareTypes>>
+) => void;
 
 export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
   newVal: StateSetter<QuarkType, MiddlewareTypes>
@@ -111,5 +130,15 @@ export type Quark<
   ): {
     get(): R | undefined;
   };
+  /**
+   * Add a listener for the state changes of the Quark. Every time the state change
+   * is detected provided callback will be triggered.
+   *
+   * @returns An object containing a `cancel` method which will remove the
+   *   subscription when called.
+   */
+  subscribe(
+    onQuarkStateChange: (state: T, cancelSubscription: () => void) => void
+  ): QuarkSubscription;
 } & ParseActions<C["actions"]> &
   ParseSelectors<C["selectors"]>;

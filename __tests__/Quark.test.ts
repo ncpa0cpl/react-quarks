@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react-hooks";
-import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
+import type { QuarkMiddleware, QuarkSyncSetFn, QuarkType } from "../src";
 import { quark } from "../src";
 import {
   array,
@@ -216,7 +216,7 @@ describe("quark()", () => {
       const deriveValue = (
         prevState: Q,
         newState: Q,
-        set: QuarkSetterFn<Q, never>
+        set: QuarkSyncSetFn<Q, never>
       ) => {
         if (prevState.value !== newState.value) {
           set((v) => setDerivedValue(v, `${newState.value}`));
@@ -231,9 +231,7 @@ describe("quark()", () => {
               increment,
               setDerivedValue,
             },
-          },
-          {
-            deriveValue,
+            effect: deriveValue,
           }
         );
 
@@ -251,9 +249,7 @@ describe("quark()", () => {
               increment,
               setDerivedValue,
             },
-          },
-          {
-            deriveValue,
+            effect: deriveValue,
           }
         );
 
@@ -275,35 +271,19 @@ describe("quark()", () => {
           return { ...state, value: state.value + 1 };
         };
 
-        const deriveValue1 = (
+        const deriveValue = (
           prevState: Q,
           newState: Q,
-          set: QuarkSetterFn<Q, never>
+          set: QuarkSyncSetFn<Q, never>
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));
-          }
-        };
-
-        const deriveValue2 = (
-          prevState: Q,
-          newState: Q,
-          set: QuarkSetterFn<Q, never>
-        ) => {
-          if (prevState.value !== newState.value) {
+          } else if (prevState.derivedValue1 !== newState.derivedValue1) {
             set((v) => ({
               ...v,
               derivedValue2: `${v.derivedValue1}-${v.derivedValue1}`,
             }));
-          }
-        };
-
-        const deriveValue3 = (
-          prevState: Q,
-          newState: Q,
-          set: QuarkSetterFn<Q, never>
-        ) => {
-          if (prevState.value !== newState.value) {
+          } else if (prevState.derivedValue2 !== newState.derivedValue2) {
             set((v) => ({
               ...v,
               derivedValue3: `${v.derivedValue2}-${v.derivedValue2}`,
@@ -322,11 +302,7 @@ describe("quark()", () => {
             actions: {
               increment,
             },
-          },
-          {
-            deriveValue1,
-            deriveValue2,
-            deriveValue3,
+            effect: deriveValue,
           }
         );
 
@@ -345,6 +321,98 @@ describe("quark()", () => {
           derivedValue2: "15-15",
           derivedValue3: "15-15-15-15",
         });
+      });
+    });
+    describe("correctly handles manual subscriptions", () => {
+      it("correctly calls the callback with the current state", async () => {
+        const q = quark("foo");
+
+        const onSubOne = jest.fn();
+        const onSubTwo = jest.fn();
+
+        q.subscribe((state) => {
+          onSubOne(state);
+        });
+
+        q.subscribe((state) => {
+          onSubTwo(state);
+        });
+
+        q.set("bar");
+
+        expect(onSubOne).toHaveBeenCalledTimes(0);
+        expect(onSubTwo).toHaveBeenCalledTimes(0);
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+
+        expect(onSubOne).toHaveBeenCalledWith("bar");
+        expect(onSubTwo).toHaveBeenCalledWith("bar");
+      });
+
+      it("correctly cancels the subscription", async () => {
+        const q = quark("foo");
+
+        const onSubOne = jest.fn();
+        const onSubTwo = jest.fn();
+
+        const subOne = q.subscribe((state) => {
+          onSubOne(state);
+        });
+
+        q.subscribe((state, cancel) => {
+          onSubTwo(state);
+          cancel();
+        });
+
+        subOne.cancel();
+
+        q.set("bar");
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(0);
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+
+        q.set("baz");
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(0);
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+      });
+
+      it("correctly propagates subscription cancelled after update", async () => {
+        const q = quark("foo");
+
+        const onSubOne = jest.fn();
+        const onSubTwo = jest.fn();
+
+        const subOne = q.subscribe((state) => {
+          onSubOne(state);
+        });
+
+        q.subscribe((state, cancel) => {
+          onSubTwo(state);
+        });
+
+        q.set("bar");
+
+        subOne.cancel();
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+
+        q.set("baz");
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenCalledTimes(2);
       });
     });
   });
@@ -441,9 +509,9 @@ describe("quark()", () => {
     it("use() correctly triggers custom effects when local set is called", () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, set) {
+          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
             }
@@ -464,9 +532,9 @@ describe("quark()", () => {
     it("use() correctly triggers custom effects when global set is called", () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, set) {
+          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
             }
@@ -487,9 +555,9 @@ describe("quark()", () => {
     it("use() correctly triggers custom effects when local custom action is called", () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, set) {
+          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
             }
@@ -510,9 +578,9 @@ describe("quark()", () => {
     it("use() correctly triggers custom effects when global custom action is called", () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
         {
-          assureEven(_, curr, set) {
+          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
             }
@@ -533,16 +601,17 @@ describe("quark()", () => {
     it("use() correctly rerenders when an effect dispatches a Promise", async () => {
       const q = quark(
         { value: 0, derivedValue: "0" },
-        { actions: { increment: (s) => ({ ...s, value: s.value + 1 }) } },
         {
-          onValueChange(prev, current, set) {
-            if (prev.value !== current.value)
-              set(
-                sleep(10).then(() => ({
+          actions: { increment: (s) => ({ ...s, value: s.value + 1 }) },
+          effect: (prev, current, set) => {
+            if (prev.value !== current.value) {
+              set(() =>
+                sleep(10).then((): { value: number; derivedValue: string } => ({
                   ...current,
                   derivedValue: `${current.value}`,
                 }))
               );
+            }
           },
         }
       );
@@ -566,7 +635,7 @@ describe("quark()", () => {
         derivedValue: "1",
       });
     });
-    it("useSelector() correctly avoids unnecessary re-renders", () => {
+    it("useSelector() correctly avoids unnecessary re-renders", async () => {
       const q = quark({ value1: 0, value2: 100 });
       const reRenderCounter = jest.fn();
 
@@ -581,23 +650,27 @@ describe("quark()", () => {
       expect(state.result.current.get()).toEqual(0);
       expect(reRenderCounter).toHaveBeenCalledTimes(1);
 
-      act(() => {
+      await act(async () => {
         q.set((s) => ({ ...s, value1: 5 }));
+
+        await sleep(0);
       });
 
       expect(q.get().value2).toEqual(100);
       expect(state.result.current.get()).toEqual(5);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
-      act(() => {
+      await act(async () => {
         q.set((s) => ({ ...s, value2: 99 }));
+
+        await sleep(0);
       });
 
       expect(q.get().value2).toEqual(99);
       expect(state.result.current.get()).toEqual(5);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
     });
-    it("custom selectors correctly avoid unnecessary re-renders", () => {
+    it("custom selectors correctly avoid unnecessary re-renders", async () => {
       const q = quark(
         { value1: 1, value2: 321 },
         {
@@ -621,16 +694,18 @@ describe("quark()", () => {
       expect(state.result.current.get()).toEqual(1);
       expect(reRenderCounter).toHaveBeenCalledTimes(1);
 
-      act(() => {
+      await act(async () => {
         q.SetVal1(15);
+        await sleep(0);
       });
 
       expect(q.get().value2).toEqual(321);
       expect(state.result.current.get()).toEqual(15);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
-      act(() => {
+      await act(async () => {
         q.SetVal2(55);
+        await sleep(0);
       });
 
       expect(q.get().value2).toEqual(55);

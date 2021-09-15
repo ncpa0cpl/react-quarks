@@ -37,7 +37,6 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
 }): QuarkContext<T, ET> {
   const {
     configOptions = { allowRaceConditions: false },
-    effects = new Set<QuarkCustomEffect<T, ET>>(),
     middlewares = [],
     stateComparator = () => true,
     subscribers = new Set<QuarkSubscriber<T>>(),
@@ -48,7 +47,6 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
     value,
     stateComparator,
     configOptions,
-    effects,
     middlewares,
     subscribers,
   };

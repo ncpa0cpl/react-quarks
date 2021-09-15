@@ -1,4 +1,4 @@
-import type { QuarkContext } from "../../Types";
+import type { QuarkContext, StateSetter } from "../../Types";
 import { hasKey } from "../GeneralPurposeUtilities";
 
 /**
@@ -51,7 +51,7 @@ function assignCancelStatusToOriginalPromise(
  * @returns CancelablePromise object
  * @internal
  */
-export function CancelablePromise<T = unknown>(
+export function CancelablePromise<T extends StateSetter<any, never>>(
   orgPromise: Promise<T>
 ): CancelablePromise<T> {
   let isCanceled = false;
@@ -87,14 +87,17 @@ export function CancelablePromise<T = unknown>(
  *
  * @internal
  */
-export type AsyncUpdateController<T> = {
+export type AsyncUpdateController<T, ET> = {
   /**
    * Dispatches an asynchronous update, after the provided Promise resolves an
    * updates via `stateUpdate` will be sent.
    *
    * Any previous pending updates will be canceled.
    */
-  dispatchAsyncUpdate: (p: Promise<T>, stateUpdate: (state: T) => void) => void;
+  dispatchAsyncUpdate: (
+    p: Promise<StateSetter<T, ET>>,
+    stateUpdate: (state: StateSetter<T, ET>) => void
+  ) => void;
   /** Cancels the current pending asynchronous update if any. */
   preventLastAsyncUpdate: () => void;
 };
@@ -107,24 +110,32 @@ export type AsyncUpdateController<T> = {
  * @param self Quark context
  * @internal
  */
-export function asyncUpdatesController<T>(
+export function asyncUpdatesController<T, ET>(
   self: QuarkContext<T, any>
-): AsyncUpdateController<T> {
-  let currentAsyncUpdate: CancelablePromise<T> | undefined;
+): AsyncUpdateController<T, ET> {
+  let currentAsyncUpdate: CancelablePromise<unknown> | undefined;
 
-  const preventLastAsyncUpdate = self.configOptions.allowRaceConditions
+  const preventLastAsyncUpdate: AsyncUpdateController<
+    T,
+    ET
+  >["preventLastAsyncUpdate"] = self.configOptions.allowRaceConditions
     ? () => {}
     : () => {
         currentAsyncUpdate?.cancel();
         currentAsyncUpdate = undefined;
       };
 
-  const dispatchAsyncUpdate = (p: Promise<T>, stateUpdate: (state: T) => void) => {
+  const dispatchAsyncUpdate: AsyncUpdateController<T, ET>["dispatchAsyncUpdate"] = (
+    p,
+    stateUpdate
+  ) => {
     preventLastAsyncUpdate();
 
-    currentAsyncUpdate = CancelablePromise<T>(p);
+    const cp = CancelablePromise(p);
 
-    currentAsyncUpdate.then((v) => {
+    currentAsyncUpdate = cp;
+
+    cp.then((v) => {
       currentAsyncUpdate = undefined;
       stateUpdate(v);
     });

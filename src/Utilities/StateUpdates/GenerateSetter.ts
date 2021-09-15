@@ -1,6 +1,7 @@
 import type { QuarkContext, StateSetter } from "../../Types";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import { asyncUpdatesController } from "./AsyncUpdates";
+import { createEventsDispatcher } from "./EventsDispatcher";
 import { processStateUpdate } from "./ProcessStateUpdate";
 import { unpackStateSetter } from "./UnpackStateSetter";
 
@@ -16,16 +17,14 @@ import { unpackStateSetter } from "./UnpackStateSetter";
  * @internal
  */
 export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
-  const asyncUpdates = asyncUpdatesController<T>(self);
+  const asyncUpdates = asyncUpdatesController<T, ET>(self);
+  const { dispatchEvent } = createEventsDispatcher();
 
   /**
    * A method for updating the Quark state, this method can take as it's argument the
    * new state value, a generator function or a Promise resolving to the new value.
    */
-  const applyMiddlewaresAndUpdateState = (
-    newVal: StateSetter<T, ET>,
-    __internal_omit_render = false
-  ) => {
+  const applyMiddlewaresAndUpdateState = (newVal: StateSetter<T, ET>) => {
     applyMiddlewares(self, newVal, "sync", (setter) =>
       unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
         const previousState = self.value;
@@ -34,8 +33,8 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
         processStateUpdate({
           self,
           previousState,
-          omitNotifyingSubscribers: __internal_omit_render,
-          updateStateWithMiddlewares: applyMiddlewaresAndUpdateState,
+          applyMiddlewaresAndUpdateState,
+          dispatchEvent,
         });
       })
     );

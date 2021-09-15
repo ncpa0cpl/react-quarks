@@ -195,7 +195,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(Promise.reject("foo"))).not.toThrow();
+        expect(() => q.set(Promise.reject<string>("foo"))).not.toThrow();
 
         await sleep(0);
 

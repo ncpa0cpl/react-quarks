@@ -12,7 +12,7 @@ export type QuarkMiddleware<T, ET> = (
    * Interrupts the standard update flow and immediately updates the state with the
    * `value` specified in the argument. Any following middlewares will be skipped.
    */
-  set: (value: StateSetter<T, never>) => void,
+  set: (value: StateSetter<T, ET>) => void,
   /**
    * Indicates if this state update was initiated directly via `set()` method call
    * (type = 'sync') or via asynchronous state update (type = 'async').

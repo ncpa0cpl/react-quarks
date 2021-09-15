@@ -17,7 +17,7 @@ export function applyMiddlewares<T, ET>(
   self: QuarkContext<T, ET>,
   value: StateSetter<T, ET>,
   type: QuarkUpdateType,
-  setterFn: (v: StateSetter<T, never>) => void
+  setterFn: (v: StateSetter<T, ET>) => void
 ) {
   const applyMiddlewareOfIndex = (index: number, v: StateSetter<T, ET>) => {
     const nextMiddleware = self.middlewares[index];
