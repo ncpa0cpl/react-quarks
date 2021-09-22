@@ -1,6 +1,9 @@
-import { cloneDeep as _cloneDeep } from "lodash";
-import { extractIsPromiseCanceled } from "../../Utilities/StateUpdates/AsyncUpdates";
-import { getStateUpdateHistory } from "./UpdateHistory";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createDebugHistoryMiddleware = void 0;
+const lodash_1 = require("lodash");
+const AsyncUpdates_1 = require("../../Utilities/StateUpdates/AsyncUpdates");
+const UpdateHistory_1 = require("./UpdateHistory");
 function getValueType(val) {
     if (val instanceof Promise)
         return "Promise";
@@ -11,11 +14,11 @@ function getValueType(val) {
 function cloneDeep(v) {
     if (v instanceof Promise || typeof v === "function")
         return v;
-    return _cloneDeep(v);
+    return lodash_1.cloneDeep(v);
 }
-export function createDebugHistoryMiddleware(options) {
+function createDebugHistoryMiddleware(options) {
     const { name, trace = true, realTimeLogging = false, useTablePrint = true, } = options;
-    const StateUpdateHistory = getStateUpdateHistory();
+    const StateUpdateHistory = UpdateHistory_1.getStateUpdateHistory();
     const quarkHistoryTracker = StateUpdateHistory.track({
         name,
         realTimeLogging,
@@ -60,7 +63,7 @@ export function createDebugHistoryMiddleware(options) {
         if (newValue instanceof Promise) {
             newValue
                 .then((v) => {
-                const hasBeenCanceled = extractIsPromiseCanceled(newValue);
+                const hasBeenCanceled = AsyncUpdates_1.extractIsPromiseCanceled(newValue);
                 if (hasBeenCanceled) {
                     quarkHistoryTracker.addHistoryEntry({
                         dispatchedUpdate: {
@@ -82,3 +85,4 @@ export function createDebugHistoryMiddleware(options) {
         return resume(newValue);
     };
 }
+exports.createDebugHistoryMiddleware = createDebugHistoryMiddleware;

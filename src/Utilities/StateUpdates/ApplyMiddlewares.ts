@@ -30,7 +30,7 @@ export function applyMiddlewares<T, ET>(
         type
       );
     } else {
-      setterFn(v as T);
+      setterFn(v);
     }
   };
 

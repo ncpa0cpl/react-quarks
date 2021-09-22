@@ -1,7 +1,10 @@
-import { generateSelectHook } from ".";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateCustomSelectors = void 0;
+const _1 = require(".");
 /** @internal */
 function generatePredefinedSelectHook(self, selector) {
-    const hook = generateSelectHook(self);
+    const hook = _1.generateSelectHook(self);
     return (...args) => hook(selector, ...args);
 }
 /**
@@ -14,9 +17,10 @@ function generatePredefinedSelectHook(self, selector) {
  *   contains is a React Hook
  * @internal
  */
-export function generateCustomSelectors(self, selectors) {
+function generateCustomSelectors(self, selectors) {
     return Object.fromEntries(Object.entries(selectors).map(([selectorName, selectorMethod]) => {
         const wrappedSelector = generatePredefinedSelectHook(self, selectorMethod);
         return [selectorName, wrappedSelector];
     }));
 }
+exports.generateCustomSelectors = generateCustomSelectors;

@@ -1,9 +1,12 @@
-import { addToGlobalSpace } from "./AddToGlobalSpace";
-import { entryToReadableForm } from "./EntryToReadableForm";
-import { getStateUpdateHistory } from "./UpdateHistory";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.initConsoleTools = void 0;
+const AddToGlobalSpace_1 = require("./AddToGlobalSpace");
+const EntryToReadableForm_1 = require("./EntryToReadableForm");
+const UpdateHistory_1 = require("./UpdateHistory");
 function printQuarkHistory(options) {
     const { showLast = 16, name = undefined } = options ?? {};
-    const history = getStateUpdateHistory();
+    const history = UpdateHistory_1.getStateUpdateHistory();
     const quarksHistories = history.getHistory();
     for (const quarkHistory of quarksHistories) {
         const useTablePrint = options?.useTablePrint ?? quarkHistory.options.useTablePrint;
@@ -16,7 +19,7 @@ function printQuarkHistory(options) {
                 .reverse()
                 .slice(0, showLast)
                 .reverse()
-                .map(entryToReadableForm);
+                .map(EntryToReadableForm_1.entryToReadableForm);
             if (useTablePrint)
                 console.table(table);
             else
@@ -25,6 +28,7 @@ function printQuarkHistory(options) {
         }
     }
 }
-export function initConsoleTools() {
-    addToGlobalSpace({ printQuarkHistory });
+function initConsoleTools() {
+    AddToGlobalSpace_1.addToGlobalSpace({ printQuarkHistory });
 }
+exports.initConsoleTools = initConsoleTools;

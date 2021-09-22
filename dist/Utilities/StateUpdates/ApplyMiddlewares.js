@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.applyMiddlewares = void 0;
 /**
  * Extract the list of middlewares from the Quark context and process the `value`
  * through each middleware in the list (unless one of the middlewares stops the propagation).
@@ -11,7 +14,7 @@
  * @param setterFn Function that updates the state of the Quark
  * @internal
  */
-export function applyMiddlewares(self, value, type, setterFn) {
+function applyMiddlewares(self, value, type, setterFn) {
     const applyMiddlewareOfIndex = (index, v) => {
         const nextMiddleware = self.middlewares[index];
         if (nextMiddleware) {
@@ -23,3 +26,4 @@ export function applyMiddlewares(self, value, type, setterFn) {
     };
     applyMiddlewareOfIndex(0, value);
 }
+exports.applyMiddlewares = applyMiddlewares;

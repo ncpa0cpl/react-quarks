@@ -1,4 +1,7 @@
-import { hasKey } from "../GeneralPurposeUtilities";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.asyncUpdatesController = exports.CancelablePromise = exports.extractIsPromiseCanceled = void 0;
+const GeneralPurposeUtilities_1 = require("../GeneralPurposeUtilities");
 const PROMISE_CANCEL_STATUS_PROPERTY = Symbol("__quark_internal_is_promise_canceled__");
 /**
  * Check if the passed promise has been dispatched to the Quark as update and canceled.
@@ -8,13 +11,14 @@ const PROMISE_CANCEL_STATUS_PROPERTY = Symbol("__quark_internal_is_promise_cance
  * @param promise A Promise class instance
  * @returns A boolean
  */
-export function extractIsPromiseCanceled(promise) {
+function extractIsPromiseCanceled(promise) {
     if (typeof promise === "object" &&
         promise !== null &&
-        hasKey(promise, PROMISE_CANCEL_STATUS_PROPERTY)) {
+        GeneralPurposeUtilities_1.hasKey(promise, PROMISE_CANCEL_STATUS_PROPERTY)) {
         return promise[PROMISE_CANCEL_STATUS_PROPERTY];
     }
 }
+exports.extractIsPromiseCanceled = extractIsPromiseCanceled;
 function assignCancelStatusToOriginalPromise(promise, canceled) {
     Object.assign(promise, { [PROMISE_CANCEL_STATUS_PROPERTY]: canceled });
 }
@@ -27,7 +31,7 @@ function assignCancelStatusToOriginalPromise(promise, canceled) {
  * @returns CancelablePromise object
  * @internal
  */
-export function CancelablePromise(orgPromise) {
+function CancelablePromise(orgPromise) {
     let isCanceled = false;
     assignCancelStatusToOriginalPromise(orgPromise, isCanceled);
     return {
@@ -50,6 +54,7 @@ export function CancelablePromise(orgPromise) {
         },
     };
 }
+exports.CancelablePromise = CancelablePromise;
 /**
  * Creates a Controller responsible for managing asynchronous updates. By default all
  * and any dispatched updates cause any previous non resolved updates to be canceled.
@@ -58,7 +63,7 @@ export function CancelablePromise(orgPromise) {
  * @param self Quark context
  * @internal
  */
-export function asyncUpdatesController(self) {
+function asyncUpdatesController(self) {
     let currentAsyncUpdate;
     const preventLastAsyncUpdate = self.configOptions.allowRaceConditions
         ? () => { }
@@ -68,8 +73,9 @@ export function asyncUpdatesController(self) {
         };
     const dispatchAsyncUpdate = (p, stateUpdate) => {
         preventLastAsyncUpdate();
-        currentAsyncUpdate = CancelablePromise(p);
-        currentAsyncUpdate.then((v) => {
+        const cp = CancelablePromise(p);
+        currentAsyncUpdate = cp;
+        cp.then((v) => {
             currentAsyncUpdate = undefined;
             stateUpdate(v);
         });
@@ -79,3 +85,4 @@ export function asyncUpdatesController(self) {
         preventLastAsyncUpdate,
     };
 }
+exports.asyncUpdatesController = asyncUpdatesController;

@@ -9,7 +9,7 @@ resume: (value: StateSetter<T, ET>) => void,
  * Interrupts the standard update flow and immediately updates the state with the
  * `value` specified in the argument. Any following middlewares will be skipped.
  */
-set: (value: StateSetter<T, never>) => void, 
+set: (value: StateSetter<T, ET>) => void, 
 /**
  * Indicates if this state update was initiated directly via `set()` method call
  * (type = 'sync') or via asynchronous state update (type = 'async').
@@ -23,5 +23,5 @@ updateType: QuarkUpdateType) => void;
 declare type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I : never;
 export declare type GetMiddlewareTypes<M extends any[]> = {
     [K in keyof M]: MiddlewareInputType<M[K]>;
-} extends Array<infer T> ? T : never;
+} extends Array<infer T> ? T extends undefined ? never : T : never;
 export {};

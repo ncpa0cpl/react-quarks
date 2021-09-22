@@ -1,5 +1,8 @@
-import { DateTime } from "luxon";
-import { hasKey } from "../../Utilities/GeneralPurposeUtilities";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.entryToReadableForm = void 0;
+const luxon_1 = require("luxon");
+const GeneralPurposeUtilities_1 = require("../../Utilities/GeneralPurposeUtilities");
 const PROPERTIES_FRIENDLY_NAMES_MAP = {
     value: "Value:",
     type: "Value Type:",
@@ -38,17 +41,17 @@ function parseObjectValue(obj) {
         return `Type: ${obj.type}; Value: [${stringifyIfObject(obj.value)}]`;
     return `Type: Value; Value: [${stringifyIfObject(obj)}]`;
 }
-export function entryToReadableForm(entry) {
+function entryToReadableForm(entry) {
     const columnValues = columns.map((propertyName) => {
         const friendlyName = PROPERTIES_FRIENDLY_NAMES_MAP[propertyName];
-        const value = hasKey(entry, propertyName)
+        const value = GeneralPurposeUtilities_1.hasKey(entry, propertyName)
             ? entry[propertyName]
             : undefined;
         if (typeof value === "object") {
             return [friendlyName, parseObjectValue(value)];
         }
         if (propertyName === "time") {
-            return [friendlyName, DateTime.fromMillis(value).toISO()];
+            return [friendlyName, luxon_1.DateTime.fromMillis(value).toISO()];
         }
         if (propertyName === "isCanceled") {
             return [friendlyName, !!value];
@@ -57,3 +60,4 @@ export function entryToReadableForm(entry) {
     });
     return Object.fromEntries(columnValues);
 }
+exports.entryToReadableForm = entryToReadableForm;

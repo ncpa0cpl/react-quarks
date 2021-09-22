@@ -1,4 +1,7 @@
-export function addToGlobalSpace(o) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.addToGlobalSpace = void 0;
+function addToGlobalSpace(o) {
     if (window) {
         Object.assign(window, o);
     }
@@ -9,3 +12,4 @@ export function addToGlobalSpace(o) {
         Object.assign(global, o);
     }
 }
+exports.addToGlobalSpace = addToGlobalSpace;

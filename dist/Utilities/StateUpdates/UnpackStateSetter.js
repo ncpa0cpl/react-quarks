@@ -1,5 +1,8 @@
-import { isGenerator } from "../IsGenerator";
-import { applyMiddlewares } from "./ApplyMiddlewares";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.unpackStateSetter = void 0;
+const IsGenerator_1 = require("../IsGenerator");
+const ApplyMiddlewares_1 = require("./ApplyMiddlewares");
 /**
  * If the provided value is a Promise or a State Generator, resolve it and the pass
  * the received value to the middlewares and then "unpack" it again.
@@ -12,21 +15,21 @@ import { applyMiddlewares } from "./ApplyMiddlewares";
  * @param setter Value dispatched as an update to be unpacked
  * @internal
  */
-export function unpackStateSetter(self, asyncUpdates, setter) {
+function unpackStateSetter(self, asyncUpdates, setter) {
     if (setter instanceof Promise) {
         return {
             then(handler) {
                 asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
-                    applyMiddlewares(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
+                    ApplyMiddlewares_1.applyMiddlewares(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
                 });
             },
         };
     }
-    if (isGenerator(setter)) {
-        const state = setter(self.value);
+    if (IsGenerator_1.isGenerator(setter)) {
+        const s = setter(self.value);
         return {
             then(handler) {
-                applyMiddlewares(self, state, "sync", (v) => {
+                ApplyMiddlewares_1.applyMiddlewares(self, s, "sync", (v) => {
                     unpackStateSetter(self, asyncUpdates, v).then(handler);
                 });
             },
@@ -39,3 +42,4 @@ export function unpackStateSetter(self, asyncUpdates, setter) {
         },
     };
 }
+exports.unpackStateSetter = unpackStateSetter;

@@ -16,10 +16,7 @@
     "source.organizeImports": true,
     "source.fixAll.eslint": true
   },
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "typescriptreact"
-  ],
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "cSpell.words": ["Middlewares"]
 }

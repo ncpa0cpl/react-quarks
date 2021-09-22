@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateCustomActions = void 0;
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
  *
@@ -10,7 +13,7 @@
  * @returns An object with the same structure as the `actions` argument
  * @internal
  */
-export function generateCustomActions(self, setState, actions) {
+function generateCustomActions(self, setState, actions) {
     return Object.fromEntries(Object.entries(actions).map(([actionName, actionMethod]) => {
         const wrappedAction = (...args) => {
             const newState = actionMethod(self.value, ...args);
@@ -19,3 +22,4 @@ export function generateCustomActions(self, setState, actions) {
         return [actionName, wrappedAction];
     }));
 }
+exports.generateCustomActions = generateCustomActions;

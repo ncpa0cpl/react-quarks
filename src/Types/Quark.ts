@@ -4,7 +4,7 @@ import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
 import type { QuarkSubscription } from "./Subscribe";
 
-type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
+export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
   ? T
   : T | Middlewares;
 
@@ -25,13 +25,13 @@ export type QuarkContext<T, ET> = {
 
 export type StateGenerator<T> = ((oldVal: T) => T) | ((oldVal: T) => Promise<T>);
 
-type SyncSetter<QuarkType> = QuarkType | ((oldVal: QuarkType) => QuarkType);
+export type SyncSetter<QuarkType> = QuarkType | ((oldVal: QuarkType) => QuarkType);
 
-type AsyncSetter<QuarkType> =
+export type AsyncSetter<QuarkType> =
   | StateGenerator<QuarkType>
   | Promise<QuarkType | StateGenerator<QuarkType>>;
 
-type StdSetter<QuarkType, MiddlewareTypes> =
+export type StdSetter<QuarkType, MiddlewareTypes> =
   | SyncSetter<QuarkType>
   | AsyncSetter<WithMiddlewareType<QuarkType, MiddlewareTypes>>;
 

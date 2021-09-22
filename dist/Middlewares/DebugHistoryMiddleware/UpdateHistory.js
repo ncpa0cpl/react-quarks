@@ -1,10 +1,13 @@
-import { addToGlobalSpace } from "./AddToGlobalSpace";
-import { initConsoleTools } from "./ConsoleTools";
-import { createTrackedQuark } from "./TrackedQuark";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStateUpdateHistory = void 0;
+const AddToGlobalSpace_1 = require("./AddToGlobalSpace");
+const ConsoleTools_1 = require("./ConsoleTools");
+const TrackedQuark_1 = require("./TrackedQuark");
 function createStateUpdateHistory() {
     const trackedQuarks = [];
     const track = (options) => {
-        const quarkTrack = createTrackedQuark(options);
+        const quarkTrack = TrackedQuark_1.createTrackedQuark(options);
         trackedQuarks.push(quarkTrack);
         return quarkTrack;
     };
@@ -28,11 +31,12 @@ function createStateUpdateHistory() {
     return { track, showHistory, getHistory, clear };
 }
 let StateUpdateHistory;
-export function getStateUpdateHistory() {
+function getStateUpdateHistory() {
     if (StateUpdateHistory)
         return StateUpdateHistory;
     StateUpdateHistory = createStateUpdateHistory();
-    addToGlobalSpace({ __quark_history_tracker__: StateUpdateHistory });
-    initConsoleTools();
+    AddToGlobalSpace_1.addToGlobalSpace({ __quark_history_tracker__: StateUpdateHistory });
+    ConsoleTools_1.initConsoleTools();
     return StateUpdateHistory;
 }
+exports.getStateUpdateHistory = getStateUpdateHistory;

@@ -1,14 +1,17 @@
-import { DateTime } from "luxon";
-import { entryToReadableForm } from "./EntryToReadableForm";
-export function createTrackedQuark(options) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createTrackedQuark = void 0;
+const luxon_1 = require("luxon");
+const EntryToReadableForm_1 = require("./EntryToReadableForm");
+function createTrackedQuark(options) {
     const stateChangeHistory = [];
     const onEntryAdded = options.realTimeLogging
         ? (entry) => {
             console.group(options.name);
             if (options.useTablePrint)
-                console.table([entryToReadableForm(entry)]);
+                console.table([EntryToReadableForm_1.entryToReadableForm(entry)]);
             else
-                console.log(entryToReadableForm(entry));
+                console.log(EntryToReadableForm_1.entryToReadableForm(entry));
             console.groupEnd();
         }
         : () => { };
@@ -18,7 +21,7 @@ export function createTrackedQuark(options) {
             : "Immediate";
         const newEntry = {
             ...entry,
-            time: DateTime.now().toMillis(),
+            time: luxon_1.DateTime.now().toMillis(),
             change,
             stateAfterUpdate: change === "Postponed"
                 ? entry.initialState.value
@@ -38,3 +41,4 @@ export function createTrackedQuark(options) {
         clear,
     };
 }
+exports.createTrackedQuark = createTrackedQuark;
