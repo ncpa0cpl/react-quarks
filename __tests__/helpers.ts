@@ -31,7 +31,7 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
   value?: T;
   stateComparator?: QuarkComparatorFn;
   configOptions?: QuarkConfigOptions;
-  effects?: Set<QuarkCustomEffect<T, ET>>;
+  sideEffect?: QuarkCustomEffect<T, ET>;
   middlewares?: QuarkMiddleware<T, ET>[];
   subscribers?: Set<QuarkSubscriber<T>>;
 }): QuarkContext<T, ET> {
@@ -41,6 +41,7 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
     stateComparator = () => true,
     subscribers = new Set<QuarkSubscriber<T>>(),
     value = "" as any as T,
+    sideEffect,
   } = params ?? {};
 
   return {
@@ -49,6 +50,7 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
     configOptions,
     middlewares,
     subscribers,
+    sideEffect,
   };
 }
 

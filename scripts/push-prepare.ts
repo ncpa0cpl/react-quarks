@@ -77,10 +77,11 @@ async function main() {
       throw new OperationError("Git", "Commit your changes!");
     }
   } catch (e) {
-    if (e instanceof Error && OperationError.isOperationError(e)) throw e;
-    else {
-      throw new OperationError("Unknown Error", `${e}`);
+    if (!(e instanceof Error && OperationError.isOperationError(e))) {
+      new OperationError("Unknown Error", `${e}`);
     }
+
+    process.exit(1);
   }
 
   return true;

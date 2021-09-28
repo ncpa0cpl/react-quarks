@@ -63,6 +63,6 @@
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
     "stripInternal": true
   },
-  "exclude": ["./dist", "./scripts"],
+  "exclude": ["./dist", "./scripts", "./coverage"],
   "include": ["./src"]
 }

@@ -18,6 +18,7 @@ export function processStateUpdate<T, ET>(params: {
   const shouldUpdate = self.stateComparator(self.value, previousState);
 
   const subscribers = new Set(self.subscribers);
+
   const notifySubscribers = () => {
     for (const subscriber of subscribers) {
       subscriber(self.value);
