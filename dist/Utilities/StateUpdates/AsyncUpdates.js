@@ -14,7 +14,7 @@ const PROMISE_CANCEL_STATUS_PROPERTY = Symbol("__quark_internal_is_promise_cance
 function extractIsPromiseCanceled(promise) {
     if (typeof promise === "object" &&
         promise !== null &&
-        GeneralPurposeUtilities_1.hasKey(promise, PROMISE_CANCEL_STATUS_PROPERTY)) {
+        (0, GeneralPurposeUtilities_1.hasKey)(promise, PROMISE_CANCEL_STATUS_PROPERTY)) {
         return promise[PROMISE_CANCEL_STATUS_PROPERTY];
     }
 }

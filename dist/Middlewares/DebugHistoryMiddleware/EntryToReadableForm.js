@@ -44,7 +44,7 @@ function parseObjectValue(obj) {
 function entryToReadableForm(entry) {
     const columnValues = columns.map((propertyName) => {
         const friendlyName = PROPERTIES_FRIENDLY_NAMES_MAP[propertyName];
-        const value = GeneralPurposeUtilities_1.hasKey(entry, propertyName)
+        const value = (0, GeneralPurposeUtilities_1.hasKey)(entry, propertyName)
             ? entry[propertyName]
             : undefined;
         if (typeof value === "object") {

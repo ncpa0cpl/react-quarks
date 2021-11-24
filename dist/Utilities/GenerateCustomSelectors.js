@@ -4,7 +4,7 @@ exports.generateCustomSelectors = void 0;
 const _1 = require(".");
 /** @internal */
 function generatePredefinedSelectHook(self, selector) {
-    const hook = _1.generateSelectHook(self);
+    const hook = (0, _1.generateSelectHook)(self);
     return (...args) => hook(selector, ...args);
 }
 /**

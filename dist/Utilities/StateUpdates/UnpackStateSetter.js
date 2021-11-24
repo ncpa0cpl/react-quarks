@@ -20,16 +20,16 @@ function unpackStateSetter(self, asyncUpdates, setter) {
         return {
             then(handler) {
                 asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
-                    ApplyMiddlewares_1.applyMiddlewares(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
+                    (0, ApplyMiddlewares_1.applyMiddlewares)(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
                 });
             },
         };
     }
-    if (IsGenerator_1.isGenerator(setter)) {
+    if ((0, IsGenerator_1.isGenerator)(setter)) {
         const s = setter(self.value);
         return {
             then(handler) {
-                ApplyMiddlewares_1.applyMiddlewares(self, s, "sync", (v) => {
+                (0, ApplyMiddlewares_1.applyMiddlewares)(self, s, "sync", (v) => {
                     unpackStateSetter(self, asyncUpdates, v).then(handler);
                 });
             },

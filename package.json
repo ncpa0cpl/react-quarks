@@ -1,11 +1,11 @@
 {
-  "name": "rc-quarks",
+  "name": "react-quarks",
   "version": "1.1.0",
-  "description": "",
+  "description": "React state management library with async support.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "repository": {
-    "url": "https://github.com/ncpa0cpl/react-particles.git"
+    "url": "https://github.com/ncpa0cpl/rc-quarks"
   },
   "scripts": {
     "tsc": "tsc --noEmit",
@@ -15,11 +15,21 @@
     "prepare:push": "ts-node ./scripts/push-prepare.ts",
     "prettier:check": "prettier --check ./src && prettier --check ./__tests__"
   },
-  "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0"
-  },
   "author": "Bretner Szymon",
   "license": "MIT",
+  "keywords": [
+    "state",
+    "management",
+    "react",
+    "async",
+    "asynchronous",
+    "promise"
+  ],
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0",
+    "lodash": "^4.17.21",
+    "luxon": "^2.0.2"
+  },
   "devDependencies": {
     "@testing-library/react-hooks": "^7.0.1",
     "@types/axios": "^0.14.0",
@@ -41,11 +51,7 @@
     "simple-git": "^2.45.1",
     "ts-jest": "^27.0.4",
     "ts-node": "^10.2.1",
-    "typescript": "^4.4.3"
-  },
-  "dependencies": {
-    "husky": "^7.0.2",
-    "lodash": "^4.17.21",
-    "luxon": "^2.0.2"
+    "typescript": "^4.4.3",
+    "husky": "^7.0.2"
   }
 }

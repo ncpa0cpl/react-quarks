@@ -9,6 +9,7 @@ src
 .eslintignore
 .eslintrc.json
 .gitignore
+.npmrc
 .prettierrc.json
 jest.config.js
 tsconfig.json

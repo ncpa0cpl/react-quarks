@@ -7,7 +7,7 @@ const TrackedQuark_1 = require("./TrackedQuark");
 function createStateUpdateHistory() {
     const trackedQuarks = [];
     const track = (options) => {
-        const quarkTrack = TrackedQuark_1.createTrackedQuark(options);
+        const quarkTrack = (0, TrackedQuark_1.createTrackedQuark)(options);
         trackedQuarks.push(quarkTrack);
         return quarkTrack;
     };
@@ -35,8 +35,8 @@ function getStateUpdateHistory() {
     if (StateUpdateHistory)
         return StateUpdateHistory;
     StateUpdateHistory = createStateUpdateHistory();
-    AddToGlobalSpace_1.addToGlobalSpace({ __quark_history_tracker__: StateUpdateHistory });
-    ConsoleTools_1.initConsoleTools();
+    (0, AddToGlobalSpace_1.addToGlobalSpace)({ __quark_history_tracker__: StateUpdateHistory });
+    (0, ConsoleTools_1.initConsoleTools)();
     return StateUpdateHistory;
 }
 exports.getStateUpdateHistory = getStateUpdateHistory;

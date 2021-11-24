@@ -14,11 +14,11 @@ function getValueType(val) {
 function cloneDeep(v) {
     if (v instanceof Promise || typeof v === "function")
         return v;
-    return lodash_1.cloneDeep(v);
+    return (0, lodash_1.cloneDeep)(v);
 }
 function createDebugHistoryMiddleware(options) {
     const { name, trace = true, realTimeLogging = false, useTablePrint = true, } = options;
-    const StateUpdateHistory = UpdateHistory_1.getStateUpdateHistory();
+    const StateUpdateHistory = (0, UpdateHistory_1.getStateUpdateHistory)();
     const quarkHistoryTracker = StateUpdateHistory.track({
         name,
         realTimeLogging,
@@ -63,7 +63,7 @@ function createDebugHistoryMiddleware(options) {
         if (newValue instanceof Promise) {
             newValue
                 .then((v) => {
-                const hasBeenCanceled = AsyncUpdates_1.extractIsPromiseCanceled(newValue);
+                const hasBeenCanceled = (0, AsyncUpdates_1.extractIsPromiseCanceled)(newValue);
                 if (hasBeenCanceled) {
                     quarkHistoryTracker.addHistoryEntry({
                         dispatchedUpdate: {

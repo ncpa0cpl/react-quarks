@@ -4,7 +4,7 @@
 
 ## Installation
 
-> npm install rc-quarks
+> npm install react-quarks
 
 ## Basics
 
@@ -132,7 +132,7 @@ Selectors can be used in two ways
 1. via the builtin hook `useSelector`
 2. or by adding custom selector to the Quark definition
 
-##### Using the first approach
+##### With the first approach
 
 ```tsx
 const selectTitle = (state: QuarkType<typeof siteSettings>) => state.title;
@@ -144,7 +144,7 @@ const PageHeader: React.FC = () => {
 };
 ```
 
-##### Using the second approach
+##### With the second approach
 
 First we will need to change how the Quark is defined:
 
@@ -275,7 +275,3 @@ Effect methods take three argument:
 - first is the previous state of the Quark
 - second is the new or rather current state of the Quark
 - third is a `set` function that allows for updating the Quark state
-
-### Middleware's
-
-TODO: describe middlewares

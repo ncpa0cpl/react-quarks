@@ -9,9 +9,9 @@ function createTrackedQuark(options) {
         ? (entry) => {
             console.group(options.name);
             if (options.useTablePrint)
-                console.table([EntryToReadableForm_1.entryToReadableForm(entry)]);
+                console.table([(0, EntryToReadableForm_1.entryToReadableForm)(entry)]);
             else
-                console.log(EntryToReadableForm_1.entryToReadableForm(entry));
+                console.log((0, EntryToReadableForm_1.entryToReadableForm)(entry));
             console.groupEnd();
         }
         : () => { };

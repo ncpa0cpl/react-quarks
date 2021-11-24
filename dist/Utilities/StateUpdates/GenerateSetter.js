@@ -18,17 +18,17 @@ const UnpackStateSetter_1 = require("./UnpackStateSetter");
  * @internal
  */
 function generateSetter(self) {
-    const asyncUpdates = AsyncUpdates_1.asyncUpdatesController(self);
-    const { dispatchEvent } = EventsDispatcher_1.createEventsDispatcher();
+    const asyncUpdates = (0, AsyncUpdates_1.asyncUpdatesController)(self);
+    const { dispatchEvent } = (0, EventsDispatcher_1.createEventsDispatcher)();
     /**
      * A method for updating the Quark state, this method can take as it's argument the
      * new state value, a generator function or a Promise resolving to the new value.
      */
     const applyMiddlewaresAndUpdateState = (newVal) => {
-        ApplyMiddlewares_1.applyMiddlewares(self, newVal, "sync", (setter) => UnpackStateSetter_1.unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
+        (0, ApplyMiddlewares_1.applyMiddlewares)(self, newVal, "sync", (setter) => (0, UnpackStateSetter_1.unpackStateSetter)(self, asyncUpdates, setter).then((newState) => {
             const previousState = self.value;
             self.value = newState;
-            ProcessStateUpdate_1.processStateUpdate({
+            (0, ProcessStateUpdate_1.processStateUpdate)({
                 self,
                 previousState,
                 applyMiddlewaresAndUpdateState,

@@ -6,7 +6,7 @@ const EntryToReadableForm_1 = require("./EntryToReadableForm");
 const UpdateHistory_1 = require("./UpdateHistory");
 function printQuarkHistory(options) {
     const { showLast = 16, name = undefined } = options ?? {};
-    const history = UpdateHistory_1.getStateUpdateHistory();
+    const history = (0, UpdateHistory_1.getStateUpdateHistory)();
     const quarksHistories = history.getHistory();
     for (const quarkHistory of quarksHistories) {
         const useTablePrint = options?.useTablePrint ?? quarkHistory.options.useTablePrint;
@@ -29,6 +29,6 @@ function printQuarkHistory(options) {
     }
 }
 function initConsoleTools() {
-    AddToGlobalSpace_1.addToGlobalSpace({ printQuarkHistory });
+    (0, AddToGlobalSpace_1.addToGlobalSpace)({ printQuarkHistory });
 }
 exports.initConsoleTools = initConsoleTools;

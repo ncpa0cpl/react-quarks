@@ -27,13 +27,13 @@ function quark(initValue, config = {}) {
             allowRaceConditions: config.allowRaceConditions ?? false,
         },
     };
-    const setState = Utilities_1.generateSetter(self);
-    const customActions = Utilities_1.generateCustomActions(self, setState, config?.actions ?? {});
-    const customSelectors = Utilities_1.generateCustomSelectors(self, config?.selectors ?? {});
+    const setState = (0, Utilities_1.generateSetter)(self);
+    const customActions = (0, Utilities_1.generateCustomActions)(self, setState, config?.actions ?? {});
+    const customSelectors = (0, Utilities_1.generateCustomSelectors)(self, config?.selectors ?? {});
     const get = () => self.value;
-    const use = Utilities_1.generateUseHook(self, customActions, setState, get);
-    const useSelector = Utilities_1.generateSelectHook(self);
-    const subscribe = GenerateSubscribeFunction_1.generateSubscribeFunction(self);
+    const use = (0, Utilities_1.generateUseHook)(self, customActions, setState, get);
+    const useSelector = (0, Utilities_1.generateSelectHook)(self);
+    const subscribe = (0, GenerateSubscribeFunction_1.generateSubscribeFunction)(self);
     return {
         get,
         set: setState,
