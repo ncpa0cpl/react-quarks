@@ -1,9 +1,9 @@
-import type { StateSetter } from "./Quark";
+import type { SetStateAction } from "./Quark";
 
 export type QuarkCustomAction<T, ET, ARGS extends any[]> = (
   quarkState: T,
   ...args: ARGS
-) => StateSetter<T, ET>;
+) => SetStateAction<T, ET>;
 
 export type QuarkActions<T, ET, ARGS extends any[]> = Record<
   string,

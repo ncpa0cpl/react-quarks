@@ -1,4 +1,4 @@
-import type { QuarkContext, QuarkUpdateType, StateSetter } from "../../Types";
+import type { QuarkContext, QuarkUpdateType, SetStateAction } from "../../Types";
 
 /**
  * Extract the list of middlewares from the Quark context and process the `value`
@@ -15,11 +15,11 @@ import type { QuarkContext, QuarkUpdateType, StateSetter } from "../../Types";
  */
 export function applyMiddlewares<T, ET>(
   self: QuarkContext<T, ET>,
-  value: StateSetter<T, ET>,
+  value: SetStateAction<T, ET>,
   type: QuarkUpdateType,
-  setterFn: (v: StateSetter<T, ET>) => void
+  setterFn: (v: SetStateAction<T, ET>) => void
 ) {
-  const applyMiddlewareOfIndex = (index: number, v: StateSetter<T, ET>) => {
+  const applyMiddlewareOfIndex = (index: number, v: SetStateAction<T, ET>) => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
       nextMiddleware(

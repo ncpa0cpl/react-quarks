@@ -275,3 +275,81 @@ Effect methods take three argument:
 - first is the previous state of the Quark
 - second is the new or rather current state of the Quark
 - third is a `set` function that allows for updating the Quark state
+
+### Middlewares
+
+Middlewares give you the ability to intercept any state updates and modify or prevent them from occurring as well as observe actions sent to the Quarks.
+
+A middleware ought to be a function taking up to 5 arguments:
+
+- arg_0 - `function getState(): T` - method which returns the current Quark state value
+- arg_1 - `action: SetStateAction<T, M>` - dispatched value, this is the same as what is provided to the set() function argument
+- arg_2 - `function resume(v: SetStateAction<T, M>): void` - this method will resume the standard update flow, value provided to it will be forwarded to the next middleware
+- arg_3 - `function set(v: SetStateAction<T, M>): void` - this method allows to break from the standard update flow and set the state immediately bypassing any following middlewares
+- arg_4 - `updateType: 'sync' | 'async'` - this argument indicates if the source of the update was synchronous or asynchronous, when first a Promise is provided to the set() method, and after the that promise resolves the value it returned will be dispatched with a type `async`, any other actions will have type `sync`
+
+##### Example
+
+A middleware that will catch any errors a passed callback could throw.
+
+```ts
+const catchMiddleware: QuarkMiddleware<number, never> = (
+  getState,
+  action,
+  resume
+) => {
+  try {
+    resume(action);
+  } catch (e) {
+    console.error("An error occurred during state update!");
+  }
+};
+
+const counter = quark(0, { middlewares: [catchMiddleware] });
+
+counter.set(() => {
+  throw new Error();
+}); // Output: 'An error occurred during state update!'
+```
+
+#### Extending Quarks with a Middleware
+
+One of the uses of middleware can be to extend the functionality of a Quark.
+
+As an example, imagine you have a quark storing a number, but you'd want to be able to set() it's state with a stringified number. The goal is to have the quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
+
+Middlewares give you this option.
+
+##### Example
+
+```ts
+const numParserMiddleware: QuarkMiddleware<number, string> = (
+  getState,
+  action,
+  resume
+) => {
+  if (typeof action === "string") {
+    const num = Number(action);
+
+    if (isNaN(num)) throw new Error("This string is not parsable to a number!");
+
+    return resume(num);
+  }
+
+  resume(action);
+};
+
+const counter = quark(0, { middlewares: [numParserMiddleware] });
+
+counter.set("2"); // OK
+counter.get(); // 2 as a number type
+
+counter.set(() => "123"); // OK
+counter.get(); // 123 as a number type
+
+counter.set(() => Promise.resolve("777")); // OK
+// ...
+counter.get(); // 777 as a number type
+```
+
+If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual quark type).

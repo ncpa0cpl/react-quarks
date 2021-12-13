@@ -18,15 +18,11 @@ function generateUseHook(self, actions, set, get) {
     return () => {
         const [, forceRender] = react_1.default.useReducer((s) => s + 1, 0);
         react_1.default.useEffect(() => {
-            const context = {
-                reRender() {
-                    forceRender();
-                },
-            };
-            const onValueChange = () => context.reRender();
+            let rerender = forceRender;
+            const onValueChange = () => rerender();
             self.subscribers.add(onValueChange);
             return () => {
-                context.reRender = () => { };
+                rerender = () => { };
                 self.subscribers.delete(onValueChange);
             };
         }, []);

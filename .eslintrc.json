@@ -52,7 +52,8 @@
       "error",
       {
         "types": {
-          "object": false
+          "object": false,
+          "Function": false
         },
         "extendDefaults": true
       }

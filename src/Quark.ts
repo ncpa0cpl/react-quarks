@@ -8,6 +8,7 @@ import type {
   QuarkMiddleware,
   QuarkObjectOptions,
   QuarkSelectors,
+  Rewrap,
 } from "./Types";
 import {
   generateCustomActions,
@@ -25,12 +26,6 @@ import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction
  * @param initValue Initial data of the quark.
  * @param config Config allows for adding custom actions and selectors to the quark
  *   as well as changing when subscribed component should update.
- * @param effects Allows for adding side effects to the quark, those effects will be
- *   performed after any change to the quark state. Effects take three arguments,
- *
- *   - [`arg_0`] - previous state
- *   - [`arg_1`] - new/current state
- *   - [`arg_2`] - all of the actions of the quark (including `set()`)
  */
 export function quark<
   T,
@@ -42,7 +37,7 @@ export function quark<
 >(
   initValue: T,
   config: QuarkConfig<T, A, S, M> = {}
-): Quark<T, QuarkObjectOptions<T, A, S, M>> {
+): Rewrap<Quark<T, QuarkObjectOptions<T, A, S, M>>> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
@@ -56,11 +51,11 @@ export function quark<
     },
   };
 
-  const setState = generateSetter(self);
+  const set = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
-    setState,
+    set,
     config?.actions ?? {}
   ) as ParseActions<A>;
 
@@ -71,19 +66,21 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, customActions, setState, get);
+  const use = generateUseHook(self, customActions, set, get);
 
   const useSelector = generateSelectHook(self);
 
   const subscribe = generateSubscribeFunction(self);
 
-  return {
+  const quark: Quark<T, QuarkObjectOptions<T, A, S, M>> = {
     get,
-    set: setState,
+    set,
     use,
     useSelector,
     subscribe,
     ...customActions,
     ...customSelectors,
   };
+
+  return quark as any;
 }

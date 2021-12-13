@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react-hooks";
-import type { QuarkMiddleware, QuarkSyncSetFn, QuarkType } from "../src";
+import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
 import { quark } from "../src";
 import {
   array,
@@ -216,7 +216,7 @@ describe("quark()", () => {
       const deriveValue = (
         prevState: Q,
         newState: Q,
-        set: QuarkSyncSetFn<Q, never>
+        set: QuarkSetterFn<Q, never>
       ) => {
         if (prevState.value !== newState.value) {
           set((v) => setDerivedValue(v, `${newState.value}`));
@@ -274,7 +274,7 @@ describe("quark()", () => {
         const deriveValue = (
           prevState: Q,
           newState: Q,
-          set: QuarkSyncSetFn<Q, never>
+          set: QuarkSetterFn<Q, never>
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));

@@ -1,4 +1,4 @@
-import type { QuarkContext, StateSetter } from "../../Types";
+import type { QuarkContext, SetStateAction } from "../../Types";
 
 /**
  * Run all the necessary action after the state has changed, propagate the effects
@@ -9,7 +9,7 @@ import type { QuarkContext, StateSetter } from "../../Types";
 export function processStateUpdate<T, ET>(params: {
   self: QuarkContext<T, ET>;
   previousState: T;
-  applyMiddlewaresAndUpdateState: (v: StateSetter<T, ET>) => void;
+  applyMiddlewaresAndUpdateState: (v: SetStateAction<T, ET>) => void;
   dispatchEvent: (eventAction: () => void) => void;
 }) {
   const { previousState, self, applyMiddlewaresAndUpdateState, dispatchEvent } =

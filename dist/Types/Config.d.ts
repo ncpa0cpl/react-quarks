@@ -85,7 +85,7 @@ export declare type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> 
      * A middleware is provided with 5 argument:
      *
      * - `arg_0` - getState(): T - method which return the current Quark state value
-     * - `arg_1` - value - dispatched value, this is the same as what is provided to the
+     * - `arg_1` - action - dispatched value, this is the same as what is provided to the
      *   `.set()` method
      * - `arg_2` - resume(v: T) - this method will resume the standard update flow, value
      *   provided to it will be forwarded to the next middleware
@@ -101,6 +101,19 @@ export declare type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> 
      * a function gets resolved.
      */
     middlewares?: M;
+    /**
+     * Side effect function that will execute after every quark update.
+     *
+     * An effect takes up to three arguments:
+     *
+     * - `arg_0` - previous state
+     * - `arg_1` - current state
+     * - `arg_2` - `set()` function that can be used to update the quark value
+     *
+     * BEWARE! Calling `set()` within the effect can lead to an infinite loop if you
+     * are not careful. `set()` should only be called within an effect under specific
+     * conditions.
+     */
     effect?: QuarkCustomEffect<T, GetMiddlewareTypes<M>>;
     /**
      * By default asynchronous state updates are canceled if another update is

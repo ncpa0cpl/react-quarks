@@ -1,4 +1,4 @@
-import type { QuarkContext, StateSetter } from "../../Types";
+import type { QuarkContext, SetStateAction } from "../../Types";
 import { hasKey } from "../GeneralPurposeUtilities";
 
 /**
@@ -51,7 +51,7 @@ function assignCancelStatusToOriginalPromise(
  * @returns CancelablePromise object
  * @internal
  */
-export function CancelablePromise<T extends StateSetter<any, never>>(
+export function CancelablePromise<T extends SetStateAction<any, never>>(
   orgPromise: Promise<T>
 ): CancelablePromise<T> {
   let isCanceled = false;
@@ -95,8 +95,8 @@ export type AsyncUpdateController<T, ET> = {
    * Any previous pending updates will be canceled.
    */
   dispatchAsyncUpdate: (
-    p: Promise<StateSetter<T, ET>>,
-    stateUpdate: (state: StateSetter<T, ET>) => void
+    p: Promise<SetStateAction<T, ET>>,
+    stateUpdate: (state: SetStateAction<T, ET>) => void
   ) => void;
   /** Cancels the current pending asynchronous update if any. */
   preventLastAsyncUpdate: () => void;

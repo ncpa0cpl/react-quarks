@@ -1,9 +1,4 @@
-import type {
-  QuarkContext,
-  StateSetter,
-  StdSetter,
-  WithMiddlewareType,
-} from "../../Types";
+import type { QuarkContext, SetStateAction } from "../../Types";
 import { isGenerator } from "../IsGenerator";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import type { AsyncUpdateController } from "./AsyncUpdates";
@@ -28,7 +23,7 @@ export type UnpackStateSetterResult<T> = {
 export function unpackStateSetter<T, ET>(
   self: QuarkContext<T, ET>,
   asyncUpdates: AsyncUpdateController<T, ET>,
-  setter: StateSetter<T, ET>
+  setter: SetStateAction<T, ET>
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
@@ -43,7 +38,8 @@ export function unpackStateSetter<T, ET>(
   }
 
   if (isGenerator<T>(setter)) {
-    const s = setter(self.value) as WithMiddlewareType<StdSetter<T, ET>, ET>;
+    const s = setter(self.value);
+
     return {
       then(handler: (state: T) => void) {
         applyMiddlewares<T, ET>(self, s, "sync", (v) => {

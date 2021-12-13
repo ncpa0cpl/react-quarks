@@ -9,12 +9,6 @@ const GenerateSubscribeFunction_1 = require("./Utilities/GenerateSubscribeFuncti
  * @param initValue Initial data of the quark.
  * @param config Config allows for adding custom actions and selectors to the quark
  *   as well as changing when subscribed component should update.
- * @param effects Allows for adding side effects to the quark, those effects will be
- *   performed after any change to the quark state. Effects take three arguments,
- *
- *   - [`arg_0`] - previous state
- *   - [`arg_1`] - new/current state
- *   - [`arg_2`] - all of the actions of the quark (including `set()`)
  */
 function quark(initValue, config = {}) {
     const self = {
@@ -27,21 +21,22 @@ function quark(initValue, config = {}) {
             allowRaceConditions: config.allowRaceConditions ?? false,
         },
     };
-    const setState = (0, Utilities_1.generateSetter)(self);
-    const customActions = (0, Utilities_1.generateCustomActions)(self, setState, config?.actions ?? {});
+    const set = (0, Utilities_1.generateSetter)(self);
+    const customActions = (0, Utilities_1.generateCustomActions)(self, set, config?.actions ?? {});
     const customSelectors = (0, Utilities_1.generateCustomSelectors)(self, config?.selectors ?? {});
     const get = () => self.value;
-    const use = (0, Utilities_1.generateUseHook)(self, customActions, setState, get);
+    const use = (0, Utilities_1.generateUseHook)(self, customActions, set, get);
     const useSelector = (0, Utilities_1.generateSelectHook)(self);
     const subscribe = (0, GenerateSubscribeFunction_1.generateSubscribeFunction)(self);
-    return {
+    const quark = {
         get,
-        set: setState,
+        set,
         use,
         useSelector,
         subscribe,
         ...customActions,
         ...customSelectors,
     };
+    return Object.freeze(quark);
 }
 exports.quark = quark;

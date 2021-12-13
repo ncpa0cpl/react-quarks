@@ -6,16 +6,9 @@ export declare type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [
 export declare type QuarkConfigOptions = {
     allowRaceConditions: boolean;
 };
-export declare type StateGenerator<T> = ((oldVal: T) => T) | ((oldVal: T) => Promise<T>);
-export declare type SyncSetter<QuarkType> = QuarkType | ((oldVal: QuarkType) => QuarkType);
-export declare type AsyncSetter<QuarkType> = StateGenerator<QuarkType> | Promise<QuarkType | StateGenerator<QuarkType>>;
-export declare type StdSetter<QuarkType, MiddlewareTypes> = SyncSetter<QuarkType> | AsyncSetter<WithMiddlewareType<QuarkType, MiddlewareTypes>>;
-export declare type StateSetter<QuarkType, MiddlewareTypes> = WithMiddlewareType<StdSetter<QuarkType, MiddlewareTypes>, MiddlewareTypes>;
+export declare type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> = TF | ((currentState: T) => TF) | Promise<TF> | ((currentState: T) => SetStateAction<T, M>) | Promise<SetStateAction<T, M>>;
 export declare type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
-export declare type InternalQuarkSetterFn<T> = (newVal: T | StateGenerator<T>) => void;
-export declare type QuarkSyncSetFn<QuarkType, MiddlewareTypes> = (newVal: WithMiddlewareType<SyncSetter<QuarkType>, MiddlewareTypes>) => void;
-export declare type QuarkAsyncSetFn<QuarkType, MiddlewareTypes> = (newVal: AsyncSetter<WithMiddlewareType<QuarkType, MiddlewareTypes>>) => void;
-export declare type QuarkSetterFn<QuarkType, MiddlewareTypes> = (newVal: StateSetter<QuarkType, MiddlewareTypes>) => void;
+export declare type QuarkSetterFn<QuarkType, MiddlewareTypes> = (newValue: SetStateAction<QuarkType, MiddlewareTypes>) => void;
 export declare type QuarkGetterFn<T> = () => T;
 /**
  * Update type indicates where the update originates from.
@@ -40,7 +33,7 @@ export declare type Quark<T, C extends {
      * @param newVal A new data or a function that takes the previous state of the
      *   quark and returns a new one.
      */
-    set(newVal: StateSetter<T, GetMiddlewareTypes<C["middlewares"]>>): void;
+    set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
     /**
      * React hook to access the data in the quark. It can be only used within React
      * functional components.
@@ -54,7 +47,7 @@ export declare type Quark<T, C extends {
      */
     use(): {
         get(): T;
-        set(newVal: StateSetter<T, GetMiddlewareTypes<C["middlewares"]>>): void;
+        set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
     } & ParseActions<C["actions"]>;
     /**
      * React hook to access a part of the data within the quark or to retrieve it and transform.
