@@ -37,6 +37,6 @@ function quark(initValue, config = {}) {
         ...customActions,
         ...customSelectors,
     };
-    return Object.freeze(quark);
+    return quark;
 }
 exports.quark = quark;
