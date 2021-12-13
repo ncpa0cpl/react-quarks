@@ -8,31 +8,49 @@
 
 ## Basics
 
-Import the `quark` method from the `rc-quarks` package.
+Import the `quark` method from the `react-quarks` package.
 
 ```ts
-import { quarks } from "rc-quarks";
+import { quarks } from "react-quarks";
 ```
 
-Create a new Quark
+**Create a new Quark**
 
 ```ts
 const counter = quark(0);
 ```
 
-Access data in the Quark outside React
+**Access data in the Quark outside React**
 
 ```ts
 const currentCounterValue = counter.get();
 ```
 
-Update the state of the Quark outside React
+**Update the state of the Quark outside React**
 
 ```ts
-counter.set(1);
+counter.set(counter.get() + 1);
 ```
 
-Use the Quark within a React functional component
+OR
+
+```ts
+counter.set((currentState) => currentState + 1);
+```
+
+OR
+
+```ts
+counter.set(Promise.resolve(counter.get() + 1));
+```
+
+OR
+
+```ts
+counter.set((currentState) => Promise.resolve(currentState + 1));
+```
+
+**Use the Quark within a React functional component**
 
 ```tsx
 const MyComponent: React.FC = () => {
@@ -54,7 +72,7 @@ const MyComponent: React.FC = () => {
 
 ## Asynchronous Updates
 
-Quarks can also accept asynchronous updates out of the box.
+Quarks can accept asynchronous updates out of the box.
 
 To perform an asynchronous state update simply pass a Promise object to the set method like this:
 
@@ -106,7 +124,7 @@ quarkWithAPromise.set({ p: somePromise });
 
 ## Advanced Usage
 
-Quarks are intended to be used with small sets of data, unlike with some others management libraries like for example Redux Quarks are not supposed to hold big objects that contain all of your app global data.
+Quarks are intended to be used with small sets of data, unlike with some others management libraries like for example Redux, Quarks are not supposed to hold big objects that contain all of your app global data.
 
 Instead you should try to create a separate Quark for each piece of data you want to store. Ideally Quarks would hold only primitive values and for that the API methods from the 'Basics' section should be sufficient, however with how complex React applications often are sometimes it is impossible. For that reason Quarks implement also some more advanced API methods.
 
@@ -132,7 +150,7 @@ Selectors can be used in two ways
 1. via the builtin hook `useSelector`
 2. or by adding custom selector to the Quark definition
 
-##### With the first approach
+##### With useSelector
 
 ```tsx
 const selectTitle = (state: QuarkType<typeof siteSettings>) => state.title;
@@ -144,7 +162,7 @@ const PageHeader: React.FC = () => {
 };
 ```
 
-##### With the second approach
+##### With custom selector
 
 First we will need to change how the Quark is defined:
 
