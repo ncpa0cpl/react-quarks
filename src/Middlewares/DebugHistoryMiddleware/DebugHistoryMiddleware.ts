@@ -1,5 +1,6 @@
 import { cloneDeep as _cloneDeep } from "lodash";
 import type { QuarkMiddleware } from "../../Types";
+import { extractIsPromiseCanceled } from "../../Utilities/StateUpdates/AsyncUpdates";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
 function getValueType(val: any) {
@@ -66,6 +67,29 @@ export function createDebugHistoryMiddleware(options: {
         });
         break;
       }
+    }
+
+    if (newValue instanceof Promise) {
+      newValue
+        .then((v) => {
+          const hasBeenCanceled = extractIsPromiseCanceled(newValue);
+          if (hasBeenCanceled) {
+            quarkHistoryTracker.addHistoryEntry({
+              dispatchedUpdate: {
+                type: getValueType(v),
+                value: cloneDeep(v),
+              },
+              initialState: {
+                type: "Value",
+                value: getState(),
+              },
+              source: "Async-Dispatch",
+              stackTrace: undefined,
+              isCanceled: true,
+            });
+          }
+        })
+        .catch(() => {});
     }
 
     return resume(newValue);

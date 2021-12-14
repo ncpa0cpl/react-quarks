@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDebugHistoryMiddleware = void 0;
 const lodash_1 = require("lodash");
+const AsyncUpdates_1 = require("../../Utilities/StateUpdates/AsyncUpdates");
 const UpdateHistory_1 = require("./UpdateHistory");
 function getValueType(val) {
     if (val instanceof Promise)
@@ -58,6 +59,28 @@ function createDebugHistoryMiddleware(options) {
                 });
                 break;
             }
+        }
+        if (newValue instanceof Promise) {
+            newValue
+                .then((v) => {
+                const hasBeenCanceled = (0, AsyncUpdates_1.extractIsPromiseCanceled)(newValue);
+                if (hasBeenCanceled) {
+                    quarkHistoryTracker.addHistoryEntry({
+                        dispatchedUpdate: {
+                            type: getValueType(v),
+                            value: cloneDeep(v),
+                        },
+                        initialState: {
+                            type: "Value",
+                            value: getState(),
+                        },
+                        source: "Async-Dispatch",
+                        stackTrace: undefined,
+                        isCanceled: true,
+                    });
+                }
+            })
+                .catch(() => { });
         }
         return resume(newValue);
     };
