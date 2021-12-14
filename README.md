@@ -11,7 +11,7 @@
 Import the `quark` method from the `react-quarks` package.
 
 ```ts
-import { quarks } from "react-quarks";
+import { quark } from "react-quarks";
 ```
 
 **Create a new Quark**
