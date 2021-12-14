@@ -5,7 +5,7 @@ import { getStateUpdateHistory } from "./UpdateHistory";
 function printQuarkHistory(options?: {
   name?: string;
   showLast?: number;
-  useTablePrint: boolean;
+  useTablePrint?: boolean;
 }) {
   const { showLast = 16, name = undefined } = options ?? {};
 

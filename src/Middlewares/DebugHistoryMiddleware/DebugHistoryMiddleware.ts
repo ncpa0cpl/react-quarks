@@ -73,7 +73,7 @@ export function createDebugHistoryMiddleware(options: {
       newValue
         .then((v) => {
           const hasBeenCanceled = extractIsPromiseCanceled(newValue);
-          if (hasBeenCanceled) {
+          if (!hasBeenCanceled) {
             quarkHistoryTracker.addHistoryEntry({
               dispatchedUpdate: {
                 type: getValueType(v),

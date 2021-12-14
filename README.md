@@ -1,6 +1,6 @@
 # React Quarks
 
-#### Quarks is a simple, lightweight and easy to use state management library for React with full support for Asynchronous State Updates
+#### React Quarks is a simple, lightweight and easy to use state management library for React with full support for Asynchronous State Updates
 
 ## Installation
 
@@ -18,6 +18,15 @@ import { quark } from "react-quarks";
 
 ```ts
 const counter = quark(0);
+```
+
+To declare the quark type you will need to assert the desired type into the initial value (This is a limitation of TypeScript and how the generic types inference works, if you were to specify the type with the `<>` symbols you'd have to also define the types for all of the quark selectors, actions and middlewares as well):
+
+```ts
+const listOfNumbers = quark([] as number[]);
+// OR
+const initialValue: number[] = [];
+const listOfNumbers = quark(initialValue);
 ```
 
 **Access data in the Quark outside React**
@@ -128,7 +137,7 @@ Quarks are intended to be used with small sets of data, unlike with some others 
 
 Instead you should try to create a separate Quark for each piece of data you want to store. Ideally Quarks would hold only primitive values and for that the API methods from the 'Basics' section should be sufficient, however with how complex React applications often are sometimes it is impossible. For that reason Quarks implement also some more advanced API methods.
 
-### Dictionaries, Arrays, Selectors and Actions
+### Dictionaries, Arrays, Selectors, Actions and Middlewares
 
 If your Quark holds arrays of data or dictionaries using just `use`, `get` and `set` can become cumbersome.
 
@@ -161,6 +170,9 @@ const PageHeader: React.FC = () => {
   return <h1>{title.get()}</h1>;
 };
 ```
+
+**_Warning!_**
+Do not use inline functions as selectors (ie. `useSelector((state) => state.title))`), selector is a dependency and whenever it changes a rerender will happen, passing a inline function will cause a endless loop of rerenders. For selectors always use functions declared outside react tree like shown in the example or wrap them in a React's useCallback().
 
 ##### With custom selector
 
@@ -294,6 +306,26 @@ Effect methods take three argument:
 - second is the new or rather current state of the Quark
 - third is a `set` function that allows for updating the Quark state
 
+### Subscription
+
+Quarks can also be subscribed to outside of React.
+
+##### Example
+
+```ts
+const counter = quark(0);
+
+const subscription = counter.subscribe(
+  (currentState: number, cancel: () => void) => {
+    // run on Quark state change
+  }
+);
+
+subscription.cancel(); // Cancels the subscription (equivalent of removeListener in event emitter's)
+```
+
+subscribe() method takes a callback as it's argument that's invoked whenever the Quark state changes. That callback can take up to two arguments, the current state of the Quark and a method for cancelling the subscription from within the callback. Subscription can also be cancelled via a method returned returned by the subscribe() as shown in the example.
+
 ### Middlewares
 
 Middlewares give you the ability to intercept any state updates and modify or prevent them from occurring as well as observe actions sent to the Quarks.
@@ -334,7 +366,7 @@ counter.set(() => {
 
 One of the uses of middleware can be to extend the functionality of a Quark.
 
-As an example, imagine you have a quark storing a number, but you'd want to be able to set() it's state with a stringified number. The goal is to have the quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
+As an example, imagine you have a Quark storing a number, but you'd want to be able to set() it's state with a stringified number. The goal is to have the Quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
 
 Middlewares give you this option.
 
@@ -370,4 +402,62 @@ counter.set(() => Promise.resolve("777")); // OK
 counter.get(); // 777 as a number type
 ```
 
-If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual quark type).
+If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the Quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual Quark type).
+
+#### Included Middlewares
+
+`react-quarks` library includes two Middleware factories for you to use.
+
+- **Catch Middleware** - a middleware that provides you a way for catching errors thrown by the set state action callbacks and promises
+- **Debug History Middleware** - a middleware that provides you a way of tracking the Quark update actions and the current state of the Quark
+
+##### Catch Middleware Example
+
+```ts
+import { quark, createCatchMiddleware } from "react-quarks";
+
+const counterErrorMiddleware = createCatchMiddleware({
+  catch: (e) => {
+    // handle the error
+  },
+});
+
+const counter = quark(0, {
+  middlewares: [counterErrorMiddleware],
+});
+```
+
+**It is recommended for this middleware to be the very first middleware provided in the `middlewares` array.**
+
+##### Debug History Middleware Example
+
+```ts
+import { quark, createDebugHistoryMiddleware } from "react-quarks";
+
+const counterDebugMiddleware = createDebugHistoryMiddleware({
+  name: "Counter Quark",
+  trace: false, // When enabled a stack trace will be generated for each dispatched set state action
+  realTimeLogging: true, // When enabled each set state action will be logged to the console in real time
+  useTablePrint: false, // When enabled the history will be printed to the console with a `console.table()`, otherwise `console.log()` will be used
+});
+
+const counter = quark(0, {
+  middlewares: [counterDebugMiddleware],
+});
+```
+
+**It is recommended for this middleware to be the last middleware provided in the `middlewares` array.**
+
+When this middleware is used a method in the global scope will be created that will allow the developer to view the quark update history via console.
+
+To show the history, open the console and invoke the method: `printQuarkHistory()`
+
+By default a history of all quarks with this middleware will be logged to the console. You can filter out which Quark is to be shown and how many history entries are to be displayed by specifying the options argument:
+
+```ts
+printQuarkHistory({
+  name: "Counter Quark", // Name of the specific Quark to show history of. Default is show all
+  showLast: 10, // Number of set state action's history entries to show. Default is 16
+  useTablePrint: true, // When enabled the history will be printed to the console with a `console.table()`, otherwise `console.log()` will be used
+});
+```
