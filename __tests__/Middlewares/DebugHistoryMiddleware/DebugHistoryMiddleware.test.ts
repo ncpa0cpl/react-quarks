@@ -7,13 +7,12 @@ declare const global: {
   __quark_history_tracker__: ReturnType<typeof getStateUpdateHistory>;
 };
 
-function* timeGenerator() {
+function* timeGenerator(): Generator<number, number, unknown> {
   let start = 1600000000000;
   while (true) {
     yield start;
     start += 100;
   }
-  return start;
 }
 
 let getTime = timeGenerator();
@@ -50,6 +49,7 @@ describe("DebugHistoryMiddleware", () => {
   });
 
   it("correctly handles async updates", async () => {
+    expect(global.__quark_history_tracker__.showHistory()["0_q1"].length).toEqual(0);
     expect(q.get()).toEqual("FOO");
 
     q.set(Promise.resolve("BAR"));
