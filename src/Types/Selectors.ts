@@ -1,3 +1,5 @@
+import type { IsLiteral, KeysOf } from "./Utilities";
+
 export type QuarkSelector<T, ARGS extends any[], R = unknown> = (
   value: T,
   ...args: ARGS
@@ -12,11 +14,13 @@ export type ParseSingleSelector<S> = S extends (
   v: any,
   ...args: infer ARGS
 ) => infer R
-  ? (...args: ARGS) => { get(): R }
+  ? (...args: ARGS) => R
   : never;
 
 export type ParseSelectors<A> = A extends object
-  ? {
-      [K in keyof A]: ParseSingleSelector<A[K]>;
-    }
-  : Record<string, unknown>;
+  ? IsLiteral<KeysOf<A>> extends true
+    ? {
+        [K in keyof A]: ParseSingleSelector<A[K]>;
+      }
+    : Record<never, never>
+  : Record<never, never>;

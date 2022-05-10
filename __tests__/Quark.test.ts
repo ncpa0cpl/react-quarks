@@ -417,35 +417,39 @@ describe("quark()", () => {
     });
   });
 
-  describe("correctly works in react context", () => {
-    it("use() and local set() work correctly", () => {
+  describe("correctly works with react", () => {
+    it("use() and local set() work correctly", async () => {
       const q = quark({ value: 0 });
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         state.result.current.set({ value: 5 });
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 5 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 5 })
+      );
     });
     it("use() and local set() work correctly for async updates", async () => {
       const q = quark({ value: 0 });
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
         state.result.current.set(() => Promise.resolve({ value: 5 }));
         await sleep(0);
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 5 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 5 })
+      );
     });
-    it("use() correctly exposes custom actions", () => {
+    it("use() correctly exposes custom actions", async () => {
       const q = quark(
         { value: 0 },
         { actions: { increment: (s) => ({ value: s.value + 1 }) } }
@@ -453,15 +457,17 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         state.result.current.increment();
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 1 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 1 })
+      );
     });
-    it("use() correctly exposes custom selectors with parameters", () => {
+    it("use() correctly exposes custom selectors with parameters", async () => {
       const q = quark(["a", "b", "c", "d"], {
         selectors: {
           useIndex(s, index: number) {
@@ -479,11 +485,11 @@ describe("quark()", () => {
         }
       );
 
-      expect(state.result.current.get()).toEqual("c");
+      expect(state.result.current).toEqual("c");
 
       state.rerender({ index: 0 });
 
-      expect(state.result.current.get()).toEqual("a");
+      await state.waitFor(() => expect(state.result.current).toEqual("a"));
     });
     it("use() correctly exposes custom actions with async updates", async () => {
       const q = quark(
@@ -497,16 +503,18 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
         state.result.current.incrementAsync();
         await sleep(0);
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 1 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 1 })
+      );
     });
-    it("use() correctly triggers custom effects when local set is called", () => {
+    it("use() correctly triggers custom effects when local set is called", async () => {
       const q = quark(
         { value: 0 },
         {
@@ -521,15 +529,17 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         state.result.current.set({ value: 1 });
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 2 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 2 })
+      );
     });
-    it("use() correctly triggers custom effects when global set is called", () => {
+    it("use() correctly triggers custom effects when global set is called", async () => {
       const q = quark(
         { value: 0 },
         {
@@ -544,15 +554,17 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         q.set({ value: 1 });
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 2 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 2 })
+      );
     });
-    it("use() correctly triggers custom effects when local custom action is called", () => {
+    it("use() correctly triggers custom effects when local custom action is called", async () => {
       const q = quark(
         { value: 0 },
         {
@@ -567,15 +579,17 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         state.result.current.increment();
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 2 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 2 })
+      );
     });
-    it("use() correctly triggers custom effects when global custom action is called", () => {
+    it("use() correctly triggers custom effects when global custom action is called", async () => {
       const q = quark(
         { value: 0 },
         {
@@ -590,13 +604,15 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({ value: 0 });
+      expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
         q.increment();
       });
 
-      expect(state.result.current.get()).toMatchObject({ value: 2 });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({ value: 2 })
+      );
     });
     it("use() correctly rerenders when an effect dispatches a Promise", async () => {
       const q = quark(
@@ -618,7 +634,7 @@ describe("quark()", () => {
 
       const state = renderHook(() => q.use());
 
-      expect(state.result.current.get()).toMatchObject({
+      expect(state.result.current.value).toMatchObject({
         value: 0,
         derivedValue: "0",
       });
@@ -628,12 +644,12 @@ describe("quark()", () => {
         await sleep(12);
       });
 
-      const currentQ = state.result.current.get();
-
-      expect(currentQ).toMatchObject({
-        value: 1,
-        derivedValue: "1",
-      });
+      await state.waitFor(() =>
+        expect(state.result.current.value).toMatchObject({
+          value: 1,
+          derivedValue: "1",
+        })
+      );
     });
     it("useSelector() correctly avoids unnecessary re-renders", async () => {
       const q = quark({ value1: 0, value2: 100 });
@@ -647,7 +663,7 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(100);
-      expect(state.result.current.get()).toEqual(0);
+      expect(state.result.current).toEqual(0);
       expect(reRenderCounter).toHaveBeenCalledTimes(1);
 
       await act(async () => {
@@ -657,7 +673,7 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(100);
-      expect(state.result.current.get()).toEqual(5);
+      await state.waitFor(() => expect(state.result.current).toEqual(5));
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
       await act(async () => {
@@ -667,7 +683,7 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(99);
-      expect(state.result.current.get()).toEqual(5);
+      await state.waitFor(() => expect(state.result.current).toEqual(5));
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
     });
     it("custom selectors correctly avoid unnecessary re-renders", async () => {
@@ -691,7 +707,7 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(321);
-      expect(state.result.current.get()).toEqual(1);
+      expect(state.result.current).toEqual(1);
       expect(reRenderCounter).toHaveBeenCalledTimes(1);
 
       await act(async () => {
@@ -700,16 +716,16 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(321);
-      expect(state.result.current.get()).toEqual(15);
+      await state.waitFor(() => expect(state.result.current).toEqual(15));
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
       await act(async () => {
         q.SetVal2(55);
-        await sleep(0);
+        await sleep(20);
       });
 
       expect(q.get().value2).toEqual(55);
-      expect(state.result.current.get()).toEqual(15);
+      expect(state.result.current).toEqual(15);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
     });
   });

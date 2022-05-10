@@ -29,11 +29,11 @@ import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction
  */
 export function quark<
   T,
-  ActionArgs extends any[],
-  SelectorArgs extends any[],
   A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
   S extends QuarkSelectors<T, SelectorArgs>,
-  M extends QuarkMiddleware<T, any>[] = never[]
+  M extends QuarkMiddleware<T, any>[] = never[],
+  SelectorArgs extends any[] = never[],
+  ActionArgs extends any[] = never[]
 >(
   initValue: T,
   config: QuarkConfig<T, A, S, M> = {}
@@ -66,7 +66,7 @@ export function quark<
 
   const get = () => self.value;
 
-  const use = generateUseHook(self, customActions, set, get);
+  const use = generateUseHook(self, customActions, set);
 
   const useSelector = generateSelectHook(self);
 

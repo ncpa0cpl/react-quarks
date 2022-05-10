@@ -7,3 +7,5 @@ export declare type IsUnknownOrAny<U> = (any extends U ? true : false) extends t
 export declare type Rewrap<T> = T extends Function ? T : T extends object ? T extends infer O ? {
     [K in keyof O as string extends K ? never : number extends K ? never : K]: Rewrap<O[K]>;
 } : never : T;
+export declare type IsLiteral<S extends string> = S extends `${infer A}${string}` ? true : false;
+export declare type KeysOf<O extends object> = Exclude<keyof O, symbol | number>;

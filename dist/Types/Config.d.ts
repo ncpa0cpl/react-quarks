@@ -121,6 +121,7 @@ export declare type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> 
      * of this behavior by setting this option to `true`.
      */
     allowRaceConditions?: boolean;
+    serverSnapshot?: T;
 };
 export declare type QuarkObjectOptions<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
     shouldUpdate: QuarkComparatorFn;

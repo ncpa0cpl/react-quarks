@@ -25,3 +25,9 @@ export type Rewrap<T> = T extends Function
       }
     : never
   : T;
+
+export type IsLiteral<S extends string> = S extends `${infer A}${string}`
+  ? true
+  : false;
+
+export type KeysOf<O extends object> = Exclude<keyof O, symbol | number>;

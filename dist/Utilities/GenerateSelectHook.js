@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateSelectHook = void 0;
 const react_1 = __importDefault(require("react"));
+const shim_1 = require("use-sync-external-store/shim");
+const UseDynamicDependencies_1 = require("./UseDynamicDependencies");
 /**
  * Generate a 'selector' React Hook for this Quark.
  *
@@ -14,28 +16,15 @@ const react_1 = __importDefault(require("react"));
  * @internal
  */
 function generateSelectHook(self) {
+    const subscribe = (callback) => {
+        self.subscribers.add(callback);
+        return () => self.subscribers.delete(callback);
+    };
     return (selector, ...args) => {
-        const [, forceRender] = react_1.default.useReducer((s) => s + 1, 0);
-        const [initVal] = react_1.default.useState(() => selector(self.value, ...args));
-        const selectedValue = react_1.default.useRef(initVal);
-        const get = () => selectedValue.current;
-        react_1.default.useEffect(() => {
-            const onValueChange = (newVal) => {
-                const sv = selector(newVal, ...args);
-                if (!Object.is(sv, selectedValue.current)) {
-                    selectedValue.current = sv;
-                    forceRender();
-                }
-            };
-            onValueChange(self.value);
-            self.subscribers.add(onValueChange);
-            return () => {
-                self.subscribers.delete(onValueChange);
-            };
-        }, [selector, ...args]);
-        return {
-            get,
-        };
+        const argsDep = (0, UseDynamicDependencies_1.useDynamicDependencies)(args);
+        const get = react_1.default.useCallback(() => selector(self.value, ...args), [argsDep, self.value, selector]);
+        const value = (0, shim_1.useSyncExternalStore)(subscribe, get);
+        return value;
     };
 }
 exports.generateSelectHook = generateSelectHook;

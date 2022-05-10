@@ -1,10 +1,5 @@
-import React from "react";
-import type {
-  ParseActions,
-  QuarkContext,
-  QuarkGetterFn,
-  QuarkSetterFn,
-} from "../Types";
+import { useSyncExternalStore } from "use-sync-external-store/shim";
+import type { ParseActions, QuarkContext, QuarkSetterFn } from "../Types";
 
 /**
  * Generate the react hook for this specific quark.
@@ -18,28 +13,21 @@ import type {
 export function generateUseHook<T, A extends ParseActions<any>, ET>(
   self: QuarkContext<T, ET>,
   actions: A,
-  set: QuarkSetterFn<T, ET>,
-  get: QuarkGetterFn<T>
+  set: QuarkSetterFn<T, ET>
 ) {
+  const subscribe = (callback: () => void) => {
+    self.subscribers.add(callback);
+    return () => void self.subscribers.delete(callback);
+  };
+
+  const getSnapshot = () => self.value;
+
   return () => {
-    const [, forceRender] = React.useReducer((s: number) => s + 1, 0);
-
-    React.useEffect(() => {
-      let rerender = forceRender;
-
-      const onValueChange = () => rerender();
-
-      self.subscribers.add(onValueChange);
-
-      return () => {
-        rerender = () => {};
-        self.subscribers.delete(onValueChange);
-      };
-    }, []);
+    const value = useSyncExternalStore(subscribe, getSnapshot);
 
     return {
-      get,
       set,
+      value,
       ...actions,
     };
   };

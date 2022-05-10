@@ -25,7 +25,7 @@ function quark(initValue, config = {}) {
     const customActions = (0, Utilities_1.generateCustomActions)(self, set, config?.actions ?? {});
     const customSelectors = (0, Utilities_1.generateCustomSelectors)(self, config?.selectors ?? {});
     const get = () => self.value;
-    const use = (0, Utilities_1.generateUseHook)(self, customActions, set, get);
+    const use = (0, Utilities_1.generateUseHook)(self, customActions, set);
     const useSelector = (0, Utilities_1.generateSelectHook)(self);
     const subscribe = (0, GenerateSubscribeFunction_1.generateSubscribeFunction)(self);
     const quark = {

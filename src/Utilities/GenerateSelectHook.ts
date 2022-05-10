@@ -1,6 +1,7 @@
 import React from "react";
+import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type { QuarkContext, QuarkSelector } from "../Types";
-
+import { useDynamicDependencies } from "./UseDynamicDependencies";
 /**
  * Generate a 'selector' React Hook for this Quark.
  *
@@ -10,36 +11,24 @@ import type { QuarkContext, QuarkSelector } from "../Types";
  * @internal
  */
 export function generateSelectHook<T, ET>(self: QuarkContext<T, ET>) {
+  const subscribe = (callback: () => void) => {
+    self.subscribers.add(callback);
+    return () => self.subscribers.delete(callback);
+  };
+
   return <ARGS extends any[], R>(
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
   ) => {
-    const [, forceRender] = React.useReducer((s: number) => s + 1, 0);
+    const argsDep = useDynamicDependencies(args);
 
-    const [initVal] = React.useState(() => selector(self.value, ...args));
-    const selectedValue = React.useRef(initVal);
+    const get = React.useCallback(
+      () => selector(self.value, ...args),
+      [argsDep, self.value, selector]
+    );
 
-    const get = () => selectedValue.current;
+    const value = useSyncExternalStore(subscribe, get);
 
-    React.useEffect(() => {
-      const onValueChange = (newVal: T) => {
-        const sv = selector(newVal, ...args);
-        if (!Object.is(sv, selectedValue.current)) {
-          selectedValue.current = sv;
-          forceRender();
-        }
-      };
-
-      onValueChange(self.value);
-
-      self.subscribers.add(onValueChange);
-      return () => {
-        self.subscribers.delete(onValueChange);
-      };
-    }, [selector, ...args]);
-
-    return {
-      get,
-    };
+    return value;
   };
 }

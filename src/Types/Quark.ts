@@ -16,11 +16,10 @@ export type QuarkContext<T, ET> = {
 
   readonly subscribers: Set<QuarkSubscriber<T>>;
   readonly middlewares: QuarkMiddleware<T, ET>[];
+  readonly configOptions: QuarkConfigOptions;
 
   readonly sideEffect?: QuarkCustomEffect<T, ET>;
   readonly stateComparator: QuarkComparatorFn;
-
-  readonly configOptions: QuarkConfigOptions;
 };
 
 export type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> =
@@ -77,7 +76,7 @@ export type Quark<
    * - `set()` - to updated the data
    */
   use(): {
-    get(): T;
+    value: T;
     set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
   } & ParseActions<C["actions"]>;
   /**
@@ -107,9 +106,7 @@ export type Quark<
   useSelector<ARGS extends any[], R>(
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
-  ): {
-    get(): R | undefined;
-  };
+  ): R;
   /**
    * Add a listener for the state changes of the Quark. Every time the state change
    * is detected provided callback will be triggered.

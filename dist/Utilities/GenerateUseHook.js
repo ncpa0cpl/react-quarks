@@ -1,10 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateUseHook = void 0;
-const react_1 = __importDefault(require("react"));
+const shim_1 = require("use-sync-external-store/shim");
 /**
  * Generate the react hook for this specific quark.
  *
@@ -14,21 +11,17 @@ const react_1 = __importDefault(require("react"));
  * @returns A React Hook function exposing this quark state and actions
  * @internal
  */
-function generateUseHook(self, actions, set, get) {
+function generateUseHook(self, actions, set) {
+    const subscribe = (callback) => {
+        self.subscribers.add(callback);
+        return () => void self.subscribers.delete(callback);
+    };
+    const getSnapshot = () => self.value;
     return () => {
-        const [, forceRender] = react_1.default.useReducer((s) => s + 1, 0);
-        react_1.default.useEffect(() => {
-            let rerender = forceRender;
-            const onValueChange = () => rerender();
-            self.subscribers.add(onValueChange);
-            return () => {
-                rerender = () => { };
-                self.subscribers.delete(onValueChange);
-            };
-        }, []);
+        const value = (0, shim_1.useSyncExternalStore)(subscribe, getSnapshot);
         return {
-            get,
             set,
+            value,
             ...actions,
         };
     };

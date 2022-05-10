@@ -1,4 +1,5 @@
 import type { SetStateAction } from "./Quark";
+import type { IsLiteral, KeysOf } from "./Utilities";
 
 export type QuarkCustomAction<T, ET, ARGS extends any[]> = (
   quarkState: T,
@@ -17,7 +18,9 @@ export type ParseSingleAction<A> = A extends (
   : never;
 
 export type ParseActions<A> = A extends object
-  ? {
-      [K in keyof A]: ParseSingleAction<A[K]>;
-    }
-  : Record<string, unknown>;
+  ? IsLiteral<KeysOf<A>> extends true
+    ? {
+        [K in keyof A]: ParseSingleAction<A[K]>;
+      }
+    : Record<never, never>
+  : Record<never, never>;

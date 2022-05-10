@@ -46,7 +46,7 @@ export declare type Quark<T, C extends {
      * - `set()` - to updated the data
      */
     use(): {
-        get(): T;
+        value: T;
         set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
     } & ParseActions<C["actions"]>;
     /**
@@ -73,9 +73,7 @@ export declare type Quark<T, C extends {
      *     console.log(firstWord.get()); // Output: "Hello"
      *   }
      */
-    useSelector<ARGS extends any[], R>(selector: QuarkSelector<T, ARGS, R>, ...args: ARGS): {
-        get(): R | undefined;
-    };
+    useSelector<ARGS extends any[], R>(selector: QuarkSelector<T, ARGS, R>, ...args: ARGS): R;
     /**
      * Add a listener for the state changes of the Quark. Every time the state change
      * is detected provided callback will be triggered.

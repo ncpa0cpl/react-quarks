@@ -52,7 +52,7 @@ describe("generateCustomSelectors()", () => {
     expect(useSelectMock).toHaveBeenLastCalledWith(initValue);
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual("foo");
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual(
-      hook.result.current.get()
+      hook.result.current
     );
   });
 });
