@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.asyncUpdatesController = exports.CancelablePromise = exports.extractIsPromiseCanceled = void 0;
+const CancelUpdate_1 = require("../CancelUpdate");
 const GeneralPurposeUtilities_1 = require("../GeneralPurposeUtilities");
+const PropagateError_1 = require("../PropagateError");
 const PROMISE_CANCEL_STATUS_PROPERTY = Symbol("__quark_internal_is_promise_canceled__");
 /**
  * Check if the passed promise has been dispatched to the Quark as update and canceled.
@@ -44,8 +46,15 @@ function CancelablePromise(orgPromise) {
                     return Promise.resolve();
             })
                 .catch((e) => {
-                if (!isCanceled)
-                    console.error("Asynchronous state update was unsuccessful due to an error:", e);
+                if (CancelUpdate_1.CancelUpdate.isCancel(e)) {
+                    assignCancelStatusToOriginalPromise(orgPromise, true);
+                    return;
+                }
+                if (!isCanceled) {
+                    const err = (0, PropagateError_1.propagateError)(e, "Asynchronous state update was unsuccessful due to an error.");
+                    console.error(err);
+                }
+                throw e;
             });
         },
         cancel() {
@@ -75,7 +84,7 @@ function asyncUpdatesController(self) {
         preventLastAsyncUpdate();
         const cp = CancelablePromise(p);
         currentAsyncUpdate = cp;
-        cp.then((v) => {
+        return cp.then((v) => {
             currentAsyncUpdate = undefined;
             stateUpdate(v);
         });

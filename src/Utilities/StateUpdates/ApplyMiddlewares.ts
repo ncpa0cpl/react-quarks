@@ -19,10 +19,10 @@ export function applyMiddlewares<T, ET>(
   type: QuarkUpdateType,
   setterFn: (v: SetStateAction<T, ET>) => void
 ) {
-  const applyMiddlewareOfIndex = (index: number, v: SetStateAction<T, ET>) => {
+  const applyMiddlewareOfIndex = (index: number, v: SetStateAction<T, ET>): void => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
-      nextMiddleware(
+      return nextMiddleware(
         () => self.value,
         v,
         (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue),
@@ -30,9 +30,9 @@ export function applyMiddlewares<T, ET>(
         type
       );
     } else {
-      setterFn(v);
+      return setterFn(v);
     }
   };
 
-  applyMiddlewareOfIndex(0, value);
+  return applyMiddlewareOfIndex(0, value);
 }

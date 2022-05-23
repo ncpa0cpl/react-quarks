@@ -73,8 +73,8 @@ export function quark<
   const subscribe = generateSubscribeFunction(self);
 
   const quark: Quark<T, QuarkObjectOptions<T, A, S, M>> = {
+    set: set as any,
     get,
-    set,
     use,
     useSelector,
     subscribe,

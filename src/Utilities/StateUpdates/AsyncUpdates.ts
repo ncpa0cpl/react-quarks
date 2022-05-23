@@ -1,5 +1,7 @@
 import type { QuarkContext, SetStateAction } from "../../Types";
+import { CancelUpdate } from "../CancelUpdate";
 import { hasKey } from "../GeneralPurposeUtilities";
+import { propagateError } from "../PropagateError";
 
 /**
  * An object wrapping a regular JavaScript Promise class instance that allows for
@@ -66,11 +68,21 @@ export function CancelablePromise<T extends SetStateAction<any, never>>(
           else return Promise.resolve();
         })
         .catch((e) => {
-          if (!isCanceled)
-            console.error(
-              "Asynchronous state update was unsuccessful due to an error:",
-              e
+          if (CancelUpdate.isCancel(e)) {
+            assignCancelStatusToOriginalPromise(orgPromise, true);
+            return;
+          }
+
+          if (!isCanceled) {
+            const err = propagateError(
+              e,
+              "Asynchronous state update was unsuccessful due to an error."
             );
+
+            console.error(err);
+          }
+
+          throw e;
         });
     },
     cancel() {
@@ -135,7 +147,7 @@ export function asyncUpdatesController<T, ET>(
 
     currentAsyncUpdate = cp;
 
-    cp.then((v) => {
+    return cp.then((v) => {
       currentAsyncUpdate = undefined;
       stateUpdate(v);
     });

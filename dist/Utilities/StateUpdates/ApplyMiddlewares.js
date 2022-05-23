@@ -18,12 +18,12 @@ function applyMiddlewares(self, value, type, setterFn) {
     const applyMiddlewareOfIndex = (index, v) => {
         const nextMiddleware = self.middlewares[index];
         if (nextMiddleware) {
-            nextMiddleware(() => self.value, v, (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue), setterFn, type);
+            return nextMiddleware(() => self.value, v, (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue), setterFn, type);
         }
         else {
-            setterFn(v);
+            return setterFn(v);
         }
     };
-    applyMiddlewareOfIndex(0, value);
+    return applyMiddlewareOfIndex(0, value);
 }
 exports.applyMiddlewares = applyMiddlewares;

@@ -19,8 +19,8 @@ function unpackStateSetter(self, asyncUpdates, setter) {
     if (setter instanceof Promise) {
         return {
             then(handler) {
-                asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
-                    (0, ApplyMiddlewares_1.applyMiddlewares)(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
+                return asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
+                    return (0, ApplyMiddlewares_1.applyMiddlewares)(self, state, "async", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
                 });
             },
         };
@@ -29,16 +29,14 @@ function unpackStateSetter(self, asyncUpdates, setter) {
         const s = setter(self.value);
         return {
             then(handler) {
-                (0, ApplyMiddlewares_1.applyMiddlewares)(self, s, "sync", (v) => {
-                    unpackStateSetter(self, asyncUpdates, v).then(handler);
-                });
+                return (0, ApplyMiddlewares_1.applyMiddlewares)(self, s, "sync", (v) => unpackStateSetter(self, asyncUpdates, v).then(handler));
             },
         };
     }
     asyncUpdates.preventLastAsyncUpdate();
     return {
         then(handler) {
-            handler(setter);
+            return handler(setter);
         },
     };
 }

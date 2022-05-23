@@ -55,13 +55,13 @@ describe("Async Updates", () => {
 
     describe("with rejected promise", () => {
       it("should log the error, and not execute the thenable", async () => {
-        const myPromise = Promise.reject("bar");
+        const myPromise = Promise.reject(new Error("bar"));
 
         const cancelablePromise = CancelablePromise(myPromise);
 
         const onResolve = jest.fn();
 
-        cancelablePromise.then(onResolve);
+        cancelablePromise.then(onResolve).catch(() => {});
 
         await sleep(0);
 
@@ -69,7 +69,11 @@ describe("Async Updates", () => {
         expect(onResolve).toHaveBeenCalledTimes(0);
 
         expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-        expect(consoleErrorMock).toHaveBeenCalledWith(expect.any(String), "bar");
+        expect(consoleErrorMock).toHaveBeenCalledWith(
+          new Error(
+            "Asynchronous state update was unsuccessful due to an error. [bar]"
+          )
+        );
       });
 
       it("should not execute the thenable when canceled nor log it", async () => {
@@ -79,7 +83,7 @@ describe("Async Updates", () => {
 
         const onResolve = jest.fn();
 
-        cancelablePromise.then(onResolve);
+        cancelablePromise.then(onResolve).catch(() => {});
 
         cancelablePromise.cancel();
 

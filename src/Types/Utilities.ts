@@ -31,3 +31,11 @@ export type IsLiteral<S extends string> = S extends `${infer A}${string}`
   : false;
 
 export type KeysOf<O extends object> = Exclude<keyof O, symbol | number>;
+
+export type FinalReturnType<F, MAX extends null[] = [null]> = F extends (
+  ...args: any[]
+) => infer R
+  ? MAX["length"] extends 10
+    ? F
+    : FinalReturnType<R, [...MAX, null]>
+  : F;

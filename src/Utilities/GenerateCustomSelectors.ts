@@ -31,7 +31,10 @@ export function generateCustomSelectors<T, ET, S extends QuarkSelectors<T, any>>
 ): ParseSelectors<S> {
   return Object.fromEntries(
     Object.entries(selectors).map(([selectorName, selectorMethod]) => {
-      const wrappedSelector = generatePredefinedSelectHook(self, selectorMethod);
+      const wrappedSelector = generatePredefinedSelectHook(
+        self,
+        selectorMethod.bind(selectors)
+      );
       return [selectorName, wrappedSelector];
     })
   ) as unknown as ParseSelectors<S>;

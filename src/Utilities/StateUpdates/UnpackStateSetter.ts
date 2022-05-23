@@ -28,8 +28,8 @@ export function unpackStateSetter<T, ET>(
   if (setter instanceof Promise) {
     return {
       then(handler: (state: T) => void) {
-        asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
-          applyMiddlewares(self, state, "async", (v) =>
+        return asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
+          return applyMiddlewares(self, state, "async", (v) =>
             unpackStateSetter(self, asyncUpdates, v).then(handler)
           );
         });
@@ -42,9 +42,9 @@ export function unpackStateSetter<T, ET>(
 
     return {
       then(handler: (state: T) => void) {
-        applyMiddlewares<T, ET>(self, s, "sync", (v) => {
-          unpackStateSetter(self, asyncUpdates, v).then(handler);
-        });
+        return applyMiddlewares<T, ET>(self, s, "sync", (v) =>
+          unpackStateSetter(self, asyncUpdates, v).then(handler)
+        );
       },
     };
   }
@@ -53,7 +53,7 @@ export function unpackStateSetter<T, ET>(
 
   return {
     then(handler: (state: T) => void) {
-      handler(setter as T);
+      return handler(setter as T);
     },
   };
 }

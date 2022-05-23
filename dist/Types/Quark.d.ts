@@ -2,6 +2,7 @@ import type { ParseActions } from "./Actions";
 import type { GetMiddlewareTypes } from "./Middlewares";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
 import type { QuarkSubscription } from "./Subscribe";
+import type { FinalReturnType } from "./Utilities";
 export declare type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never] ? T : T | Middlewares;
 export declare type QuarkConfigOptions = {
     allowRaceConditions: boolean;
@@ -33,7 +34,7 @@ export declare type Quark<T, C extends {
      * @param newVal A new data or a function that takes the previous state of the
      *   quark and returns a new one.
      */
-    set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
+    set<V extends SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>>(newValue: V): FinalReturnType<V> extends Promise<any> ? Promise<void> : Promise<any> extends FinalReturnType<V> ? Promise<void> | void : void;
     /**
      * React hook to access the data in the quark. It can be only used within React
      * functional components.

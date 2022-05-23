@@ -19,7 +19,7 @@ function generatePredefinedSelectHook(self, selector) {
  */
 function generateCustomSelectors(self, selectors) {
     return Object.fromEntries(Object.entries(selectors).map(([selectorName, selectorMethod]) => {
-        const wrappedSelector = generatePredefinedSelectHook(self, selectorMethod);
+        const wrappedSelector = generatePredefinedSelectHook(self, selectorMethod.bind(selectors));
         return [selectorName, wrappedSelector];
     }));
 }

@@ -23,7 +23,7 @@ module.exports = {
   ],
   testRegex: ".*__tests__/.+(\\.test\\.(ts|js|tsx|jsx))$",
   transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(ts|tsx)$": "@swc/jest",
   },
   testEnvironment: "jsdom",
 };

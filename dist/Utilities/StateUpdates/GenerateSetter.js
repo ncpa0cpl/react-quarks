@@ -25,10 +25,10 @@ function generateSetter(self) {
      * new state value, a generator function or a Promise resolving to the new value.
      */
     const applyMiddlewaresAndUpdateState = (newVal) => {
-        (0, ApplyMiddlewares_1.applyMiddlewares)(self, newVal, "sync", (setter) => (0, UnpackStateSetter_1.unpackStateSetter)(self, asyncUpdates, setter).then((newState) => {
+        return (0, ApplyMiddlewares_1.applyMiddlewares)(self, newVal, "sync", (setter) => (0, UnpackStateSetter_1.unpackStateSetter)(self, asyncUpdates, setter).then((newState) => {
             const previousState = self.value;
             self.value = newState;
-            (0, ProcessStateUpdate_1.processStateUpdate)({
+            return (0, ProcessStateUpdate_1.processStateUpdate)({
                 self,
                 previousState,
                 applyMiddlewaresAndUpdateState,

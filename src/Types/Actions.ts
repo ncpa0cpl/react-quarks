@@ -1,5 +1,5 @@
 import type { SetStateAction } from "./Quark";
-import type { IsLiteral, KeysOf } from "./Utilities";
+import type { FinalReturnType, IsLiteral, KeysOf } from "./Utilities";
 
 export type QuarkCustomAction<T, ET, ARGS extends any[]> = (
   quarkState: T,
@@ -14,7 +14,13 @@ export type ParseSingleAction<A> = A extends (
   arg_0: any,
   ...args: infer ARGS
 ) => infer R
-  ? (...args: ARGS) => void
+  ? (
+      ...args: ARGS
+    ) => FinalReturnType<R> extends Promise<any>
+      ? Promise<void>
+      : Promise<any> extends FinalReturnType<R>
+      ? Promise<void> | void
+      : void
   : never;
 
 export type ParseActions<A> = A extends object

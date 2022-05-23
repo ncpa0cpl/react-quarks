@@ -203,7 +203,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(Promise.reject<string>("foo"))).not.toThrow();
+        expect(q.set(Promise.reject<string>("foo"))).rejects.toBe("foo");
 
         await sleep(0);
 
@@ -215,7 +215,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(() => Promise.reject("foo"))).not.toThrow();
+        expect(q.set(() => Promise.reject("foo"))).rejects.toBe("foo");
 
         await sleep(0);
 
@@ -249,7 +249,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(Promise.reject("bar"))).not.toThrow();
+        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(10);
 
@@ -261,7 +261,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
+        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(10);
 
@@ -292,7 +292,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(Promise.reject("bar"))).not.toThrow();
+        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(0);
 
@@ -305,7 +305,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
+        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(0);
 
@@ -340,7 +340,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(Promise.reject("bar"))).not.toThrow();
+        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(10);
 
@@ -353,7 +353,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(() => q.set(() => Promise.reject("bar"))).not.toThrow();
+        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(10);
 

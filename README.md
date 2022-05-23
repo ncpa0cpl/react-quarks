@@ -105,14 +105,46 @@ counter.set(() => Promise.resolve(1));
 
 All asynchronous updates are tracked by the Quark instance, and any state update will cancel all the previous non-resolved async updates. With this it's assured that no race-conditions shall occur when using Quarks async updates.
 
-## Gotchas
+### Canceling pending updates
+
+In case an asynchronous (or synchronous) update that has been dispatched cannot be finished it can be cancelled by throwing a special class `CancelUpdate`.
+
+```ts
+import { CancelUpdate } from "react-quarks";
+
+const data = quark(
+  {
+    /* some initial data */
+  },
+  {
+    actions: {
+      async updateWithNewData() {
+        try {
+          // We request new data, for example from the cloud
+          const result = await fetchNewData();
+          // Request was successful, update the state with the result
+          return result;
+        } catch (e) {
+          // Request failed, update is cancelled
+          throw new CancelUpdate();
+        }
+      },
+    },
+  }
+);
+```
+
+When an action function throws, the quark state update does not happen regardless of what has been thrown, however if the thrown value is not an `CancelUpdate` instance, that event will be logged to the console as an error and propagated up to the initial caller.
+
+## Limitations
 
 It's impossible to assign a Function or a Promise object as the Quark value, since any functions or promises will automatically be "unpacked" by the Quark `set()` function (even if they are nested, i.e. `() => () => void`).
 
 If you must have a promise or a function as the value of the Quark then wrap it within a object like so:
 
+### Function:
+
 ```ts
-// Function
 const quarkWithAFunction = quark({ fn: () => {} });
 
 const someFunction () => {
@@ -120,12 +152,15 @@ const someFunction () => {
 };
 
 quarkWithAFunction.set({ fn: someFunction });
+```
 
-// Promise
+### Promise:
+
+```ts
 const quarkWithAPromise = quark({ p: Promise.resolve() });
 
-const somePromise = new Promise(resolve => {
-    // ...
+const somePromise = new Promise((resolve) => {
+  // ...
 });
 
 quarkWithAPromise.set({ p: somePromise });
