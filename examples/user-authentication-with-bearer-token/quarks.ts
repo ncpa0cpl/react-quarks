@@ -55,7 +55,9 @@ export const isLoggedIn = quark(false);
 export const username = quark("");
 
 /** Quark holding the refresh token. */
-export const refreshToken = quark("");
+export const refreshToken = quark("lol");
 
 /** Quark holding the current access token. */
-export const accessToken = quark("", { effect: createOnAccessTokenChangeEffect() });
+export const accessToken = quark("lol", {
+  effect: createOnAccessTokenChangeEffect(),
+});

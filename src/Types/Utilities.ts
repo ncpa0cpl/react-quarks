@@ -39,3 +39,5 @@ export type FinalReturnType<F, MAX extends null[] = [null]> = F extends (
     ? F
     : FinalReturnType<R, [...MAX, null]>
   : F;
+
+export type Widen<T> = T extends string ? string : T extends number ? number : T;

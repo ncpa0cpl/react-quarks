@@ -9,6 +9,7 @@ import type {
   QuarkObjectOptions,
   QuarkSelectors,
   Rewrap,
+  Widen,
 } from "./Types";
 import {
   generateCustomActions,
@@ -36,14 +37,14 @@ export function quark<
   ActionArgs extends any[] = never[]
 >(
   initValue: T,
-  config: QuarkConfig<T, A, S, M> = {}
-): Rewrap<Quark<T, QuarkObjectOptions<T, A, S, M>>> {
+  config: QuarkConfig<Widen<T>, A, S, M> = {}
+): Rewrap<Quark<Widen<T>, QuarkObjectOptions<Widen<T>, A, S, M>>> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
     middlewares: config.middlewares ?? [],
 
-    sideEffect: config.effect,
+    sideEffect: config.effect as any,
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
 
     configOptions: {

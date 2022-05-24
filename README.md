@@ -71,7 +71,7 @@ const MyComponent: React.FC = () => {
 
   return (
     <div>
-      <p>Current count: {counterState.get()}</p>
+      <p>Current count: {counterState.value}</p>
 
       <button onClick={incrementCounter}>Increment</button>
     </div>
@@ -202,7 +202,7 @@ const selectTitle = (state: QuarkType<typeof siteSettings>) => state.title;
 const PageHeader: React.FC = () => {
   const title = siteSettings.useSelector(selectTitle);
 
-  return <h1>{title.get()}</h1>;
+  return <h1>{title}</h1>;
 };
 ```
 
@@ -235,7 +235,7 @@ And with this the `useTitle` hook will be added to our Quark.
 const PageHeader: React.FC = () => {
   const title = siteSettings.useTitle();
 
-  return <h1>{title.get()}</h1>;
+  return <h1>{title}</h1>;
 };
 ```
 
@@ -269,7 +269,7 @@ and then,
 const PageHeader: React.FC = () => {
   const letter = siteSettings.useTitleLetter(3);
 
-  return <h1>Third letter of the title is: {letter.get()}</h1>;
+  return <h1>Third letter of the title is: {letter}</h1>;
 };
 ```
 
