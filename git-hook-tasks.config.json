@@ -1,0 +1,29 @@
+{
+  "packageManager": "npm",
+  "hooks": {
+    "prepush": [
+      {
+        "name": "TypeScript Check",
+        "script": "tsc:test"
+      },
+      {
+        "name": "ESLint Check",
+        "script": "lint"
+      },
+      {
+        "name": "Prettier Check",
+        "script": "prettier:check"
+      },
+      {
+        "name": "Jest Tests",
+        "script": "test"
+      },
+      {
+        "name": "Build Check",
+        "taskFile": "./scripts/check-build.ts"
+      }
+    ],
+    "precommit": [],
+    "postcommit": []
+  }
+}
