@@ -1,6 +1,6 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 import axios from "axios";
-import { quark } from "../../dist";
+import { quark } from "../../dist"; // replace with `react-quarks` to run
 
 /**
  * Generate an quark effect that will add an axios interceptor whenever the Access
