@@ -1,7 +1,7 @@
 {
   "packageManager": "npm",
   "hooks": {
-    "prepush": [
+    "pre-push": [
       {
         "name": "TypeScript Check",
         "script": "tsc:test"
@@ -23,7 +23,7 @@
         "taskFile": "./scripts/check-build.ts"
       }
     ],
-    "precommit": [],
-    "postcommit": []
+    "pre-commit": [],
+    "post-commit": []
   }
 }

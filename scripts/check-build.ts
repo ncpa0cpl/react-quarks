@@ -1,8 +1,9 @@
+import chalk from "chalk";
 import execa from "execa";
+import path from "path";
 import simpleGit from "simple-git/promise";
-import { test } from "./test";
 
-const git = simpleGit();
+const git = simpleGit(path.resolve(__dirname, ".."));
 
 async function hasUncommittedChanges() {
   const status = await git.status();
@@ -21,12 +22,13 @@ async function gitAdd() {
   await git.add(".");
 }
 
-export default async function main() {
-  test();
+export default async function main(onProgress: (msg: string) => void) {
+  onProgress("building");
   await execa("npm", ["run", "build"]);
 
+  onProgress(`detecting uncommitted changes`);
   if (await hasUncommittedChanges()) {
     await gitAdd();
-    throw new Error("Commit your changes!");
+    throw new Error(chalk.yellow("Commit your changes!"));
   }
 }

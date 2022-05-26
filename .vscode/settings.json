@@ -18,5 +18,11 @@
   },
   "eslint.validate": ["javascript", "typescript", "typescriptreact"],
   "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["Middlewares"]
+  "cSpell.words": ["Middlewares"],
+  "json.schemas": [
+    {
+      "fileMatch": ["git-hook-tasks.config.json"],
+      "url": "./node_modules/git-hook-tasks/dist/config/json-schema.json"
+    }
+  ]
 }
