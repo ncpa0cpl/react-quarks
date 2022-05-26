@@ -33,7 +33,6 @@ export function generateCustomActions<
 ): ParseActions<A> {
   return Object.fromEntries(
     Object.entries(actions).map(([actionName, actionMethod]) => {
-      // @ts-expect-error
       actionMethod = actionMethod.bind(actions);
       const wrappedAction = (...args: ARGS) => {
         let newState: SetStateAction<T, ET, WithMiddlewareType<T, ET>>;
