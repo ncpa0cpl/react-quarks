@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npx git-hook-tasks prepush
+npx git-hook-tasks pre-push
