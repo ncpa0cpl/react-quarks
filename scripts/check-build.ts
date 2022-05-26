@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import execa from "execa";
 import path from "path";
-import simpleGit from "simple-git/promise";
+import simpleGit from "simple-git";
 
 const git = simpleGit(path.resolve(__dirname, ".."));
 
