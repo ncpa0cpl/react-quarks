@@ -1,20 +1,22 @@
 {
   "packageManager": "npm",
+  "parallel": true,
   "hooks": {
     "pre-push": [
       {
-        "name": "TypeScript Check",
+        "name": "TypeScript",
         "script": "tsc:test"
       },
       {
-        "name": "ESLint Check",
+        "name": "ESLint",
         "script": "lint"
       },
       {
-        "name": "Prettier Check",
+        "name": "Prettier",
         "script": "prettier:check"
       },
       {
+        "mustRunAlone": true,
         "name": "Jest Tests",
         "script": "test"
       },
