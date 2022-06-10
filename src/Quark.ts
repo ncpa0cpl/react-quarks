@@ -20,6 +20,7 @@ import {
   isUpdateNecessary,
 } from "./Utilities";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
+import { registerQuark } from "./Utilities/QuarksCollection";
 
 /**
  * Creates a new quark object.
@@ -82,6 +83,10 @@ export function quark<
     ...customActions,
     ...customSelectors,
   };
+
+  if (config.name !== undefined) {
+    registerQuark(config.name, self);
+  }
 
   return quark as any;
 }

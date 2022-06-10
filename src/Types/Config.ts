@@ -122,7 +122,11 @@ export type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
    * of this behavior by setting this option to `true`.
    */
   allowRaceConditions?: boolean;
-  serverSnapshot?: T;
+  /**
+   * Name is used for identifying the quark when used with server side rendering.
+   * Name should be unique.
+   */
+  name?: string;
 };
 
 export type QuarkObjectOptions<T, A, S, M extends QuarkMiddleware<any, any>[]> = {

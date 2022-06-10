@@ -496,3 +496,67 @@ printQuarkHistory({
   useTablePrint: true, // When enabled the history will be printed to the console with a `console.table()`, otherwise `console.log()` will be used
 });
 ```
+
+### SSR
+
+To support Server Side Rendering, Quarks provide a way to serialize them (on the server) and then hydrate (on the client). Each quark that is going to be serialized must have a unique name.
+
+```tsx
+// Server Side
+import Express from "express";
+import { renderToString } from "react-dom/server";
+import { quark, serializeQuarks } from "react-quarks";
+
+const ssHeader = quark("Hello World", { name: "header" });
+
+const Home = () => {
+  const header = ssHeader.use();
+
+  return <h1>{header.value}</h1>;
+};
+
+const app = Express();
+
+app.get("/", (req, resp) => {
+  const html = renderToString(<Home />);
+  const serialized = serializeQuarks();
+
+  return `
+    <html>
+      <head>
+        <script>
+          window.__PRELOADED_STATE__ = ${serialized}; // quotation marks are already included
+        </script>
+      </head>
+      <body>
+        <div id="root">
+          ${html}
+        <div>
+      </body>
+    </html>
+  `;
+});
+
+app.listen(80);
+
+// Client side
+import ReactDOM from "react-dom";
+import { quark, hydrateQuarks } from "react-quarks";
+
+const clientHeader = quark("", { name: "header" });
+
+const Home = () => {
+  const header = ssHeader.use();
+
+  return <h1>{header.value}</h1>;
+};
+
+if (window.__PRELOADED_STATE__) {
+  hydrateQuarks(window.__PRELOADED_STATE__);
+}
+
+// Serialized data is not needed after hydration
+delete window.__PRELOADED_STATE__;
+
+ReactDOM.hydrate(<Home />, document.getElementById("root"));
+```

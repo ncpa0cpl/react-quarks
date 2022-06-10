@@ -4,5 +4,6 @@ export * from "./GenerateSelectHook";
 export * from "./GenerateUseHook";
 export * from "./IsGenerator";
 export * from "./IsUpdateNecessary";
+export * from "./QuarksCollection";
 export * from "./StateUpdates";
 export * from "./StateUpdates/ApplyMiddlewares";
