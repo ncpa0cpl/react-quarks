@@ -501,6 +501,16 @@ printQuarkHistory({
 
 To support Server Side Rendering, Quarks provide a way to serialize them (on the server) and then hydrate (on the client). Each quark that is going to be serialized must have a unique name.
 
+Fist you will need to install `serialize-javascript` on the backend. This package is required for the `serializeQuarks()` function to work.
+
+> npm i serialize-javascript
+
+OR
+
+> yarn add serialize-javascript
+
+Then you can use it as follows:
+
 ```tsx
 // Server Side
 import Express from "express";

@@ -1,4 +1,4 @@
-import serialize from "serialize-javascript";
+import type serializejs from "serialize-javascript";
 import type { QuarkContext } from "../Types";
 
 function deserialize(serializedJavascript: string) {
@@ -15,8 +15,18 @@ export const registerQuark = (name: string, context: QuarkContext<any, any>) => 
   quarkCollection.set(name, context);
 };
 
-/** Serializes all named quarks. */
+/**
+ * Serializes all named quarks. Use to serialize the quark states on the server, when
+ * using SSR, and send them to the client for hydration.
+ *
+ * This functions requires `serialize-javascript` package, and as a result can only
+ * be used in Node environments.
+ */
 export const serializeQuarks = () => {
+  // obfuscate module name, so the compiler won't try to include this module in browser bundle
+  const serializeJavascriptMdouleName = ["serialize", "javascript"].join("-");
+  // eslint-disable-next-line
+  const serialize: typeof serializejs = require(serializeJavascriptMdouleName);
   return JSON.stringify(
     serialize(
       [...quarkCollection.entries()].map(([name, context]) => [name, context.value]),
