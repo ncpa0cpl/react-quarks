@@ -3,11 +3,7 @@ import type {
   QuarkActions,
   QuarkContext,
   QuarkSetterFn,
-  SetStateAction,
-  WithMiddlewareType,
 } from "../Types";
-import { CancelUpdate } from "./CancelUpdate";
-import { propagateError } from "./PropagateError";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -35,24 +31,8 @@ export function generateCustomActions<
     Object.entries(actions).map(([actionName, actionMethod]) => {
       actionMethod = actionMethod.bind(actions);
       const wrappedAction = (...args: ARGS) => {
-        let newState: SetStateAction<T, ET, WithMiddlewareType<T, ET>>;
-        try {
-          newState = actionMethod(self.value, ...args);
-          return setState(newState);
-        } catch (e) {
-          if (CancelUpdate.isCancel(e)) {
-            return;
-          }
-          if (!(newState! instanceof Promise)) {
-            const err = propagateError(
-              e,
-              "State update was unsuccessful due to an error."
-            );
-
-            console.error(err);
-          }
-          throw e;
-        }
+        const r = setState((currentState: T) => actionMethod(currentState, ...args));
+        return r;
       };
       return [actionName, wrappedAction];
     })

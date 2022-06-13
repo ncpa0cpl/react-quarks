@@ -1,16 +1,27 @@
 import { cloneDeep } from "lodash";
+import { QuarkContext } from "../../src";
 import { generateCustomActions } from "../../src/Utilities";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomActions()", () => {
+  let context: QuarkContext<any, any>;
   const setStateMock = jest.fn();
+  const setState = (v: any) => {
+    let s: any;
+    if (typeof v === "function") {
+      s = v(context.value);
+    } else {
+      s = v;
+    }
+    return setStateMock(s);
+  };
 
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
   it("should generate a new object with the same methods as it was provided", () => {
-    const context = getTestQuarkContext();
+    context = getTestQuarkContext();
 
     const originalContext = cloneDeep(context);
 
@@ -23,7 +34,7 @@ describe("generateCustomActions()", () => {
       },
     };
 
-    const bindedActions = generateCustomActions(context, setStateMock, actions);
+    const bindedActions = generateCustomActions(context, setState, actions);
 
     expect(bindedActions).toMatchObject({
       append: expect.any(Function),
@@ -37,17 +48,19 @@ describe("generateCustomActions()", () => {
   it("should generate new methods that are provided with the context value automatically when called", () => {
     const initValue = { value: "foo", prev: "" };
 
-    const context = getTestQuarkContext({ value: initValue });
+    context = getTestQuarkContext({ value: initValue });
 
     const appendMock = jest.fn((state: typeof initValue, newValue: string) => {
       return { value: newValue, prev: state.value };
     });
 
     const actions = {
-      add: appendMock,
+      add(state: typeof initValue, newValue: string) {
+        return appendMock(state, newValue);
+      },
     };
 
-    const bindedActions = generateCustomActions(context, setStateMock, actions);
+    const bindedActions = generateCustomActions(context, setState, actions);
 
     bindedActions.add("bar");
 
@@ -66,7 +79,7 @@ describe("generateCustomActions()", () => {
   it("should generate new methods that call the setState method", () => {
     const initValue = " foo-bar";
 
-    const context = getTestQuarkContext({ value: initValue });
+    context = getTestQuarkContext({ value: initValue });
 
     const actions = {
       append(state: string, ...args: string[]) {
@@ -77,7 +90,7 @@ describe("generateCustomActions()", () => {
       },
     };
 
-    const bindedActions = generateCustomActions(context, setStateMock, actions);
+    const bindedActions = generateCustomActions(context, setState, actions);
 
     bindedActions.append("-baz");
 

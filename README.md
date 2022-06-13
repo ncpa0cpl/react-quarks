@@ -439,12 +439,53 @@ counter.get(); // 777 as a number type
 
 If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the Quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual Quark type).
 
+##### Global Middleware
+
+It is also possible to add a global middleware. Global middlewares will be automatically added to all quarks.
+
+To add a global middleware use the `addGlobalQuarkMiddleware` function, or to overwrite all the global middlewares `setGlobalQuarkMiddlewares`. You can also lookup all the current global middlewares with `getGlobalQuarkMiddlewares`.
+
 #### Included Middlewares
 
 `react-quarks` library includes two Middleware factories for you to use.
 
-- **Catch Middleware** - a middleware that provides you a way for catching errors thrown by the set state action callbacks and promises
-- **Debug History Middleware** - a middleware that provides you a way of tracking the Quark update actions and the current state of the Quark
+- **Immer Middleware** - extends the standard function setters of quarks with the [immer library](https://immerjs.github.io/immer/) to allow for updating state by detecting changes made on the current state provided to that functions. When this middleware is used it's possible to update quarks by mutating state properties directly, when within action methods or set functions (ex. `quark.set(current => { current.foo = newValue; return current; }))`)
+- **Catch Middleware** - a middleware that provides you a way for catching errors thrown by the set state action callbacks and promises.
+- **Debug History Middleware** - a middleware that provides you a way of tracking the Quark update actions and the current state of the Quark.
+
+##### Immer Middleware Example
+
+```ts
+import {
+  quark,
+  createImmerMiddleware,
+  addGlobalQuarkMiddleware,
+} from "react-quarks";
+
+addGlobalQuarkMiddleware(createImmerMiddleware({ mapAndSetSupport: true }));
+
+const state = quark(
+  { value: "foo" },
+  {
+    actions: {
+      changeValue(currentState, setTo: string) {
+        currentState.value = setTo;
+        return currentState;
+      },
+    },
+  }
+);
+
+state.changeValue("bar");
+state.get(); // => { value: "bar" }
+
+// Works even with async updates
+
+state.set(async (currentState) => {
+  currentState.value = await fetch(/* ... */);
+  return currentState;
+});
+```
 
 ##### Catch Middleware Example
 

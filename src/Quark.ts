@@ -20,6 +20,7 @@ import {
   isUpdateNecessary,
 } from "./Utilities";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
+import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
 import { registerQuark } from "./Utilities/QuarksCollection";
 
 /**
@@ -52,6 +53,8 @@ export function quark<
       allowRaceConditions: config.allowRaceConditions ?? false,
     },
   };
+
+  self.middlewares.unshift(...getGlobalQuarkMiddlewares());
 
   const set = generateSetter(self);
 
