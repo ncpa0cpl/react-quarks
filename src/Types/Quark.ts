@@ -5,6 +5,12 @@ import type { ParseSelectors, QuarkSelector } from "./Selectors";
 import type { QuarkSubscription } from "./Subscribe";
 import type { FinalReturnType } from "./Utilities";
 
+export type DeepReadonly<T> = T extends any[] | object
+  ? {
+      readonly [K in keyof T]: DeepReadonly<T[K]>;
+    }
+  : T;
+
 export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
   ? T
   : T | Middlewares;
@@ -57,7 +63,7 @@ export type Quark<
   C extends { actions?: any; selectors?: any; middlewares?: any }
 > = {
   /** Retrieves the data held in the quark. */
-  get(): T;
+  get(): DeepReadonly<T>;
   /**
    * Updates the data held in the quark.
    *
@@ -83,7 +89,7 @@ export type Quark<
    * - `set()` - to updated the data
    */
   use(): {
-    value: T;
+    value: DeepReadonly<T>;
     set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
   } & ParseActions<C["actions"]>;
   /**

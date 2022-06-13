@@ -1,4 +1,5 @@
 import type {
+  DeepReadonly,
   GetMiddlewareTypes,
   ParseActions,
   Quark,
@@ -69,7 +70,7 @@ export function quark<
     config?.selectors ?? ({} as S)
   );
 
-  const get = () => self.value;
+  const get = () => self.value as DeepReadonly<T>;
 
   const use = generateUseHook(self, customActions, set);
 
