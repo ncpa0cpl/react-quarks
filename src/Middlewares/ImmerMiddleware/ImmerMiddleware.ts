@@ -13,24 +13,26 @@ export const createImmerMiddleware = (options?: {
     enableMapSet();
   }
 
-  return (getState, action, resume) => {
+  return (_, action, resume) => {
     if (isDraft(action)) {
       return resume(finishDraft(action));
     }
 
     if (typeof action === "function") {
-      const current = getState();
-      if (typeof current !== "object" || current === null) return resume(action);
+      return resume((currentState: object) => {
+        if (typeof currentState !== "object" || currentState === null)
+          return action(currentState);
 
-      const draft = createDraft(current);
+        const draft = createDraft(currentState);
 
-      const actionResult = action(draft);
+        const actionResult = action(draft);
 
-      if (isDraft(actionResult)) {
-        return resume(finishDraft(actionResult));
-      }
+        if (isDraft(actionResult)) {
+          return finishDraft(actionResult);
+        }
 
-      return resume(actionResult);
+        return actionResult;
+      });
     }
 
     return resume(action);
