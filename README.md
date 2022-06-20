@@ -2,6 +2,33 @@
 
 #### React Quarks is a simple, lightweight and easy to use state management library for React with full support for Asynchronous State Updates
 
+## Table of Contents
+
+1. [Installation](#installation)
+2. [Basics](#basics)
+3. [Asynchronous Updates](#asynchronous-updates)
+   1. [Canceling pending updates](#canceling-pending-updates)
+4. [Readonly quark state typings](#readonly-quark-state-typings)
+   1. [Example Without Read-only](#example-without-read-only)
+   2. [Example With Read-only](#example-with-read-only)
+5. [Limitations](#limitations)
+   1. [Function as state value](#function-as-state-value)
+   2. [Promise as state value](#promise-as-state-value)
+6. [Dictionaries, Arrays, Selectors, Actions and Middlewares](#dictionaries-arrays-selectors-actions-and-middlewares)
+   1. [Selectors](#selectors)
+   2. [Selectors with arguments](#selectors-with-arguments)
+   3. [Actions](#actions)
+   4. [Side Effects](#side-effects)
+   5. [Subscription](#subscription)
+   6. [Middlewares](#middlewares)
+      1. [Creating a Middleware](#creating-a-middleware)
+      2. [Global Middleware](#global-middleware)
+      3. [Included Middlewares](#included-middlewares)
+         1. [Immer Middleware](#immer-middleware)
+         2. [Catch Middleware](#catch-middleware)
+         3. [Debug History Middleware](#debug-history-middleware)
+7. [SSR](#ssr)
+
 ## Installation
 
 > npm install react-quarks
@@ -120,7 +147,7 @@ const data = quark(
     actions: {
       async updateWithNewData() {
         try {
-          // We request new data, for example from the cloud
+          // We request new data from the server
           const result = await fetchNewData();
           // Request was successful, update the state with the result
           return result;
@@ -136,13 +163,47 @@ const data = quark(
 
 When an action function throws, the quark state update does not happen regardless of what has been thrown, however if the thrown value is not an `CancelUpdate` instance, that event will be logged to the console as an error and propagated up to the initial caller.
 
+## Readonly quark state typings
+
+It is possible to make Quark states have a readonly type when accessed via `.use().value` or `.get()` or a selector. This can help avoid errors that may occur when changing properties of a state, since by design states of Quarks (and React states) are intended to be immutable.
+
+You can enable this feature by extending the global `Quarks.TypeConfig` interface with a `ENABLE_READONLY_STATES` property:
+
+```ts
+declare global {
+  namespace Quarks {
+    interface TypeConfig {
+      ENABLE_READONLY_STATES: true;
+    }
+  }
+}
+```
+
+### Example Without Read-only
+
+```ts
+const myQuark = quark({ foo: { bar: 0 } });
+const value = myQuark.get(); // const value: { foo: { bar: number } }
+
+value.foo.bar = 1; // OK, no errors
+```
+
+### Example With Read-only
+
+```ts
+const myQuark = quark({ foo: { bar: 0 } });
+const value = myQuark.get(); // const value: { readonly foo: { readonly bar: number } }
+
+value.foo.bar = 1; // Error: Cannot assign to 'bar' because it is a read-only property.
+```
+
 ## Limitations
 
 It's impossible to assign a Function or a Promise object as the Quark value, since any functions or promises will automatically be "unpacked" by the Quark `set()` function (even if they are nested, i.e. `() => () => void`).
 
 If you must have a promise or a function as the value of the Quark then wrap it within a object like so:
 
-### Function:
+### Function as state value
 
 ```ts
 const quarkWithAFunction = quark({ fn: () => {} });
@@ -154,7 +215,7 @@ const someFunction () => {
 quarkWithAFunction.set({ fn: someFunction });
 ```
 
-### Promise:
+### Promise as state value
 
 ```ts
 const quarkWithAPromise = quark({ p: Promise.resolve() });
@@ -166,15 +227,9 @@ const somePromise = new Promise((resolve) => {
 quarkWithAPromise.set({ p: somePromise });
 ```
 
-## Advanced Usage
+## Dictionaries, Arrays, Selectors, Actions and Middlewares
 
-Quarks are intended to be used with small sets of data, unlike with some others management libraries like for example Redux, Quarks are not supposed to hold big objects that contain all of your app global data.
-
-Instead you should try to create a separate Quark for each piece of data you want to store. Ideally Quarks would hold only primitive values and for that the API methods from the 'Basics' section should be sufficient, however with how complex React applications often are sometimes it is impossible. For that reason Quarks implement also some more advanced API methods.
-
-### Dictionaries, Arrays, Selectors, Actions and Middlewares
-
-If your Quark holds arrays of data or dictionaries using just `use`, `get` and `set` can become cumbersome.
+If your Quark holds arrays of data or dictionaries using just `use`, `get` and `set` can become cumbersome, to make it easier to use your Quarks you can define actions, selectors and middlewares that will help minimize the boilerplate and ease the development.
 
 ### Selectors
 
@@ -194,7 +249,7 @@ Selectors can be used in two ways
 1. via the builtin hook `useSelector`
 2. or by adding custom selector to the Quark definition
 
-##### With useSelector
+##### useSelector
 
 ```tsx
 const selectTitle = (state: QuarkType<typeof siteSettings>) => state.title;
@@ -209,7 +264,7 @@ const PageHeader: React.FC = () => {
 **_Warning!_**
 Do not use inline functions as selectors (ie. `useSelector((state) => state.title))`), selector is a dependency and whenever it changes a rerender will happen, passing a inline function will cause a endless loop of rerenders. For selectors always use functions declared outside react tree like shown in the example or wrap them in a React's useCallback().
 
-##### With custom selector
+##### custom selector
 
 First we will need to change how the Quark is defined:
 
@@ -298,18 +353,24 @@ const siteSettings = quark(
       setTitle(state, newTitle: string) {
         return { ...state, title: newTitle };
       },
+      // async actions are also possible
+      async setThemeAfter1sec(state, theme: string) {
+        await new Promise((r) => setTimeout(r, 1000));
+        return { ...state, theme };
+      },
     },
   }
 );
 ```
 
-And with that the `setTitle` method can be used like so:
+And with that the actions can be used like so:
 
 ```ts
 siteSettings.setTitle("My new website title");
+siteSettings.setThemeAfter1sec("light");
 ```
 
-Actions always take the Quark state as it's first argument, and some other following arguments (these are for the programmer to decide). The method exposed by the Quark will be called the same as the one in the Quark definition but without the first argument of Quark state.
+Actions always take the Quark state as it's first argument, and optionally some other following arguments. The method exposed by the Quark will be called the same as the one in the Quark definition but without the first argument with Quark state.
 
 ### Side Effects
 
@@ -369,13 +430,13 @@ A middleware ought to be a function taking up to 5 arguments:
 
 - arg_0 - `function getState(): T` - method which returns the current Quark state value
 - arg_1 - `action: SetStateAction<T, M>` - dispatched value, this is the same as what is provided to the set() function argument
-- arg_2 - `function resume(v: SetStateAction<T, M>): void` - this method will resume the standard update flow, value provided to it will be forwarded to the next middleware
-- arg_3 - `function set(v: SetStateAction<T, M>): void` - this method allows to break from the standard update flow and set the state immediately bypassing any following middlewares
-- arg_4 - `updateType: 'sync' | 'async'` - this argument indicates if the source of the update was synchronous or asynchronous, when first a Promise is provided to the set() method, and after the that promise resolves the value it returned will be dispatched with a type `async`, any other actions will have type `sync`
+- arg_2 - `function resume(v: SetStateAction<T, M>): void` - this method will resume the update flow, value provided to it will be forwarded to the next middleware
+- arg_3 - `function set(v: SetStateAction<T, M>): void` - this method allows to break out from the update flow and set the state immediately bypassing any following middlewares
+- arg_4 - `updateType: 'sync' | 'async'` - this argument indicates if the source of the update was synchronous or asynchronous, whatever is provided to the `set()` method will always have a `sync` type at first, then if the passed value is a Promise or a function returning a Promise, the resolved value from that Promise will be given to the middleware with a type of `async`.
 
 ##### Example
 
-A middleware that will catch any errors a passed callback could throw.
+A naive middleware that will catch any errors thrown by an action.
 
 ```ts
 const catchMiddleware: QuarkMiddleware<number, never> = (
@@ -392,18 +453,19 @@ const catchMiddleware: QuarkMiddleware<number, never> = (
 
 const counter = quark(0, { middlewares: [catchMiddleware] });
 
+// The action in this case will be a function
 counter.set(() => {
   throw new Error();
 }); // Output: 'An error occurred during state update!'
 ```
 
-#### Extending Quarks with a Middleware
+#### Creating a Middleware
 
 One of the uses of middleware can be to extend the functionality of a Quark.
 
-As an example, imagine you have a Quark storing a number, but you'd want to be able to set() it's state with a stringified number. The goal is to have the Quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
+As an example, imagine you have a Quark storing a number, but you'd want to be able to set() it's state with a string. The goal is to have the Quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
 
-Middlewares give you this option.
+This can be easily achieved with a right middleware.
 
 ##### Example
 
@@ -413,6 +475,7 @@ const numParserMiddleware: QuarkMiddleware<number, string> = (
   action,
   resume
 ) => {
+  // If the action is a string, rather than a number, parse it to a number and continue the update with it
   if (typeof action === "string") {
     const num = Number(action);
 
@@ -421,6 +484,7 @@ const numParserMiddleware: QuarkMiddleware<number, string> = (
     return resume(num);
   }
 
+  // otherwise, continue with the original action
   resume(action);
 };
 
@@ -439,7 +503,7 @@ counter.get(); // 777 as a number type
 
 If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the Quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual Quark type).
 
-##### Global Middleware
+#### Global Middleware
 
 It is also possible to add a global middleware. Global middlewares will be automatically added to all quarks.
 
@@ -447,13 +511,13 @@ To add a global middleware use the `addGlobalQuarkMiddleware` function, or to ov
 
 #### Included Middlewares
 
-`react-quarks` library includes two Middleware factories for you to use.
+`react-quarks` library includes a few Middleware factories to use out of the box.
 
 - **Immer Middleware** - extends the standard function setters of quarks with the [immer library](https://immerjs.github.io/immer/) to allow for updating state by detecting changes made on the current state provided to that functions. When this middleware is used it's possible to update quarks by mutating state properties directly, when within action methods or set functions (ex. `quark.set(current => { current.foo = newValue; return current; }))`)
 - **Catch Middleware** - a middleware that provides you a way for catching errors thrown by the set state action callbacks and promises.
 - **Debug History Middleware** - a middleware that provides you a way of tracking the Quark update actions and the current state of the Quark.
 
-##### Immer Middleware Example
+##### Immer Middleware
 
 ```ts
 import {
@@ -487,25 +551,31 @@ state.set(async (currentState) => {
 });
 ```
 
-##### Catch Middleware Example
+##### Catch Middleware
 
 ```ts
 import { quark, createCatchMiddleware } from "react-quarks";
 
-const counterErrorMiddleware = createCatchMiddleware({
+const catchErrorMiddleware = createCatchMiddleware({
   catch: (e) => {
+    console.log("An error has been caught!", e);
     // handle the error
   },
 });
 
 const counter = quark(0, {
-  middlewares: [counterErrorMiddleware],
+  middlewares: [catchErrorMiddleware],
 });
+
+counter.set(() => {
+  throw new Error("Update Failed!");
+});
+// Output: 'An error has been caught! Error: Update Failed!'
 ```
 
 **It is recommended for this middleware to be the very first middleware provided in the `middlewares` array.**
 
-##### Debug History Middleware Example
+##### Debug History Middleware
 
 ```ts
 import { quark, createDebugHistoryMiddleware } from "react-quarks";
@@ -538,7 +608,7 @@ printQuarkHistory({
 });
 ```
 
-### SSR
+## SSR
 
 To support Server Side Rendering, Quarks provide a way to serialize them (on the server) and then hydrate (on the client). Each quark that is going to be serialized must have a unique name.
 
