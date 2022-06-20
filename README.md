@@ -33,6 +33,10 @@
 
 > npm install react-quarks
 
+OR
+
+> yarn add react-quarks
+
 ## Basics
 
 Import the `quark` method from the `react-quarks` package.
@@ -47,7 +51,7 @@ import { quark } from "react-quarks";
 const counter = quark(0);
 ```
 
-To declare the quark type you will need to assert the desired type into the initial value (This is a limitation of TypeScript and how the generic types inference works, if you were to specify the type with the `<>` symbols you'd have to also define the types for all of the quark selectors, actions and middlewares as well):
+To declare the quark type you will need to assert the desired type into the initial value (This is a limitation of TypeScript and how the generic types inference works, if you were to specify the type with the `<>` symbols you'd have to also manually define the types for all of the quark selectors, actions and middlewares as well, no inference):
 
 ```ts
 const listOfNumbers = quark([] as number[]);
@@ -64,23 +68,25 @@ const currentCounterValue = counter.get();
 
 **Update the state of the Quark outside React**
 
+With a simple `.set(value)`
+
 ```ts
 counter.set(counter.get() + 1);
 ```
 
-OR
+With a dispatch function
 
 ```ts
 counter.set((currentState) => currentState + 1);
 ```
 
-OR
+With a promise
 
 ```ts
 counter.set(Promise.resolve(counter.get() + 1));
 ```
 
-OR
+With a dispatch function returning a promise
 
 ```ts
 counter.set((currentState) => Promise.resolve(currentState + 1));
@@ -120,7 +126,7 @@ const counter = quark(0);
 counter.set(Promise.resolve(1));
 ```
 
-or a method that returns a Promise:
+or a function that returns a Promise:
 
 ```ts
 const counter = quark(0);
@@ -628,10 +634,10 @@ import Express from "express";
 import { renderToString } from "react-dom/server";
 import { quark, serializeQuarks } from "react-quarks";
 
-const ssHeader = quark("Hello World", { name: "header" });
+const serverHeader = quark("Hello World", { name: "header" });
 
 const Home = () => {
-  const header = ssHeader.use();
+  const header = serverHeader.use();
 
   return <h1>{header.value}</h1>;
 };
@@ -664,10 +670,10 @@ app.listen(80);
 import ReactDOM from "react-dom";
 import { quark, hydrateQuarks } from "react-quarks";
 
-const clientHeader = quark("", { name: "header" });
+const clientHeader = quark("", { name: "header" }); // the same name as in the `serverHeader`
 
 const Home = () => {
-  const header = ssHeader.use();
+  const header = clientHeader.use();
 
   return <h1>{header.value}</h1>;
 };
