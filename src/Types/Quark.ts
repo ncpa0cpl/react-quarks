@@ -5,10 +5,24 @@ import type { ParseSelectors, QuarkSelector } from "./Selectors";
 import type { QuarkSubscription } from "./Subscribe";
 import type { FinalReturnType } from "./Utilities";
 
-export type DeepReadonly<T> = T extends any[] | object
-  ? {
-      readonly [K in keyof T]: DeepReadonly<T[K]>;
-    }
+declare global {
+  namespace Quarks {
+    export interface TypeConfig {}
+  }
+}
+
+type IsReadonlyStateEnabled = Quarks.TypeConfig extends {
+  ENABLE_READONLY_STATES: true;
+}
+  ? true
+  : false;
+
+export type DeepReadonly<T> = IsReadonlyStateEnabled extends true
+  ? T extends any[] | object
+    ? {
+        readonly [K in keyof T]: DeepReadonly<T[K]>;
+      }
+    : T
   : T;
 
 export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
@@ -119,7 +133,7 @@ export type Quark<
   useSelector<ARGS extends any[], R>(
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
-  ): R;
+  ): DeepReadonly<R>;
   /**
    * Add a listener for the state changes of the Quark. Every time the state change
    * is detected provided callback will be triggered.
