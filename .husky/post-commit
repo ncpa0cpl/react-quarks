@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npx git-hook-tasks post-commit
+yarn git-hook-tasks post-commit
