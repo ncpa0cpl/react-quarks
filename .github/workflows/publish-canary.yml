@@ -31,8 +31,6 @@ jobs:
         with:
           cmd: git-hook-tasks pre-push
       - name: Publish Canary
-        uses: Borales/actions-yarn@v3.0.0
         env:
-          NPM_TOKEN: ${{secrets.NPM_AUTOMATION_TOKEN}}
-        with:
-          cmd: publish:canary
+          NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
+        run: npm version --no-git-tag-version --preid canary-$(git rev-parse HEAD) prerelease && npm publish --tag canary && git checkout .
