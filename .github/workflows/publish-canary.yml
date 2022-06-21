@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - 'master'
+
+env:
+  NPM_TOKEN: ""
+
 jobs:
   publish-canary:
     runs-on: ubuntu-latest
@@ -16,14 +20,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Install dependencies
         uses: Borales/actions-yarn@v3.0.0
-        env:
-          NPM_TOKEN: ${{secrets.NPM_AUTOMATION_TOKEN}}
         with:
           cmd: install
       - name: Build
         uses: Borales/actions-yarn@v3.0.0
-        env:
-          NPM_TOKEN: ${{secrets.NPM_AUTOMATION_TOKEN}}
         with:
           cmd: build
       - name: Test
