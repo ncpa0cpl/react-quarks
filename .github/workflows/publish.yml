@@ -1,0 +1,40 @@
+name: Publish canary
+on:
+  release:
+    types: [released]
+
+env:
+  NPM_TOKEN: ""
+
+jobs:
+  publish-canary:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [15.x]
+    steps:
+      - name: Setup Node Environment
+        uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        uses: Borales/actions-yarn@v3.0.0
+        with:
+          cmd: install
+      - name: Build
+        uses: Borales/actions-yarn@v3.0.0
+        with:
+          cmd: build
+      - name: Test
+        uses: Borales/actions-yarn@v3.0.0
+        with:
+          cmd: git-hook-tasks pre-push
+      - name: Publish Canary
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |-
+          issemver=$(./scripts/check-semver.sh -t "$TAG_NAME")
+          if [ "$issemver" -eq "1" ]; then
+            npm version --no-git-tag-version "$TAG_NAME" && npm publish && git checkout .
+          fi
