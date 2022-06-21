@@ -22,6 +22,8 @@ jobs:
           cmd: install
       - name: Build
         uses: Borales/actions-yarn@v3.0.0
+        env:
+          NPM_TOKEN: ${{secrets.NPM_AUTOMATION_TOKEN}}
         with:
           cmd: build
       - name: Test
