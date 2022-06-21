@@ -14,8 +14,6 @@ jobs:
         uses: actions/setup-node@v3
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Access Token
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
       - name: Install dependencies
         uses: Borales/actions-yarn@v3.0.0
         with:
@@ -30,5 +28,7 @@ jobs:
           cmd: git-hook-tasks pre-push
       - name: Publish Canary
         uses: Borales/actions-yarn@v3.0.0
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTOMATION_TOKEN}}
         with:
           cmd: publish:canary
