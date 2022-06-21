@@ -76,7 +76,7 @@ describe("ImmerMiddleware", () => {
 
       q.subscribe(onStateChange);
 
-      q.set(async (current) => {
+      const setAction = q.set(async (current) => {
         current.foo = "a";
         await sleep(10);
         current.baz = "b";
@@ -86,6 +86,7 @@ describe("ImmerMiddleware", () => {
       expect(isDraft(q.get())).toEqual(false);
       expect(q.get()).toEqual({ foo: "foo", bar: "bar", baz: "baz" });
 
+      await setAction;
       await sleep(20);
 
       expect(isDraft(q.get())).toEqual(false);
@@ -104,7 +105,7 @@ describe("ImmerMiddleware", () => {
 
       q.subscribe(onStateChange);
 
-      q.set(async (current) => {
+      await q.set(async (current) => {
         expect(isDraft(current)).toEqual(true);
         await sleep(10);
         return () => {
@@ -122,7 +123,7 @@ describe("ImmerMiddleware", () => {
         expect.anything() // cancelSubscription function
       );
 
-      q.set(async () => {
+      await q.set(async () => {
         await sleep(10);
         return (current) => {
           expect(isDraft(current)).toEqual(true);
@@ -140,7 +141,7 @@ describe("ImmerMiddleware", () => {
         expect.anything() // cancelSubscription function
       );
 
-      q.set(async (current1) => {
+      await q.set(async (current1) => {
         expect(isDraft(current1)).toEqual(true);
         await sleep(10);
         return (current2) => {
@@ -160,7 +161,7 @@ describe("ImmerMiddleware", () => {
         expect.anything() // cancelSubscription function
       );
 
-      q.set(async (current1) => {
+      await q.set(async (current1) => {
         await sleep(10);
         return (current2) => {
           current2.foo = "4";
