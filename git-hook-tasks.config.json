@@ -5,27 +5,28 @@
     "pre-push": [
       {
         "name": "TypeScript",
-        "script": "tsc:test"
+        "script": "test:tsc"
       },
       {
         "name": "ESLint",
-        "script": "lint"
+        "script": "test:lint"
       },
       {
         "name": "Prettier",
-        "script": "prettier:check"
+        "script": "test:prettier"
       },
       {
         "mustRunAlone": true,
         "name": "Jest Tests",
-        "script": "test"
-      },
-      {
-        "name": "Build Check",
-        "taskFile": "./scripts/check-build.ts"
+        "script": "test:jest"
       }
     ],
     "pre-commit": [],
-    "post-commit": []
+    "post-commit": [
+      {
+        "name": "Publish Canary",
+        "script": "publish:canary"
+      }
+    ]
   }
 }

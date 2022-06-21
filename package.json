@@ -1,6 +1,6 @@
 {
   "name": "react-quarks",
-  "version": "2.0.0-canary.4",
+  "version": "2.0.0",
   "description": "React state management library with async support.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,13 +8,14 @@
     "url": "https://github.com/ncpa0cpl/react-quarks"
   },
   "scripts": {
-    "tsc:test": "tsc --noEmit",
-    "lint": "eslint .",
     "build": "tsc",
-    "test": "jest --coverage",
-    "prettier:check": "prettier --check ./src && prettier --check ./__tests__"
+    "test:jest": "jest --coverage",
+    "test:lint": "eslint .",
+    "test:prettier": "prettier --check ./src && prettier --check ./__tests__",
+    "test:tsc": "tsc --noEmit",
+    "publish:canary": "npm version --no-git-tag-version prerelease && npm publish --tag canary && git checkout ."
   },
-  "author": "Bretner Szymon",
+  "author": "Bretner Szymon (ncpa0cpl)",
   "license": "MIT",
   "keywords": [
     "state",
