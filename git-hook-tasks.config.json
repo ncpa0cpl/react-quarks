@@ -20,13 +20,6 @@
         "name": "Jest Tests",
         "script": "test:jest"
       }
-    ],
-    "pre-commit": [],
-    "post-commit": [
-      {
-        "name": "Publish Canary",
-        "script": "publish:canary"
-      }
     ]
   }
 }

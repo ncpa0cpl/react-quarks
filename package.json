@@ -13,7 +13,7 @@
     "test:lint": "eslint .",
     "test:prettier": "prettier --check ./src && prettier --check ./__tests__",
     "test:tsc": "tsc --noEmit",
-    "publish:canary": "npm version --no-git-tag-version prerelease && npm publish --tag canary && git checkout ."
+    "publish:canary": "npm version --no-git-tag-version --preid canary prerelease && npm publish --tag canary && git checkout ."
   },
   "author": "Bretner Szymon (ncpa0cpl)",
   "license": "MIT",
