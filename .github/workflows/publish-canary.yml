@@ -2,7 +2,7 @@ name: Publish canary
 on:
   push:
     branches:
-      - 'master'
+      - "master"
 
 env:
   NPM_TOKEN: ""
@@ -33,4 +33,4 @@ jobs:
       - name: Publish Canary
         env:
           NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
-        run: npm version --no-git-tag-version --preid canary-$(git rev-parse HEAD) prerelease && npm publish --tag canary && git checkout .
+        run: ./scripts/publish-canary.sh

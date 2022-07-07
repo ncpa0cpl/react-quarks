@@ -1,4 +1,4 @@
-name: Publish canary
+name: Publish
 on:
   release:
     types: [released]
@@ -7,7 +7,7 @@ env:
   NPM_TOKEN: ""
 
 jobs:
-  publish-canary:
+  publish:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,12 +29,8 @@ jobs:
         uses: Borales/actions-yarn@v3.0.0
         with:
           cmd: git-hook-tasks pre-push
-      - name: Publish Canary
+      - name: Publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
           TAG_NAME: ${{ github.event.release.tag_name }}
-        run: |-
-          issemver=$(./scripts/check-semver.sh -t "$TAG_NAME")
-          if [ "$issemver" -eq "1" ]; then
-            npm version --no-git-tag-version "$TAG_NAME" && npm publish && git checkout .
-          fi
+        run: ./scripts/publish.sh
