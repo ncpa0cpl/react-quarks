@@ -17,6 +17,8 @@ jobs:
         uses: actions/setup-node@v3
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: master
       - name: Install dependencies
         uses: Borales/actions-yarn@v3.0.0
         with:
@@ -30,6 +32,7 @@ jobs:
         with:
           cmd: git-hook-tasks pre-push
       - name: Publish
+        uses: actions/checkout@v3
         env:
           NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
           TAG_NAME: ${{ github.event.release.tag_name }}
