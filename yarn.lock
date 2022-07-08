@@ -1994,9 +1994,9 @@ get-symbol-description@^1.0.0:
     call-bind "^1.0.2"
     get-intrinsic "^1.1.1"
 
-"git-hook-tasks@github:ncpa0cpl/git-hook-tasks":
+git-hook-tasks@ncpa0cpl/git-hook-tasks:
   version "1.0.0"
-  resolved "https://codeload.github.com/ncpa0cpl/git-hook-tasks/tar.gz/21e0317442844df887be864064f09073d98cad6f"
+  resolved "https://codeload.github.com/ncpa0cpl/git-hook-tasks/tar.gz/3307c52974824bfcdebe88241cb060ef2a36b382"
   dependencies:
     async-await-queue "^1.2.1"
     chalk "^4.0.0"
