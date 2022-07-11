@@ -258,17 +258,12 @@ Selectors can be used in two ways
 ##### useSelector
 
 ```tsx
-const selectTitle = (state: QuarkType<typeof siteSettings>) => state.title;
-
 const PageHeader: React.FC = () => {
-  const title = siteSettings.useSelector(selectTitle);
+  const title = siteSettings.useSelector((state) => state.title);
 
   return <h1>{title}</h1>;
 };
 ```
-
-**_Warning!_**
-Do not use inline functions as selectors (ie. `useSelector((state) => state.title))`), selector is a dependency and whenever it changes a rerender will happen, passing a inline function will cause a endless loop of rerenders. For selectors always use functions declared outside react tree like shown in the example or wrap them in a React's useCallback().
 
 ##### custom selector
 
