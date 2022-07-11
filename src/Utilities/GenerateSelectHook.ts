@@ -1,8 +1,6 @@
-import React from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type { QuarkContext, QuarkSelector } from "../Types";
 import { useCachedSelector } from "./UseCachedSelector";
-import { useDynamicDependencies } from "./UseDynamicDependencies";
 /**
  * Generate a 'selector' React Hook for this Quark.
  *
@@ -21,16 +19,9 @@ export function generateSelectHook<T, ET>(self: QuarkContext<T, ET>) {
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
   ) => {
-    const cachedSelector = useCachedSelector(selector);
+    const getSnapshot = useCachedSelector(selector, self, args);
 
-    const argsDep = useDynamicDependencies(args);
-
-    const get = React.useCallback(
-      () => cachedSelector(self.value, ...args),
-      [argsDep]
-    );
-
-    const value = useSyncExternalStore(subscribe, get);
+    const value = useSyncExternalStore(subscribe, getSnapshot);
 
     return value;
   };

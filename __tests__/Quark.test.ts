@@ -673,7 +673,9 @@ describe("quark()", () => {
       });
 
       expect(q.get().value2).toEqual(100);
-      await state.waitFor(() => expect(state.result.current).toEqual(5));
+      await state.waitFor(() => {
+        expect(state.result.current).toEqual(5);
+      });
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
       await act(async () => {
@@ -727,6 +729,36 @@ describe("quark()", () => {
       expect(q.get().value2).toEqual(55);
       expect(state.result.current).toEqual(15);
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
+    });
+    it("useSelector() correctly handles situations where the selector returns a different value on each rerender", async () => {
+      const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      const { result, rerender } = renderHook(() =>
+        q.useSelector((s) => s.filter((x) => !(x % 2)))
+      );
+
+      expect(result.current).toEqual([0, 2, 4, 6, 8]);
+
+      rerender();
+
+      expect(result.current).toEqual([0, 2, 4, 6, 8]);
+    });
+    it("custom selectors correctly handles situations where the selector returns a different value on each rerender", async () => {
+      const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], {
+        selectors: {
+          useEvenNumbers(state) {
+            return state.filter((x) => !(x % 2));
+          },
+        },
+      });
+
+      const { result, rerender } = renderHook(() => q.useEvenNumbers());
+
+      expect(result.current).toEqual([0, 2, 4, 6, 8]);
+
+      rerender();
+
+      expect(result.current).toEqual([0, 2, 4, 6, 8]);
     });
   });
 

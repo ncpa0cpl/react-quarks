@@ -1,35 +1,43 @@
 import { isEqual } from "lodash";
 import React from "react";
-import type { QuarkSelector } from "../Types";
+import type { QuarkContext, QuarkSelector } from "../Types";
 
 const NULL_SYM = Symbol("null");
 
 export const useCachedSelector = <T, ARGS extends any[], R>(
-  selector: QuarkSelector<T, ARGS, R>
-): QuarkSelector<T, ARGS, R> => {
-  const cache = React.useRef({
-    prevState: NULL_SYM as typeof NULL_SYM | T,
-    prevArgs: [] as any as ARGS,
-    prevResult: NULL_SYM as typeof NULL_SYM | R,
+  selector: QuarkSelector<T, ARGS, R>,
+  self: QuarkContext<T, any>,
+  latestArgs: ARGS
+): (() => R) => {
+  const portal = React.useRef({
+    cache: {
+      prevState: NULL_SYM as typeof NULL_SYM | T,
+      prevArgs: [] as any as ARGS,
+      prevResult: NULL_SYM as typeof NULL_SYM | R,
+    },
+    selectorImpl: selector,
+    args: latestArgs,
   });
 
-  const impl = React.useRef(selector);
-  impl.current = selector;
+  portal.current.args = latestArgs;
+  portal.current.selectorImpl = selector;
 
-  const [selectorWrapper] = React.useState(() => (state: T, ...args: ARGS) => {
-    if (
-      cache.current.prevResult === NULL_SYM ||
-      state !== cache.current.prevState ||
-      !isEqual(args, cache.current.prevArgs)
-    ) {
-      const result = impl.current(state, ...args);
+  const [selectorWrapper] = React.useState(() => () => {
+    const { args, selectorImpl } = portal.current;
+    const { prevArgs, prevResult, prevState } = portal.current.cache;
+    const state = self.value;
 
-      cache.current.prevState = state;
-      cache.current.prevArgs = args;
-      cache.current.prevResult = result;
+    if (prevResult === NULL_SYM || state !== prevState || !isEqual(args, prevArgs)) {
+      const result = selectorImpl(state, ...args);
+
+      portal.current.cache = {
+        prevState: state,
+        prevArgs: args,
+        prevResult: result,
+      };
     }
 
-    return cache.current.prevResult as R;
+    return portal.current.cache.prevResult as R;
   });
 
   return selectorWrapper;
