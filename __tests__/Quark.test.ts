@@ -111,6 +111,8 @@ describe("quark()", () => {
         }
       );
 
+      q.addActionEffects((action) => action.increment((state) => {}));
+
       expect(q.get()).toMatchObject({ value: 0 });
 
       q.increment();

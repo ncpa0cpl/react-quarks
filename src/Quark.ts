@@ -9,7 +9,6 @@ import type {
   QuarkMiddleware,
   QuarkObjectOptions,
   QuarkSelectors,
-  Rewrap,
   Widen,
 } from "./Types";
 import {
@@ -20,6 +19,7 @@ import {
   generateUseHook,
   isUpdateNecessary,
 } from "./Utilities";
+import { generateAddActionEffects } from "./Utilities/GenerateAddActionEffects";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
 import { registerQuark } from "./Utilities/QuarksCollection";
@@ -41,10 +41,11 @@ export function quark<
 >(
   initValue: T,
   config: QuarkConfig<Widen<T>, A, S, M> = {}
-): Rewrap<Quark<Widen<T>, QuarkObjectOptions<Widen<T>, A, S, M>>> {
+): Quark<Widen<T>, QuarkObjectOptions<Widen<T>, A, S, M>> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
+    actionEffects: [],
     middlewares: config.middlewares ?? [],
 
     sideEffect: config.effect as any,
@@ -57,11 +58,10 @@ export function quark<
 
   self.middlewares.unshift(...getGlobalQuarkMiddlewares());
 
-  const set = generateSetter(self);
+  const { set, setWithActionName } = generateSetter(self);
 
   const customActions = generateCustomActions(
-    self,
-    set,
+    setWithActionName,
     config?.actions ?? {}
   ) as ParseActions<A>;
 
@@ -78,12 +78,15 @@ export function quark<
 
   const subscribe = generateSubscribeFunction(self);
 
-  const quark: Quark<T, QuarkObjectOptions<T, A, S, M>> = {
+  const addActionEffects = generateAddActionEffects(self, customActions);
+
+  const quark = {
     set: set as any,
     get,
     use,
     useSelector,
     subscribe,
+    addActionEffects,
     ...customActions,
     ...customSelectors,
   };

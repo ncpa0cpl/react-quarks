@@ -9,25 +9,35 @@ import type { QuarkContext, SetStateAction } from "../../Types";
 export function processStateUpdate<T, ET>(params: {
   self: QuarkContext<T, ET>;
   previousState: T;
+  actionName?: string;
   applyMiddlewaresAndUpdateState: (v: SetStateAction<T, ET>) => void;
   dispatchEvent: (eventAction: () => void) => void;
 }) {
   const { previousState, self, applyMiddlewaresAndUpdateState, dispatchEvent } =
     params;
 
-  const shouldUpdate = self.stateComparator(self.value, previousState);
+  const currentState = self.value;
+
+  const shouldUpdate = self.stateComparator(currentState, previousState);
 
   const subscribers = new Set(self.subscribers);
+  const actionEffects = new Map(self.actionEffects);
 
   const notifySubscribers = () => {
     for (const subscriber of subscribers) {
-      subscriber(self.value);
+      subscriber(currentState);
     }
   };
 
   if (shouldUpdate) {
+    for (const [actionName, effect] of actionEffects) {
+      if (actionName === params.actionName) {
+        effect(currentState, previousState);
+      }
+    }
+
     if (self.sideEffect) {
-      self.sideEffect(previousState, self.value, applyMiddlewaresAndUpdateState);
+      self.sideEffect(previousState, currentState, applyMiddlewaresAndUpdateState);
     }
 
     dispatchEvent(() => {

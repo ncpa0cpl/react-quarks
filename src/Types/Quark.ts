@@ -36,6 +36,7 @@ export type QuarkContext<T, ET> = {
   value: T;
 
   readonly subscribers: Set<QuarkSubscriber<T>>;
+  readonly actionEffects: [string, QuarkActionEffect<T>][];
   readonly middlewares: QuarkMiddleware<T, ET>[];
   readonly configOptions: QuarkConfigOptions;
 
@@ -53,10 +54,18 @@ export type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> =
 /** @internal */
 export type QuarkSubscriber<T> = (currentState: T) => void;
 
+/** @internal */
+export type QuarkActionEffect<T> = (currentState: T, previousState: T) => void;
+
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
 export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
   newValue: SetStateAction<QuarkType, MiddlewareTypes>
+) => void;
+
+export type QuarkSetterWithActionNameFn<QuarkType, MiddlewareTypes> = (
+  newValue: SetStateAction<QuarkType, MiddlewareTypes>,
+  actionName: string
 ) => void;
 
 export type QuarkGetterFn<T> = () => T;
@@ -144,5 +153,14 @@ export type Quark<
   subscribe(
     onQuarkStateChange: (state: T, cancelSubscription: () => void) => void
   ): QuarkSubscription;
+  addActionEffects(add: (builder: ActionEffectBuilder<T, C["actions"]>) => void): {
+    remove(): void;
+  };
 } & ParseActions<C["actions"]> &
   ParseSelectors<C["selectors"]>;
+
+export type ActionEffectBuilder<T, A> = {
+  [K in keyof A]: (
+    effect: (currentState: T, previousState: T) => void
+  ) => ActionEffectBuilder<T, A>;
+};
