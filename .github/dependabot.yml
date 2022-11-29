@@ -9,8 +9,3 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-    allow:
-      - dependency-name: "lodash"
-      - dependency-name: "luxon"
-      - dependency-name: "use-sync-external-store"
-      - dependency-name: "immer"
