@@ -2169,7 +2169,8 @@ get-symbol-description@^1.0.0:
 
 "git-hook-tasks@github:ncpa0cpl/git-hook-tasks":
   version "1.0.0"
-  resolved "https://codeload.github.com/ncpa0cpl/git-hook-tasks/tar.gz/21e0317442844df887be864064f09073d98cad6f"
+  uid "37e5f9723a3c6d38b555bbb81ad493cd08df68aa"
+  resolved "https://codeload.github.com/ncpa0cpl/git-hook-tasks/tar.gz/37e5f9723a3c6d38b555bbb81ad493cd08df68aa"
   dependencies:
     async-await-queue "^1.2.1"
     chalk "^4.0.0"
