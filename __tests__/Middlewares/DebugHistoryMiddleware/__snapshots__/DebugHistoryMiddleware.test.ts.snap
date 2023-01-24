@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`DebugHistoryMiddleware correctly handles async updates 1`] = `
-Object {
-  "0_q1": Array [
-    Object {
+{
+  "0_q1": [
+    {
       "change": "Postponed",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Promise",
         "value": Promise {
           Symbol(__quark_internal_is_promise_canceled__): true,
         },
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -20,13 +20,13 @@ Object {
       "stateAfterUpdate": "FOO",
       "time": 1600000000100,
     },
-    Object {
+    {
       "change": "Postponed",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Generator",
         "value": [Function],
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -35,15 +35,15 @@ Object {
       "stateAfterUpdate": "FOO",
       "time": 1600000000200,
     },
-    Object {
+    {
       "change": "Postponed",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Promise",
         "value": Promise {
           Symbol(__quark_internal_is_promise_canceled__): false,
         },
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -52,13 +52,13 @@ Object {
       "stateAfterUpdate": "FOO",
       "time": 1600000000300,
     },
-    Object {
+    {
       "change": "Immediate",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Value",
         "value": "BAR",
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -68,13 +68,13 @@ Object {
       "stateAfterUpdate": "BAR",
       "time": 1600000000400,
     },
-    Object {
+    {
       "change": "Immediate",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Value",
         "value": "BAZ",
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -88,15 +88,15 @@ Object {
 `;
 
 exports[`DebugHistoryMiddleware correctly saves updates to the history tracker 1`] = `
-Object {
-  "0_q1": Array [
-    Object {
+{
+  "0_q1": [
+    {
       "change": "Immediate",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Value",
         "value": "BAR",
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "FOO",
       },
@@ -105,13 +105,13 @@ Object {
       "stateAfterUpdate": "BAR",
       "time": 1600000000100,
     },
-    Object {
+    {
       "change": "Postponed",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Generator",
         "value": [Function],
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "BAR",
       },
@@ -120,13 +120,13 @@ Object {
       "stateAfterUpdate": "BAR",
       "time": 1600000000200,
     },
-    Object {
+    {
       "change": "Immediate",
-      "dispatchedUpdate": Object {
+      "dispatchedUpdate": {
         "type": "Value",
         "value": "BAZ",
       },
-      "initialState": Object {
+      "initialState": {
         "type": "Value",
         "value": "BAR",
       },
