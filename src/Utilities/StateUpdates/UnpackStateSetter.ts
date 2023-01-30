@@ -5,7 +5,7 @@ import type { AsyncUpdateController } from "./AsyncUpdates";
 
 /** @internal */
 export type UnpackStateSetterResult<T> = {
-  then(handler: (state: T) => void): void;
+  then(handler: (state: T) => void): void | Promise<void>;
 };
 
 /**
@@ -13,7 +13,8 @@ export type UnpackStateSetterResult<T> = {
  * the received value to the middlewares and then "unpack" it again.
  *
  * If the provided value is of any other type, signal the async controller to cancel
- * ongoing updates and resolve the function passed to the `then()` method with the value.
+ * ongoing updates and resolve the function passed to the `then()` method with the
+ * value.
  *
  * @param self Quark context
  * @param asyncUpdates Asynchronous updates controller

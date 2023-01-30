@@ -31,7 +31,7 @@ export function generateUseHook<T, A extends ParseActions<any>, ET>(
     const value = useSyncExternalStore(subscribe, getSnapshot) as DeepReadonly<T>;
 
     return {
-      set,
+      set: set as any,
       value,
       ...actions,
     };

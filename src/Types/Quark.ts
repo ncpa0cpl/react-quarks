@@ -72,6 +72,13 @@ export type QuarkGetterFn<T> = () => T;
  */
 export type QuarkUpdateType = "sync" | "async";
 
+export type QuarkSetResult<V extends SetStateAction<any, any>> =
+  FinalReturnType<V> extends Promise<any>
+    ? Promise<void>
+    : Promise<any> extends FinalReturnType<V>
+    ? Promise<void> | void
+    : void;
+
 export type Quark<
   T,
   C extends { actions?: any; selectors?: any; middlewares?: any }
@@ -86,11 +93,7 @@ export type Quark<
    */
   set<V extends SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>>(
     newValue: V
-  ): FinalReturnType<V> extends Promise<any>
-    ? Promise<void>
-    : Promise<any> extends FinalReturnType<V>
-    ? Promise<void> | void
-    : void;
+  ): QuarkSetResult<V>;
   /**
    * React hook to access the data in the quark. It can be only used within React
    * functional components.
@@ -104,10 +107,13 @@ export type Quark<
    */
   use(): {
     value: DeepReadonly<T>;
-    set(newValue: SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>): void;
+    set<V extends SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>>(
+      newValue: V
+    ): QuarkSetResult<V>;
   } & ParseActions<C["actions"]>;
   /**
-   * React hook to access a part of the data within the quark or to retrieve it and transform.
+   * React hook to access a part of the data within the quark or to retrieve it and
+   * transform.
    *
    * This hook will only cause component updates if the result of the `selector()`
    * function changes.

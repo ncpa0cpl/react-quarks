@@ -2,7 +2,8 @@ import type { QuarkContext, QuarkUpdateType, SetStateAction } from "../../Types"
 
 /**
  * Extract the list of middlewares from the Quark context and process the `value`
- * through each middleware in the list (unless one of the middlewares stops the propagation).
+ * through each middleware in the list (unless one of the middlewares stops the
+ * propagation).
  *
  * After processing through all middlewares or when propagation is stopped call the
  * `setterFn` with the final value.
@@ -17,9 +18,12 @@ export function applyMiddlewares<T, ET>(
   self: QuarkContext<T, ET>,
   value: SetStateAction<T, ET>,
   type: QuarkUpdateType,
-  setterFn: (v: SetStateAction<T, ET>) => void
+  setterFn: (v: SetStateAction<T, ET>) => void | Promise<void>
 ) {
-  const applyMiddlewareOfIndex = (index: number, v: SetStateAction<T, ET>): void => {
+  const applyMiddlewareOfIndex = (
+    index: number,
+    v: SetStateAction<T, ET>
+  ): void | Promise<void> => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
       return nextMiddleware(

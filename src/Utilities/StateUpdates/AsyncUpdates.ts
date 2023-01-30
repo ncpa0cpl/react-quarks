@@ -20,9 +20,11 @@ const PROMISE_CANCEL_STATUS_PROPERTY = Symbol(
 );
 
 /**
- * Check if the passed promise has been dispatched to the Quark as update and canceled.
+ * Check if the passed promise has been dispatched to the Quark as update and
+ * canceled.
  *
- * If the provided promise has not been ever dispatched as update `undefined` will be returned.
+ * If the provided promise has not been ever dispatched as update `undefined` will be
+ * returned.
  *
  * @param promise A Promise class instance
  * @returns A boolean
@@ -81,8 +83,6 @@ export function CancelablePromise<T extends SetStateAction<any, never>>(
 
             console.error(err);
           }
-
-          throw e;
         });
     },
     cancel() {
@@ -109,7 +109,7 @@ export type AsyncUpdateController<T, ET> = {
   dispatchAsyncUpdate: (
     p: Promise<SetStateAction<T, ET>>,
     stateUpdate: (state: SetStateAction<T, ET>) => void
-  ) => void;
+  ) => Promise<void>;
   /** Cancels the current pending asynchronous update if any. */
   preventLastAsyncUpdate: () => void;
 };
