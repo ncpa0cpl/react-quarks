@@ -28,10 +28,7 @@ describe("quark()", () => {
 
       const promise = Promise.resolve<{ value: number }>({ value: 999 });
 
-      q.set(promise);
-
-      await promise;
-      await sleep(0);
+      await q.set(promise);
 
       expect(q.get()).toMatchObject({ value: 999 });
     });
@@ -50,19 +47,17 @@ describe("quark()", () => {
         }, 30);
       });
 
-      q.set(() => promiseB);
+      const setterBPromise = q.set(() => promiseB);
 
-      q.set(promiseA);
+      const setterAPromise = q.set(promiseA);
 
       expect(q.get()).toEqual("A");
 
-      await promiseA;
-      await sleep(0);
+      await setterAPromise;
 
       expect(q.get()).toEqual("FOO");
 
-      await promiseB;
-      await sleep(0);
+      await setterBPromise;
 
       expect(q.get()).toEqual("FOO");
 
@@ -78,21 +73,19 @@ describe("quark()", () => {
         }, 30);
       });
 
-      q.set(promiseC);
+      const setterCPromise = q.set(promiseC);
 
-      q.set(() => promiseD);
+      const setterDPromise = q.set(() => promiseD);
 
       q.set("CORGE");
 
       expect(q.get()).toEqual("CORGE");
 
-      await promiseC;
-      await sleep(0);
+      await setterCPromise;
 
       expect(q.get()).toEqual("CORGE");
 
-      await promiseD;
-      await sleep(0);
+      await setterDPromise;
 
       expect(q.get()).toEqual("CORGE");
     });
@@ -445,8 +438,7 @@ describe("quark()", () => {
       expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
-        state.result.current.set(() => Promise.resolve({ value: 5 }));
-        await sleep(0);
+        await state.result.current.set(() => Promise.resolve({ value: 5 }));
       });
 
       await state.waitFor(() =>
@@ -510,8 +502,7 @@ describe("quark()", () => {
       expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
-        state.result.current.incrementAsync();
-        await sleep(0);
+        await state.result.current.incrementAsync();
       });
 
       await state.waitFor(() =>
@@ -644,8 +635,7 @@ describe("quark()", () => {
       });
 
       await act(async () => {
-        state.result.current.increment();
-        await sleep(12);
+        await state.result.current.increment();
       });
 
       await state.waitFor(() =>

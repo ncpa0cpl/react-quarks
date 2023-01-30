@@ -197,30 +197,6 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
-
-      it("for promises", async () => {
-        const q = quark("");
-
-        expect(onCatchMock).toBeCalledTimes(0);
-
-        expect(q.set(Promise.reject<string>("foo"))).rejects.toBe("foo");
-
-        await sleep(0);
-
-        expect(onCatchMock).toBeCalledTimes(0);
-      });
-
-      it("for promise generators", async () => {
-        const q = quark("");
-
-        expect(onCatchMock).toBeCalledTimes(0);
-
-        expect(q.set(() => Promise.reject("foo"))).rejects.toBe("foo");
-
-        await sleep(0);
-
-        expect(onCatchMock).toBeCalledTimes(0);
-      });
     });
 
     describe("within react", () => {
@@ -238,30 +214,6 @@ describe("CatchMiddleware", () => {
             })
           ).toThrow("foo");
         });
-
-        await sleep(10);
-
-        expect(onCatchMock).toBeCalledTimes(0);
-      });
-
-      it("for promises", async () => {
-        const q = quark("");
-
-        expect(onCatchMock).toBeCalledTimes(0);
-
-        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
-
-        await sleep(10);
-
-        expect(onCatchMock).toBeCalledTimes(0);
-      });
-
-      it("for promise generators", async () => {
-        const q = quark("");
-
-        expect(onCatchMock).toBeCalledTimes(0);
-
-        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
 
         await sleep(10);
 
@@ -292,9 +244,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
-
-        await sleep(0);
+        await q.set(Promise.reject("bar"));
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
@@ -305,9 +255,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
-
-        await sleep(0);
+        await q.set(() => Promise.reject("bar"));
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
@@ -340,9 +288,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(q.set(Promise.reject("bar"))).rejects.toBe("bar");
-
-        await sleep(10);
+        await q.set(Promise.reject("bar"));
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
@@ -353,9 +299,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        expect(q.set(() => Promise.reject("bar"))).rejects.toBe("bar");
-
-        await sleep(10);
+        await q.set(() => Promise.reject("bar"));
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
