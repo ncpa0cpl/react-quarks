@@ -175,27 +175,28 @@ describe("quark()", () => {
 
         expect(q.get()).toEqual((2 * 2 - 1) ** 2);
       });
+
       it("set() correctly omits following middlewares", () => {
-        const firstMiddleware: QuarkMiddleware<any, number> = (
-          state,
-          value,
-          resume,
-          set
-        ) => {
+        const firstMiddleware = jest.fn((state, value, resume, set) => {
           if (typeof value === "number") return set(`${value}`);
           return resume(value);
-        };
-        const secondMiddleware: QuarkMiddleware<any, undefined> = jest.fn(
-          (state, value, resume, set) => {
-            resume(undefined);
-          }
-        );
+        }) satisfies QuarkMiddleware<any, number>;
+
+        const secondMiddleware = jest.fn((state, value, resume, set) => {
+          resume(undefined);
+        }) satisfies QuarkMiddleware<any, undefined>;
 
         const q = quark("FOO", { middlewares: [firstMiddleware, secondMiddleware] });
+
+        expect(firstMiddleware).toBeCalledTimes(1);
+        expect(secondMiddleware).toBeCalledTimes(1);
+        secondMiddleware.mockClear();
+        firstMiddleware.mockClear();
 
         q.set(2);
 
         expect(q.get()).toEqual("2");
+        expect(firstMiddleware).toBeCalledTimes(1);
         expect(secondMiddleware).toBeCalledTimes(0);
       });
     });

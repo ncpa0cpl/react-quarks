@@ -24,21 +24,38 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
    * A method for updating the Quark state, this method can take as it's argument the
    * new state value, a generator function or a Promise resolving to the new value.
    */
-  const applyMiddlewaresAndUpdateState = (newVal: SetStateAction<T, ET>): void => {
-    return applyMiddlewares(self, newVal, "sync", (setter) =>
-      unpackStateSetter(self, asyncUpdates, setter).then((newState) => {
+  const set = (action: SetStateAction<T, ET>): void => {
+    return applyMiddlewares(self, action, "sync", (action2) =>
+      unpackStateSetter(self, asyncUpdates, action2).then((newState) => {
         const previousState = self.value;
         self.value = newState;
 
         return processStateUpdate({
           self,
           previousState,
-          applyMiddlewaresAndUpdateState,
+          applyMiddlewaresAndUpdateState: set,
           debounceEvent,
         });
       })
     );
   };
 
-  return applyMiddlewaresAndUpdateState;
+  const bareboneSet = (action: SetStateAction<T, ET>): void => {
+    unpackStateSetter(self, asyncUpdates, action).then((newState) => {
+      self.value = newState;
+    });
+  };
+
+  return {
+    /**
+     * Applies middlewares, unpacks the action, assigns the new state and informs the
+     * subscribers of the quark.
+     */
+    set,
+    /**
+     * Same as `set` but does not apply middlewares or inform the quark subscribents
+     * of the state change.
+     */
+    bareboneSet,
+  };
 }

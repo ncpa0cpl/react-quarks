@@ -13,6 +13,7 @@ import type {
   Widen,
 } from "./Types";
 import {
+  applyMiddlewares,
   generateCustomActions,
   generateCustomSelectors,
   generateSelectHook,
@@ -57,7 +58,7 @@ export function quark<
 
   self.middlewares.unshift(...getGlobalQuarkMiddlewares());
 
-  const set = generateSetter(self);
+  const { set, bareboneSet } = generateSetter(self);
 
   const customActions = generateCustomActions(
     self,
@@ -91,6 +92,8 @@ export function quark<
   if (config.name !== undefined) {
     registerQuark(config.name, self);
   }
+
+  applyMiddlewares(self, initValue, "sync", bareboneSet);
 
   return quark as any;
 }
