@@ -10,28 +10,26 @@ export function processStateUpdate<T, ET>(params: {
   self: QuarkContext<T, ET>;
   previousState: T;
   applyMiddlewaresAndUpdateState: (v: SetStateAction<T, ET>) => void;
-  dispatchEvent: (eventAction: () => void) => void;
+  debounceEvent: (eventAction: () => void) => void;
 }) {
-  const { previousState, self, applyMiddlewaresAndUpdateState, dispatchEvent } =
+  const { previousState, self, applyMiddlewaresAndUpdateState, debounceEvent } =
     params;
 
   const shouldUpdate = self.stateComparator(self.value, previousState);
 
-  const subscribers = new Set(self.subscribers);
-
-  const notifySubscribers = () => {
-    for (const subscriber of subscribers) {
-      subscriber(self.value);
-    }
-  };
-
   if (shouldUpdate) {
-    if (self.sideEffect) {
-      self.sideEffect(previousState, self.value, applyMiddlewaresAndUpdateState);
+    try {
+      if (self.sideEffect) {
+        self.sideEffect(previousState, self.value, applyMiddlewaresAndUpdateState);
+      }
+    } finally {
+      debounceEvent(() => {
+        for (const subscriber of self.subscribers) {
+          queueMicrotask(() => {
+            subscriber(self.value);
+          });
+        }
+      });
     }
-
-    dispatchEvent(() => {
-      notifySubscribers();
-    });
   }
 }

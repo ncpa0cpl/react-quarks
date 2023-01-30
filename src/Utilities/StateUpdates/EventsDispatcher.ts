@@ -1,17 +1,37 @@
-export function createEventsDispatcher() {
-  let lastTimeout: number | undefined;
+type Microtask = ReturnType<typeof microtask>;
 
-  const dispatchEvent = (eventAction: () => void) => {
-    if (lastTimeout !== undefined) {
-      window.clearTimeout(lastTimeout);
-      lastTimeout = undefined;
+function microtask() {
+  let action = () => {};
+  let onStart = () => {};
+
+  queueMicrotask(() => {
+    onStart();
+    action();
+  });
+
+  return {
+    set(callback: () => void) {
+      action = callback;
+    },
+    onStart(callback: () => void) {
+      onStart = callback;
+    },
+  };
+}
+
+export function createEventsDebouncer() {
+  let lastMicrotask: Microtask | undefined;
+
+  const debounceEvent = (action: () => void) => {
+    if (!lastMicrotask) {
+      lastMicrotask = microtask();
+      lastMicrotask.onStart(() => {
+        lastMicrotask = undefined;
+      });
     }
 
-    lastTimeout = window.setTimeout(() => {
-      lastTimeout = undefined;
-      eventAction();
-    }, 0);
+    lastMicrotask.set(action);
   };
 
-  return { dispatchEvent };
+  return { debounceEvent };
 }

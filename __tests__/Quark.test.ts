@@ -384,7 +384,7 @@ describe("quark()", () => {
         expect(onSubTwo).toHaveBeenCalledTimes(1);
       });
 
-      it("correctly propagates subscription cancelled after update", async () => {
+      it("does not notify subscriptions that were cancelled after update", async () => {
         const q = quark("foo");
 
         const onSubOne = jest.fn();
@@ -402,16 +402,19 @@ describe("quark()", () => {
 
         subOne.cancel();
 
+        expect(onSubOne).toHaveBeenCalledTimes(0);
+        expect(onSubTwo).toHaveBeenCalledTimes(0);
+
         await sleep(0);
 
-        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubOne).toHaveBeenCalledTimes(0);
         expect(onSubTwo).toHaveBeenCalledTimes(1);
 
         q.set("baz");
 
         await sleep(0);
 
-        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubOne).toHaveBeenCalledTimes(0);
         expect(onSubTwo).toHaveBeenCalledTimes(2);
       });
     });

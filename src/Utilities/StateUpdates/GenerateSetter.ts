@@ -1,7 +1,7 @@
 import type { QuarkContext, SetStateAction } from "../../Types";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import { asyncUpdatesController } from "./AsyncUpdates";
-import { createEventsDispatcher } from "./EventsDispatcher";
+import { createEventsDebouncer as createEventDebouncer } from "./EventsDispatcher";
 import { processStateUpdate } from "./ProcessStateUpdate";
 import { unpackStateSetter } from "./UnpackStateSetter";
 
@@ -18,7 +18,7 @@ import { unpackStateSetter } from "./UnpackStateSetter";
  */
 export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
   const asyncUpdates = asyncUpdatesController<T, ET>(self);
-  const { dispatchEvent } = createEventsDispatcher();
+  const { debounceEvent } = createEventDebouncer();
 
   /**
    * A method for updating the Quark state, this method can take as it's argument the
@@ -34,7 +34,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
           self,
           previousState,
           applyMiddlewaresAndUpdateState,
-          dispatchEvent,
+          debounceEvent,
         });
       })
     );

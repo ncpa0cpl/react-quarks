@@ -1,5 +1,6 @@
+import { createEventsDebouncer } from "../../../src/Utilities/StateUpdates/EventsDispatcher";
 import { processStateUpdate } from "../../../src/Utilities/StateUpdates/ProcessStateUpdate";
-import { getTestQuarkContext } from "../../helpers";
+import { getTestQuarkContext, sleep } from "../../helpers";
 
 describe("processStateUpdate", () => {
   it("should run the side effects if the state changed", () => {
@@ -15,7 +16,7 @@ describe("processStateUpdate", () => {
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      dispatchEvent: jest.fn(),
+      debounceEvent: jest.fn(),
     });
 
     expect(self.sideEffect).toHaveBeenCalledWith("bar", "foo", setFnMock);
@@ -34,13 +35,13 @@ describe("processStateUpdate", () => {
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      dispatchEvent: jest.fn(),
+      debounceEvent: jest.fn(),
     });
 
     expect(self.sideEffect).toHaveBeenCalledTimes(0);
   });
 
-  it("should notify subscribers if the state changed", () => {
+  it("should notify subscribers if the state changed", async () => {
     const subOne = jest.fn();
     const subTwo = jest.fn();
 
@@ -58,11 +59,17 @@ describe("processStateUpdate", () => {
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      dispatchEvent: dispatchEventMock,
+      debounceEvent: dispatchEventMock,
     });
 
     expect(dispatchEventMock).toHaveBeenCalledTimes(1);
     expect(dispatchEventMock).toHaveBeenCalledWith(expect.any(Function));
+
+    // subscription calls happen in the next microtask,
+    // so it's not called yet at this point
+    expect(subOne).toHaveBeenCalledTimes(0);
+
+    await sleep(0); // let the microtasks run
 
     expect(subOne).toHaveBeenCalledTimes(1);
     expect(subOne).toHaveBeenCalledWith("foo");
@@ -71,7 +78,7 @@ describe("processStateUpdate", () => {
     expect(subTwo).toHaveBeenCalledWith("foo");
   });
 
-  it("should notify all of the subscribers that were present at the time of state update and only those", () => {
+  it("should notify all of the subscribers even if they were not present at the time of state update or have been removed at the last moment", async () => {
     const subOne = jest.fn();
     const subTwo = jest.fn();
     const subThree = jest.fn();
@@ -84,21 +91,16 @@ describe("processStateUpdate", () => {
       subscribers: new Set([subOne, subTwo, subThree]),
     });
 
-    let dispatchedFn: Function = () => {};
-
     const setFnMock = jest.fn();
-    const dispatchEventMock = jest.fn((ev: Function) => {
-      dispatchedFn = ev;
-    });
+
+    const { debounceEvent } = createEventsDebouncer();
 
     processStateUpdate({
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      dispatchEvent: dispatchEventMock,
+      debounceEvent: debounceEvent,
     });
-
-    expect(dispatchEventMock).toHaveBeenCalledTimes(1);
 
     expect(subOne).toHaveBeenCalledTimes(0);
     expect(subTwo).toHaveBeenCalledTimes(0);
@@ -108,11 +110,11 @@ describe("processStateUpdate", () => {
     self.subscribers.delete(subOne);
     self.subscribers.add(subFour);
 
-    dispatchedFn();
+    await sleep(0); // let the microtasks run
 
-    expect(subOne).toHaveBeenCalledTimes(1);
+    expect(subOne).toHaveBeenCalledTimes(0);
     expect(subTwo).toHaveBeenCalledTimes(1);
     expect(subThree).toHaveBeenCalledTimes(1);
-    expect(subFour).toHaveBeenCalledTimes(0);
+    expect(subFour).toHaveBeenCalledTimes(1);
   });
 });
