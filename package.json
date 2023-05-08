@@ -42,7 +42,7 @@
     "@types/jest": "^29.4.0",
     "@types/lodash": "^4.14.191",
     "@types/luxon": "^3.2.0",
-    "@types/node": "^18.11.18",
+    "@types/node": "^20.1.0",
     "@types/react": "^18.0.27",
     "@types/serialize-javascript": "^5.0.2",
     "@types/use-sync-external-store": "^0.0.3",
