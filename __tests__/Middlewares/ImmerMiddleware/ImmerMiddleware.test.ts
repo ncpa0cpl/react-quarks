@@ -16,6 +16,8 @@ describe("ImmerMiddleware", () => {
     it("should allow for mutating quark state with simple dispatch function and not mutate the original state while update is in progress", () => {
       const q = quark({ foo: "foo", bar: "bar", baz: "baz" });
 
+      expect.assertions(4);
+
       q.set((current) => {
         current.bar = "not really a bar";
 
@@ -104,6 +106,8 @@ describe("ImmerMiddleware", () => {
       const q = quark({ foo: "foo", bar: "bar", baz: "baz" });
 
       q.subscribe(onStateChange);
+
+      expect.assertions(16);
 
       await q.set(async (current) => {
         expect(isDraft(current)).toEqual(true);
