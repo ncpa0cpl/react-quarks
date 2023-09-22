@@ -1,6 +1,6 @@
 import type { Quark } from "./Quark";
 
-export type QuarkType<Q extends Quark<any, any>> = Q extends Quark<infer T, any>
+export type QuarkType<Q extends Quark<any, any, any, any>> = Q extends Quark<infer T, any, any, any>
   ? T
   : never;
 
