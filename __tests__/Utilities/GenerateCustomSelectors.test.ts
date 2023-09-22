@@ -14,10 +14,10 @@ describe("generateCustomSelectors()", () => {
     const originalContext = cloneDeep(context);
 
     const selectors = generateCustomSelectors(context, {
-      useProp1(state) {
+      prop1(state) {
         return state.prop1;
       },
-      useProp2(state) {
+      prop2(state) {
         return state.prop2;
       },
     });
@@ -25,6 +25,8 @@ describe("generateCustomSelectors()", () => {
     expect(selectors).toMatchObject({
       useProp1: expect.any(Function),
       useProp2: expect.any(Function),
+      selectProp1: expect.any(Function),
+      selectProp2: expect.any(Function),
     });
 
     // Assert the context didn't change
@@ -42,7 +44,7 @@ describe("generateCustomSelectors()", () => {
       return state.prop1;
     });
 
-    const selectors = generateCustomSelectors(context, { useProp1: useSelectMock });
+    const selectors = generateCustomSelectors(context, { prop1: useSelectMock });
 
     const hook = renderHook(() => {
       return selectors.useProp1();
@@ -52,7 +54,7 @@ describe("generateCustomSelectors()", () => {
     expect(useSelectMock).toHaveBeenLastCalledWith(initValue);
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual("foo");
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual(
-      hook.result.current
+      hook.result.current,
     );
   });
 });

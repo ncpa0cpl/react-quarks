@@ -9,10 +9,14 @@ import type {
 /** @internal */
 function generatePredefinedSelectHook<T, U, ET, ARGS extends any[]>(
   self: QuarkContext<T, ET>,
-  selector: QuarkSelector<T, ARGS, U>
+  selector: QuarkSelector<T, ARGS, U>,
 ) {
   const hook = generateSelectHook(self);
   return (...args: ARGS) => hook(selector, ...args);
+}
+
+function capitalize(str: string) {
+  return str[0].toUpperCase() + str.slice(1);
 }
 
 /**
@@ -27,15 +31,25 @@ function generatePredefinedSelectHook<T, U, ET, ARGS extends any[]>(
  */
 export function generateCustomSelectors<T, ET, S extends QuarkSelectors<T, any>>(
   self: QuarkContext<T, ET>,
-  selectors: S
+  selectors: S,
 ): ParseSelectors<S> {
+  const entries = Object.entries(selectors);
   return Object.fromEntries(
-    Object.entries(selectors).map(([selectorName, selectorMethod]) => {
-      const wrappedSelector = generatePredefinedSelectHook(
-        self,
-        selectorMethod.bind(selectors)
-      );
-      return [selectorName, wrappedSelector];
-    })
+    entries
+      .map(([selectorName, selectorMethod]) => {
+        const wrappedSelector = generatePredefinedSelectHook(
+          self,
+          selectorMethod.bind(selectors),
+        );
+        return [`use${capitalize(selectorName)}`, wrappedSelector];
+      })
+      .concat(
+        entries.map(([selectorName, selectorMethod]) => {
+          return [
+            `select${capitalize(selectorName)}`,
+            (...args: any[]) => selectorMethod(self.value, ...args),
+          ];
+        }),
+      ),
   ) as unknown as ParseSelectors<S>;
 }

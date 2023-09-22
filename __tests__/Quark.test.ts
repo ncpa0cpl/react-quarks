@@ -101,7 +101,7 @@ describe("quark()", () => {
               return { value: state.value * by };
             },
           },
-        }
+        },
       );
 
       expect(q.get()).toMatchObject({ value: 0 });
@@ -138,7 +138,7 @@ describe("quark()", () => {
         const multiplyMiddleware: QuarkMiddleware<number, number> = (
           _,
           value,
-          resume
+          resume,
         ) => {
           if (typeof value === "number") resume(value * 2);
           else resume(value);
@@ -146,7 +146,7 @@ describe("quark()", () => {
         const subtractMiddleware: QuarkMiddleware<number, number> = (
           _,
           value,
-          resume
+          resume,
         ) => {
           if (typeof value === "number") resume(value - 1);
           else resume(value);
@@ -154,7 +154,7 @@ describe("quark()", () => {
         const squareMiddleware: QuarkMiddleware<number, number> = (
           _,
           value,
-          resume
+          resume,
         ) => {
           if (typeof value === "number") resume(value ** 2);
           else resume(value);
@@ -210,7 +210,7 @@ describe("quark()", () => {
       const deriveValue = (
         prevState: Q,
         newState: Q,
-        set: QuarkSetterFn<Q, never>
+        set: QuarkSetterFn<Q, never>,
       ) => {
         if (prevState.value !== newState.value) {
           set((v) => setDerivedValue(v, `${newState.value}`));
@@ -226,7 +226,7 @@ describe("quark()", () => {
               setDerivedValue,
             },
             effect: deriveValue,
-          }
+          },
         );
 
         expect(q.get()).toMatchObject({ value: 0, derivedValue: "0" });
@@ -244,7 +244,7 @@ describe("quark()", () => {
               setDerivedValue,
             },
             effect: deriveValue,
-          }
+          },
         );
 
         expect(q.get()).toMatchObject({ value: 0, derivedValue: "0" });
@@ -268,7 +268,7 @@ describe("quark()", () => {
         const deriveValue = (
           prevState: Q,
           newState: Q,
-          set: QuarkSetterFn<Q, never>
+          set: QuarkSetterFn<Q, never>,
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));
@@ -297,7 +297,7 @@ describe("quark()", () => {
               increment,
             },
             effect: deriveValue,
-          }
+          },
         );
 
         expect(q.get()).toMatchObject({
@@ -412,6 +412,57 @@ describe("quark()", () => {
         expect(onSubTwo).toHaveBeenCalledTimes(2);
       });
     });
+    describe("custom selectors", () => {
+      it("returns the selected value", () => {
+        const q = quark(
+          { value1: 5, value2: 321 },
+          {
+            actions: {
+              SetVal1: (s, v: number) => ({ ...s, value1: v }),
+              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+            },
+            selectors: {
+              value1: (s) => s.value1,
+              value2: (s) => s.value2,
+              valueSum: (s) => s.value1 + s.value2,
+            },
+          },
+        );
+
+        expect(q.selectValue1()).toEqual(5);
+        expect(q.selectValue2()).toEqual(321);
+        expect(q.selectValueSum()).toEqual(326);
+
+        q.SetVal1(10);
+
+        expect(q.selectValue1()).toEqual(10);
+        expect(q.selectValueSum()).toEqual(331);
+      });
+      it("correctly handle arguments", () => {
+        const q = quark(
+          { value1: 5, value2: 321 },
+          {
+            actions: {
+              SetVal1: (s, v: number) => ({ ...s, value1: v }),
+              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+            },
+            selectors: {
+              v: (s, n: 1 | 2) => s[`value${n}`],
+              multipliedBy: (s, n: number) => s.value1 * n,
+            },
+          },
+        );
+
+        expect(q.selectV(1)).toEqual(5);
+        expect(q.selectV(2)).toEqual(321);
+        expect(q.selectMultipliedBy(12)).toEqual(60);
+
+        q.SetVal1(69);
+
+        expect(q.selectV(1)).toEqual(69);
+        expect(q.selectMultipliedBy(10)).toEqual(690);
+      });
+    });
   });
 
   describe("correctly works with react", () => {
@@ -427,7 +478,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 5 })
+        expect(state.result.current.value).toMatchObject({ value: 5 }),
       );
     });
     it("use() and local set() work correctly for async updates", async () => {
@@ -442,13 +493,13 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 5 })
+        expect(state.result.current.value).toMatchObject({ value: 5 }),
       );
     });
     it("use() correctly exposes custom actions", async () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } }
+        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
       );
 
       const state = renderHook(() => q.use());
@@ -460,13 +511,13 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 1 })
+        expect(state.result.current.value).toMatchObject({ value: 1 }),
       );
     });
     it("use() correctly exposes custom selectors with parameters", async () => {
       const q = quark(["a", "b", "c", "d"], {
         selectors: {
-          useIndex(s, index: number) {
+          index(s, index: number) {
             return s[index];
           },
         },
@@ -478,7 +529,7 @@ describe("quark()", () => {
         },
         {
           initialProps: { index: 2 },
-        }
+        },
       );
 
       expect(state.result.current).toEqual("c");
@@ -494,7 +545,7 @@ describe("quark()", () => {
           actions: {
             incrementAsync: (s) => Promise.resolve({ value: s.value + 1 }),
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -506,7 +557,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 1 })
+        expect(state.result.current.value).toMatchObject({ value: 1 }),
       );
     });
     it("use() correctly triggers custom effects when local set is called", async () => {
@@ -519,7 +570,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -531,7 +582,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 })
+        expect(state.result.current.value).toMatchObject({ value: 2 }),
       );
     });
     it("use() correctly triggers custom effects when global set is called", async () => {
@@ -544,7 +595,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -556,7 +607,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 })
+        expect(state.result.current.value).toMatchObject({ value: 2 }),
       );
     });
     it("use() correctly triggers custom effects when local custom action is called", async () => {
@@ -569,7 +620,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -581,7 +632,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 })
+        expect(state.result.current.value).toMatchObject({ value: 2 }),
       );
     });
     it("use() correctly triggers custom effects when global custom action is called", async () => {
@@ -594,7 +645,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -606,7 +657,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 })
+        expect(state.result.current.value).toMatchObject({ value: 2 }),
       );
     });
     it("use() correctly rerenders when an effect dispatches a Promise", async () => {
@@ -620,11 +671,11 @@ describe("quark()", () => {
                 sleep(10).then((): { value: number; derivedValue: string } => ({
                   ...current,
                   derivedValue: `${current.value}`,
-                }))
+                })),
               );
             }
           },
-        }
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -642,7 +693,7 @@ describe("quark()", () => {
         expect(state.result.current.value).toMatchObject({
           value: 1,
           derivedValue: "1",
-        })
+        }),
       );
     });
     it("useSelector() correctly avoids unnecessary re-renders", async () => {
@@ -691,9 +742,9 @@ describe("quark()", () => {
             SetVal2: (s, v: number) => ({ ...s, value2: v }),
           },
           selectors: {
-            useValue1: (s) => s.value1,
+            value1: (s) => s.value1,
           },
-        }
+        },
       );
       const reRenderCounter = jest.fn();
 
@@ -728,7 +779,7 @@ describe("quark()", () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       const { result, rerender } = renderHook(() =>
-        q.useSelector((s) => s.filter((x) => !(x % 2)))
+        q.useSelector((s) => s.filter((x) => !(x % 2))),
       );
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
@@ -740,7 +791,7 @@ describe("quark()", () => {
     it("custom selectors correctly handles situations where the selector returns a different value on each rerender", async () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], {
         selectors: {
-          useEvenNumbers(state) {
+          evenNumbers(state) {
             return state.filter((x) => !(x % 2));
           },
         },
@@ -753,6 +804,31 @@ describe("quark()", () => {
       rerender();
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
+    });
+    it("custom selectors correctly handles arguments", async () => {
+      const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], {
+        selectors: {
+          sumOf(state, a: number, b: number) {
+            return state.slice(a, b).reduce((acc, x) => acc + x, 0);
+          },
+        },
+      });
+
+      const { result, rerender } = renderHook(
+        (props: { a: number; b: number }) => q.useSumOf(props.a, props.b),
+        {
+          initialProps: {
+            a: 0,
+            b: 3,
+          },
+        },
+      );
+
+      expect(result.current).toEqual(3);
+
+      rerender({ a: 1, b: 5 });
+
+      expect(result.current).toEqual(10);
     });
   });
 
@@ -1011,7 +1087,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.generate(() => rndTResolve({ value: rndString() })),
             );
           }
 
@@ -1085,7 +1161,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.generate(() => rndTResolve({ value: rndString() })),
             );
           }
 
@@ -1134,7 +1210,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.generate(() => rndTResolve({ value: rndString() })),
             );
           }
 
@@ -1208,7 +1284,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.generate(() => rndTResolve({ value: rndString() })),
             );
           }
 
@@ -1263,7 +1339,7 @@ describe("quark()", () => {
               q.set(promises.generate(() => rndTResolve({ value: rndString() })));
             } else {
               q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() }))
+                promises.generate(() => rndTResolve({ value: rndString() })),
               );
             }
           }
@@ -1342,7 +1418,7 @@ describe("quark()", () => {
               q.set(promises.generate(() => rndTResolve({ value: rndString() })));
             else
               q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() }))
+                promises.generate(() => rndTResolve({ value: rndString() })),
               );
           }
 

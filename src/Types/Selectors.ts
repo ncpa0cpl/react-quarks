@@ -21,7 +21,13 @@ export type ParseSingleSelector<S> = S extends (
 export type ParseSelectors<A> = A extends object
   ? IsLiteral<KeysOf<A>> extends true
     ? {
-        [K in keyof A]: ParseSingleSelector<A[K]>;
+        [K in keyof A as K extends string
+          ? `use${Capitalize<K>}`
+          : never]: ParseSingleSelector<A[K]>;
+      } & {
+        [K in keyof A as K extends string
+          ? `select${Capitalize<K>}`
+          : never]: ParseSingleSelector<A[K]>;
       }
     : Record<never, never>
   : Record<never, never>;

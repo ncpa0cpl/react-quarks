@@ -21,11 +21,11 @@ export function generateCustomActions<
   T,
   ARGS extends any[],
   ET,
-  A extends QuarkActions<T, ET, ARGS>
+  A extends QuarkActions<T, ET, ARGS>,
 >(
   self: QuarkContext<T, ET>,
   setState: QuarkSetterFn<T, ET>,
-  actions: A
+  actions: A,
 ): ParseActions<A> {
   return Object.fromEntries(
     Object.entries(actions).map(([actionName, actionMethod]) => {
@@ -35,6 +35,6 @@ export function generateCustomActions<
         return r;
       };
       return [actionName, wrappedAction];
-    })
+    }),
   ) as unknown as ParseActions<A>;
 }
