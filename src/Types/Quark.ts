@@ -56,7 +56,7 @@ export type QuarkSubscriber<T> = (currentState: T) => void;
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
 export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
-  newValue: SetStateAction<QuarkType, MiddlewareTypes>
+  newValue: SetStateAction<QuarkType, MiddlewareTypes>,
 ) => void;
 
 export type QuarkGetterFn<T> = () => T;
@@ -79,10 +79,7 @@ export type QuarkSetResult<V extends SetStateAction<any, any>> =
     ? Promise<void> | void
     : void;
 
-export type Quark<
-  T,
-  C extends { actions?: any; selectors?: any; middlewares?: any }
-> = {
+export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
   /** Retrieves the data held in the quark. */
   get(): DeepReadonly<T>;
   /**
@@ -91,8 +88,8 @@ export type Quark<
    * @param newVal A new data or a function that takes the previous state of the
    *   quark and returns a new one.
    */
-  set<V extends SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>>(
-    newValue: V
+  set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
+    newValue: V,
   ): QuarkSetResult<V>;
   /**
    * React hook to access the data in the quark. It can be only used within React
@@ -107,10 +104,10 @@ export type Quark<
    */
   use(): {
     value: DeepReadonly<T>;
-    set<V extends SetStateAction<T, GetMiddlewareTypes<C["middlewares"]>>>(
-      newValue: V
+    set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
+      newValue: V,
     ): QuarkSetResult<V>;
-  } & ParseActions<C["actions"]>;
+  } & ParseActions<Actions>;
   /**
    * React hook to access a part of the data within the quark or to retrieve it and
    * transform.
@@ -148,7 +145,7 @@ export type Quark<
    *   subscription when called.
    */
   subscribe(
-    onQuarkStateChange: (state: T, cancelSubscription: () => void) => void
+    onQuarkStateChange: (state: T, cancelSubscription: () => void) => void,
   ): QuarkSubscription;
-} & ParseActions<C["actions"]> &
-  ParseSelectors<C["selectors"]>;
+} & ParseActions<Actions> &
+  ParseSelectors<Selectors>;

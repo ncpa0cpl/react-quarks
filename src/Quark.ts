@@ -7,9 +7,7 @@ import type {
   QuarkConfig,
   QuarkContext,
   QuarkMiddleware,
-  QuarkObjectOptions,
   QuarkSelectors,
-  Rewrap,
   Widen,
 } from "./Types";
 import {
@@ -38,11 +36,11 @@ export function quark<
   S extends QuarkSelectors<T, SelectorArgs>,
   M extends QuarkMiddleware<T, any>[] = never[],
   SelectorArgs extends any[] = never[],
-  ActionArgs extends any[] = never[]
+  ActionArgs extends any[] = never[],
 >(
   initValue: T,
-  config: QuarkConfig<Widen<T>, A, S, M> = {}
-): Rewrap<Quark<Widen<T>, QuarkObjectOptions<Widen<T>, A, S, M>>> {
+  config: QuarkConfig<Widen<T>, A, S, M> = {},
+): Quark<Widen<T>, A, S, M> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
@@ -63,12 +61,12 @@ export function quark<
   const customActions = generateCustomActions(
     self,
     set,
-    config?.actions ?? {}
+    config?.actions ?? {},
   ) as ParseActions<A>;
 
   const customSelectors = generateCustomSelectors(
     self,
-    config?.selectors ?? ({} as S)
+    config?.selectors ?? ({} as S),
   );
 
   const get = () => self.value as DeepReadonly<T>;
@@ -79,7 +77,7 @@ export function quark<
 
   const subscribe = generateSubscribeFunction(self);
 
-  const quark: Quark<T, QuarkObjectOptions<T, A, S, M>> = {
+  const quark: Quark<T, A, S, M> = {
     set: set as any,
     get,
     use,

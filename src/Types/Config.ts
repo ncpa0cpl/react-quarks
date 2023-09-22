@@ -128,11 +128,3 @@ export type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
    */
   name?: string;
 };
-
-export type QuarkObjectOptions<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
-  shouldUpdate: QuarkComparatorFn;
-  actions: A;
-  selectors: S;
-  effect: QuarkCustomEffect<T, GetMiddlewareTypes<M>>;
-  middlewares: M;
-};
