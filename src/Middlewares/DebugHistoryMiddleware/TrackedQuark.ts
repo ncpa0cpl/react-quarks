@@ -20,7 +20,9 @@ export function createTrackedQuark(options: TrackedQuarkParams): TrackedQuark {
     : () => {};
 
   const addHistoryEntry = (entry: AddHistoryEntryParam) => {
-    const change = ["Promise", "Generator"].includes(entry.dispatchedUpdate.type)
+    const change = ["Promise", "Generator"].includes(
+      entry.dispatchedUpdate.type,
+    )
       ? "Postponed"
       : "Immediate";
 

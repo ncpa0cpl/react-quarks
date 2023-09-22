@@ -4,28 +4,32 @@ export type QuarkMiddleware<T, ET> = (
   getState: () => T,
   action: SetStateAction<T, ET>,
   /**
-   * Resumes the standard state update flow with the value provided in the `value`
-   * argument. This argument is what any following middlewares will receive.
+   * Resumes the standard state update flow with the value provided in the
+   * `value` argument. This argument is what any following middlewares will
+   * receive.
    */
   resume: (value: SetStateAction<T, ET>) => void,
   /**
-   * Interrupts the standard update flow and immediately updates the state with the
-   * `value` specified in the argument. Any following middlewares will be skipped.
+   * Interrupts the standard update flow and immediately updates the state with
+   * the `value` specified in the argument. Any following middlewares will be
+   * skipped.
    */
   set: (value: SetStateAction<T, ET>) => void,
   /**
-   * Indicates if this state update was initiated directly via `set()` method call
-   * (type = 'sync') or via asynchronous state update (type = 'async').
+   * Indicates if this state update was initiated directly via `set()` method
+   * call (type = 'sync') or via asynchronous state update (type = 'async').
    *
-   * Asynchronous state updates will trigger each middleware up to two times, first
-   * time when the Promise object is passed to the `set()` method (type = `sync`),
-   * and once more if the promise resolves and it's result is saved as the new quark
-   * state (type = `async`).
+   * Asynchronous state updates will trigger each middleware up to two times,
+   * first time when the Promise object is passed to the `set()` method (type =
+   * `sync`), and once more if the promise resolves and it's result is saved as
+   * the new quark state (type = `async`).
    */
-  updateType: QuarkUpdateType
+  updateType: QuarkUpdateType,
 ) => void;
 
-type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I : never;
+type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I>
+  ? I
+  : never;
 
 export type GetMiddlewareTypes<M extends any[]> = {
   [K in keyof M]: MiddlewareInputType<M[K]>;

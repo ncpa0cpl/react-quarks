@@ -4,7 +4,8 @@ import { useCachedSelector } from "./UseCachedSelector";
 /**
  * Generate a 'selector' React Hook for this Quark.
  *
- * Selector hook allows for selecting part of the state and subscribing to it's changes.
+ * Selector hook allows for selecting part of the state and subscribing to it's
+ * changes.
  *
  * @param self Context of the Quark in question
  * @internal

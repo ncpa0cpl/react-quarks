@@ -31,7 +31,9 @@ export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
 
 export type QuarkConfigOptions = { allowRaceConditions: boolean };
 
-/** @internal */
+/**
+ * @internal
+ */
 export type QuarkContext<T, ET> = {
   value: T;
 
@@ -50,7 +52,9 @@ export type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> =
   | ((currentState: T) => SetStateAction<T, M>)
   | Promise<SetStateAction<T, M>>;
 
-/** @internal */
+/**
+ * @internal
+ */
 export type QuarkSubscriber<T> = (currentState: T) => void;
 
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
@@ -67,8 +71,8 @@ export type QuarkGetterFn<T> = () => T;
  * A `sync` type indicates the update was dispatched via `.set(<VALUE>)` method.
  *
  * An `async` type indicates the update was dispatched as a result of a resolved
- * Promise that was dispatched via `.set(<VALUE>)` method. (dispatching a Promise
- * itself is not considered `async`).
+ * Promise that was dispatched via `.set(<VALUE>)` method. (dispatching a
+ * Promise itself is not considered `async`).
  */
 export type QuarkUpdateType = "sync" | "async";
 
@@ -80,7 +84,9 @@ export type QuarkSetResult<V extends SetStateAction<any, any>> =
     : void;
 
 export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
-  /** Retrieves the data held in the quark. */
+  /**
+   * Retrieves the data held in the quark.
+   */
   get(): DeepReadonly<T>;
   /**
    * Updates the data held in the quark.
@@ -92,10 +98,11 @@ export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
     newValue: V,
   ): QuarkSetResult<V>;
   /**
-   * React hook to access the data in the quark. It can be only used within React
-   * functional components.
+   * React hook to access the data in the quark. It can be only used within
+   * React functional components.
    *
-   * Changes to the quark state will cause the functional component to re-render.
+   * Changes to the quark state will cause the functional component to
+   * re-render.
    *
    * This method returns two functions:
    *
@@ -109,11 +116,11 @@ export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
     ): QuarkSetResult<V>;
   } & ParseActions<Actions>;
   /**
-   * React hook to access a part of the data within the quark or to retrieve it and
-   * transform.
+   * React hook to access a part of the data within the quark or to retrieve it
+   * and transform.
    *
-   * This hook will only cause component updates if the result of the `selector()`
-   * function changes.
+   * This hook will only cause component updates if the result of the
+   * `selector()` function changes.
    *
    * How the `selector()` function return value is evaluated can be adjusted by
    * passing a comparator method as the second argument.
@@ -121,7 +128,8 @@ export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
    * IMPORTANT!
    *
    * Avoid passing a new `selector` function on every render, use the React
-   * useCallback hook to memoize the selector or define it outside your component.
+   * useCallback hook to memoize the selector or define it outside your
+   * component.
    *
    * @example
    *   const myQuark = quark(["Hello", "World"]);
@@ -138,8 +146,8 @@ export type Quark<T, Actions, Selectors, Middlewares extends any[]> = {
     ...args: ARGS
   ): DeepReadonly<R>;
   /**
-   * Add a listener for the state changes of the Quark. Every time the state change
-   * is detected provided callback will be triggered.
+   * Add a listener for the state changes of the Quark. Every time the state
+   * change is detected provided callback will be triggered.
    *
    * @returns An object containing a `cancel` method which will remove the
    *   subscription when called.

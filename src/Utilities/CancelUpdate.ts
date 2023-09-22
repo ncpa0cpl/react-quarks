@@ -1,6 +1,8 @@
 const CANCEL_UPDATE_SYMBOL = Symbol();
 
-/** A class that can be thrown within a Quark Action to prevent the update. */
+/**
+ * A class that can be thrown within a Quark Action to prevent the update.
+ */
 export class CancelUpdate {
   static isCancel(e: unknown) {
     return (

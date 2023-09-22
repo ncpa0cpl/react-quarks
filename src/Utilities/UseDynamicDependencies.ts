@@ -6,7 +6,9 @@ export const useDynamicDependencies = (deps: unknown[]) => {
 
   if (deps.length !== prevDeps.current.length) {
     lastDepResult.current = (lastDepResult.current + 1) % 1000;
-  } else if (deps.some((elem, index) => !Object.is(elem, prevDeps.current[index]))) {
+  } else if (
+    deps.some((elem, index) => !Object.is(elem, prevDeps.current[index]))
+  ) {
     lastDepResult.current = (lastDepResult.current + 1) % 1000;
   }
 

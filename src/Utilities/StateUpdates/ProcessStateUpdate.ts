@@ -1,8 +1,8 @@
 import type { QuarkContext, SetStateAction } from "../../Types";
 
 /**
- * Run all the necessary action after the state has changed, propagate the effects
- * and send events to the subscribers if necessary.
+ * Run all the necessary action after the state has changed, propagate the
+ * effects and send events to the subscribers if necessary.
  *
  * @internal
  */
@@ -20,7 +20,11 @@ export function processStateUpdate<T, ET>(params: {
   if (shouldUpdate) {
     try {
       if (self.sideEffect) {
-        self.sideEffect(previousState, self.value, applyMiddlewaresAndUpdateState);
+        self.sideEffect(
+          previousState,
+          self.value,
+          applyMiddlewaresAndUpdateState,
+        );
       }
     } finally {
       debounceEvent(() => {

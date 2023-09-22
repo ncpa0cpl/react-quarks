@@ -6,7 +6,10 @@ export const propagateError = (e: unknown, message: string) => {
   }
 
   // @ts-expect-error
-  return new Error(`${message}${originalMessage ? ` [${originalMessage}]` : ""}`, {
-    cause: e,
-  });
+  return new Error(
+    `${message}${originalMessage ? ` [${originalMessage}]` : ""}`,
+    {
+      cause: e,
+    },
+  );
 };

@@ -6,7 +6,9 @@ import type {
   QuarkSelectors,
 } from "../Types";
 
-/** @internal */
+/**
+ * @internal
+ */
 function generatePredefinedSelectHook<T, U, ET, ARGS extends any[]>(
   self: QuarkContext<T, ET>,
   selector: QuarkSelector<T, ARGS, U>,
@@ -20,19 +22,21 @@ function capitalize(str: string) {
 }
 
 /**
- * Generate `selector` React Hooks based on the selectors defined in the Quark config.
+ * Generate `selector` React Hooks based on the selectors defined in the Quark
+ * config.
  *
  * @param self Context of the Quark in question
- * @param selectors An object containing selector definitions, each selector must be
- *   a function accepting the Quark state value in it's first argument
+ * @param selectors An object containing selector definitions, each selector
+ *   must be a function accepting the Quark state value in it's first argument
  * @returns An object with the same structure as `selectors` but each method it
  *   contains is a React Hook
  * @internal
  */
-export function generateCustomSelectors<T, ET, S extends QuarkSelectors<T, any>>(
-  self: QuarkContext<T, ET>,
-  selectors: S,
-): ParseSelectors<S> {
+export function generateCustomSelectors<
+  T,
+  ET,
+  S extends QuarkSelectors<T, any>,
+>(self: QuarkContext<T, ET>, selectors: S): ParseSelectors<S> {
   const entries = Object.entries(selectors);
   return Object.fromEntries(
     entries

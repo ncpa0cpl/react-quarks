@@ -54,7 +54,7 @@ export function entryToReadableForm(entry: QuarkStateChangeHistoricalEntry) {
       const friendlyName = PROPERTIES_FRIENDLY_NAMES_MAP[propertyName];
       const value: RecordValue<QuarkStateChangeHistoricalEntry> = hasKey(
         entry,
-        propertyName
+        propertyName,
       )
         ? entry[propertyName]
         : undefined;
@@ -72,7 +72,7 @@ export function entryToReadableForm(entry: QuarkStateChangeHistoricalEntry) {
       }
 
       return [friendlyName, value];
-    }
+    },
   );
 
   return Object.fromEntries(columnValues);

@@ -23,8 +23,11 @@ function createStateUpdateHistory() {
   const showHistory = () => {
     return Object.fromEntries(
       trackedQuarks.map((trackedQuark, index) => {
-        return [`${index}_${trackedQuark.name}`, trackedQuark.stateChangeHistory];
-      })
+        return [
+          `${index}_${trackedQuark.name}`,
+          trackedQuark.stateChangeHistory,
+        ];
+      }),
     );
   };
 

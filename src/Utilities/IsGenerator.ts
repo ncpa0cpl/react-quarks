@@ -9,7 +9,7 @@ import type { SetStateAction } from "..";
  * @internal
  */
 export function isGenerator<T>(
-  v: any
+  v: any,
 ): v is (currentState: T) => SetStateAction<T, never> {
   return typeof v === "function";
 }

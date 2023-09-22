@@ -2,7 +2,7 @@ import type { QuarkContext } from "..";
 
 export function generateSubscribeFunction<T, ET>(self: QuarkContext<T, ET>) {
   const subscribe = (
-    onStateChange: (state: T, cancelSubscription: () => void) => void
+    onStateChange: (state: T, cancelSubscription: () => void) => void,
   ) => {
     const cancelSubscription = () => self.subscribers.delete(subscribeCallback);
 

@@ -2,15 +2,19 @@ import { enableMapSet, enablePatches, Immer, isDraft } from "immer";
 import type { QuarkMiddleware } from "../../Types";
 
 export const createImmerMiddleware = (options?: {
-  /** When true, enables immer support for Map and Set globally. */
+  /**
+   * When true, enables immer support for Map and Set globally.
+   */
   mapAndSetSupport?: boolean;
-  /** When true, enables immer's patches globally. */
+  /**
+   * When true, enables immer's patches globally.
+   */
   patches?: boolean;
   /**
    * Pass true to enable strict shallow copy of this specific middleware.
    *
-   * By default, immer does not copy the object descriptors such as getter, setter
-   * and non-enumrable properties.
+   * By default, immer does not copy the object descriptors such as getter,
+   * setter and non-enumrable properties.
    *
    * This option does not change the global immer settings.
    */

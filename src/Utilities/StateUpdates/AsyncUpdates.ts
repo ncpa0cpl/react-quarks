@@ -4,27 +4,31 @@ import { hasKey } from "../GeneralPurposeUtilities";
 import { propagateError } from "../PropagateError";
 
 /**
- * An object wrapping a regular JavaScript Promise class instance that allows for
- * subscribing to it with a `.then()` method and cancel that subscription with a
- * `.cancel()` method.
+ * An object wrapping a regular JavaScript Promise class instance that allows
+ * for subscribing to it with a `.then()` method and cancel that subscription
+ * with a `.cancel()` method.
  */
 type CancelablePromise<T = void> = {
-  /** Attach a function which should be called after Promise resolves. */
+  /**
+   * Attach a function which should be called after Promise resolves.
+   */
   then<R = void>(onFulfilled: (v: T) => Promise<R> | void): Promise<R | void>;
-  /** Cancel all functions ever attached to this object via `.then()` method. */
+  /**
+   * Cancel all functions ever attached to this object via `.then()` method.
+   */
   cancel(): void;
 };
 
 const PROMISE_CANCEL_STATUS_PROPERTY = Symbol(
-  "__quark_internal_is_promise_canceled__"
+  "__quark_internal_is_promise_canceled__",
 );
 
 /**
  * Check if the passed promise has been dispatched to the Quark as update and
  * canceled.
  *
- * If the provided promise has not been ever dispatched as update `undefined` will be
- * returned.
+ * If the provided promise has not been ever dispatched as update `undefined`
+ * will be returned.
  *
  * @param promise A Promise class instance
  * @returns A boolean
@@ -41,7 +45,7 @@ export function extractIsPromiseCanceled(promise: unknown) {
 
 function assignCancelStatusToOriginalPromise(
   promise: Promise<any>,
-  canceled: boolean
+  canceled: boolean,
 ) {
   Object.assign(promise, { [PROMISE_CANCEL_STATUS_PROPERTY]: canceled });
 }
@@ -56,7 +60,7 @@ function assignCancelStatusToOriginalPromise(
  * @internal
  */
 export function CancelablePromise<T extends SetStateAction<any, never>>(
-  orgPromise: Promise<T>
+  orgPromise: Promise<T>,
 ): CancelablePromise<T> {
   let isCanceled = false;
 
@@ -78,7 +82,7 @@ export function CancelablePromise<T extends SetStateAction<any, never>>(
           if (!isCanceled) {
             const err = propagateError(
               e,
-              "Asynchronous state update was unsuccessful due to an error."
+              "Asynchronous state update was unsuccessful due to an error.",
             );
 
             console.error(err);
@@ -93,9 +97,10 @@ export function CancelablePromise<T extends SetStateAction<any, never>>(
 }
 
 /**
- * Controller responsible for managing asynchronous updates. By default all and any
- * dispatched updates cause any previous non resolved updates to be canceled. This
- * prevents occurrence of race conditions between the dispatched updates.
+ * Controller responsible for managing asynchronous updates. By default all and
+ * any dispatched updates cause any previous non resolved updates to be
+ * canceled. This prevents occurrence of race conditions between the dispatched
+ * updates.
  *
  * @internal
  */
@@ -108,22 +113,25 @@ export type AsyncUpdateController<T, ET> = {
    */
   dispatchAsyncUpdate: (
     p: Promise<SetStateAction<T, ET>>,
-    stateUpdate: (state: SetStateAction<T, ET>) => void
+    stateUpdate: (state: SetStateAction<T, ET>) => void,
   ) => Promise<void>;
-  /** Cancels the current pending asynchronous update if any. */
+  /**
+   * Cancels the current pending asynchronous update if any.
+   */
   preventLastAsyncUpdate: () => void;
 };
 
 /**
- * Creates a Controller responsible for managing asynchronous updates. By default all
- * and any dispatched updates cause any previous non resolved updates to be canceled.
- * This prevents occurrence of race conditions between the dispatched updates.
+ * Creates a Controller responsible for managing asynchronous updates. By
+ * default all and any dispatched updates cause any previous non resolved
+ * updates to be canceled. This prevents occurrence of race conditions between
+ * the dispatched updates.
  *
  * @param self Quark context
  * @internal
  */
 export function asyncUpdatesController<T, ET>(
-  self: QuarkContext<T, any>
+  self: QuarkContext<T, any>,
 ): AsyncUpdateController<T, ET> {
   let currentAsyncUpdate: CancelablePromise<unknown> | undefined;
 
@@ -137,10 +145,10 @@ export function asyncUpdatesController<T, ET>(
         currentAsyncUpdate = undefined;
       };
 
-  const dispatchAsyncUpdate: AsyncUpdateController<T, ET>["dispatchAsyncUpdate"] = (
-    p,
-    stateUpdate
-  ) => {
+  const dispatchAsyncUpdate: AsyncUpdateController<
+    T,
+    ET
+  >["dispatchAsyncUpdate"] = (p, stateUpdate) => {
     preventLastAsyncUpdate();
 
     const cp = CancelablePromise(p);

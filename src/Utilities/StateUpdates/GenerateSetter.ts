@@ -12,8 +12,8 @@ import { unpackStateSetter } from "./UnpackStateSetter";
  *
  * @param self Quark context
  * @returns A method for updating the Quark state, this method can take as it's
- *   argument the new state value, a generator function or a Promise resolving to the
- *   new value.
+ *   argument the new state value, a generator function or a Promise resolving
+ *   to the new value.
  * @internal
  */
 export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
@@ -21,8 +21,9 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
   const { debounceEvent } = createEventDebouncer();
 
   /**
-   * A method for updating the Quark state, this method can take as it's argument the
-   * new state value, a generator function or a Promise resolving to the new value.
+   * A method for updating the Quark state, this method can take as it's
+   * argument the new state value, a generator function or a Promise resolving
+   * to the new value.
    */
   const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
     return applyMiddlewares(self, action, "sync", (action2) =>
@@ -36,7 +37,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
           applyMiddlewaresAndUpdateState: set,
           debounceEvent,
         });
-      })
+      }),
     );
   };
 
@@ -48,13 +49,13 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
 
   return {
     /**
-     * Applies middlewares, unpacks the action, assigns the new state and informs the
-     * subscribers of the quark.
+     * Applies middlewares, unpacks the action, assigns the new state and
+     * informs the subscribers of the quark.
      */
     set,
     /**
-     * Same as `set` but does not apply middlewares or inform the quark subscribents
-     * of the state change.
+     * Same as `set` but does not apply middlewares or inform the quark
+     * subscribents of the state change.
      */
     bareboneSet,
   };

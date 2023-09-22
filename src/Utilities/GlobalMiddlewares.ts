@@ -4,7 +4,7 @@ const GLOBAL_MIDDLEWARES: QuarkMiddleware<any, any>[] = [];
 
 export const addGlobalQuarkMiddleware = (
   middleware: QuarkMiddleware<any, any>,
-  at: "start" | "end" = "end"
+  at: "start" | "end" = "end",
 ) => {
   switch (at) {
     case "end":
@@ -17,7 +17,7 @@ export const addGlobalQuarkMiddleware = (
 };
 
 export const setGlobalQuarkMiddlewares = (
-  middlewares: QuarkMiddleware<any, any>[]
+  middlewares: QuarkMiddleware<any, any>[],
 ) => {
   GLOBAL_MIDDLEWARES.splice(0, GLOBAL_MIDDLEWARES.length, ...middlewares);
 };

@@ -8,8 +8,8 @@ import type {
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
  *
- * Each 'action' definition takes the Quark state value as it's first argument and
- * returns a new state value.
+ * Each 'action' definition takes the Quark state value as it's first argument
+ * and returns a new state value.
  *
  * @param self Context of the Quark in question
  * @param setState Function allowing for updating the current state of the Quark
@@ -31,7 +31,9 @@ export function generateCustomActions<
     Object.entries(actions).map(([actionName, actionMethod]) => {
       actionMethod = actionMethod.bind(actions);
       const wrappedAction = (...args: ARGS) => {
-        const r = setState((currentState: T) => actionMethod(currentState, ...args));
+        const r = setState((currentState: T) =>
+          actionMethod(currentState, ...args),
+        );
         return r;
       };
       return [actionName, wrappedAction];

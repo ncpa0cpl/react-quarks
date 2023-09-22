@@ -27,8 +27,8 @@ import { registerQuark } from "./Utilities/QuarksCollection";
  * Creates a new quark object.
  *
  * @param initValue Initial data of the quark.
- * @param config Config allows for adding custom actions and selectors to the quark
- *   as well as changing when subscribed component should update.
+ * @param config Config allows for adding custom actions and selectors to the
+ *   quark as well as changing when subscribed component should update.
  */
 export function quark<
   T,

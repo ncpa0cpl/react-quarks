@@ -3,18 +3,20 @@ import { isGenerator } from "../IsGenerator";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import type { AsyncUpdateController } from "./AsyncUpdates";
 
-/** @internal */
+/**
+ * @internal
+ */
 export type UnpackStateSetterResult<T> = {
   then(handler: (state: T) => void): void | Promise<void>;
 };
 
 /**
- * If the provided value is a Promise or a State Generator, resolve it and the pass
- * the received value to the middlewares and then "unpack" it again.
+ * If the provided value is a Promise or a State Generator, resolve it and the
+ * pass the received value to the middlewares and then "unpack" it again.
  *
- * If the provided value is of any other type, signal the async controller to cancel
- * ongoing updates and resolve the function passed to the `then()` method with the
- * value.
+ * If the provided value is of any other type, signal the async controller to
+ * cancel ongoing updates and resolve the function passed to the `then()` method
+ * with the value.
  *
  * @param self Quark context
  * @param asyncUpdates Asynchronous updates controller
@@ -24,14 +26,14 @@ export type UnpackStateSetterResult<T> = {
 export function unpackStateSetter<T, ET>(
   self: QuarkContext<T, ET>,
   asyncUpdates: AsyncUpdateController<T, ET>,
-  setter: SetStateAction<T, ET>
+  setter: SetStateAction<T, ET>,
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
       then(handler: (state: T) => void) {
         return asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
           return applyMiddlewares(self, state, "async", (v) =>
-            unpackStateSetter(self, asyncUpdates, v).then(handler)
+            unpackStateSetter(self, asyncUpdates, v).then(handler),
           );
         });
       },
@@ -44,7 +46,7 @@ export function unpackStateSetter<T, ET>(
     return {
       then(handler: (state: T) => void) {
         return applyMiddlewares<T, ET>(self, s, "sync", (v) =>
-          unpackStateSetter(self, asyncUpdates, v).then(handler)
+          unpackStateSetter(self, asyncUpdates, v).then(handler),
         );
       },
     };
