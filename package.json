@@ -8,7 +8,7 @@
     "url": "https://github.com/ncpa0cpl/react-quarks"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node ./scripts/build.mjs && tsc --emitDeclarationOnly",
     "test:jest": "jest --coverage",
     "test:lint": "eslint .",
     "test:prettier": "prettier --check ./src && prettier --check ./__tests__",
@@ -48,6 +48,7 @@
     "@types/use-sync-external-store": "^0.0.4",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
+    "esbuild": "^0.19.3",
     "eslint": "^8.33.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
