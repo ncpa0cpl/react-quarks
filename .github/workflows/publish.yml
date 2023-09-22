@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Setup Node Environment
         uses: actions/setup-node@v3
+        with:
+          cache: "yarn"
       - name: Checkout
         uses: actions/checkout@v3
         with:
