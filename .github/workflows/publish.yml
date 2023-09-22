@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [15.x]
+        node-version: [18.x]
     steps:
       - name: Setup Node Environment
         uses: actions/setup-node@v3
