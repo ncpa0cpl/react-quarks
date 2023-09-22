@@ -9,7 +9,9 @@ import { sleep } from "../../helpers";
 
 describe("ImmerMiddleware", () => {
   beforeAll(() => {
-    setGlobalQuarkMiddlewares([createImmerMiddleware({ mapAndSetSupport: true })]);
+    setGlobalQuarkMiddlewares([
+      createImmerMiddleware({ mapAndSetSupport: true }),
+    ]);
   });
 
   describe("outside react", () => {
@@ -27,7 +29,11 @@ describe("ImmerMiddleware", () => {
         return current;
       });
 
-      expect(q.get()).toEqual({ foo: "foo", bar: "not really a bar", baz: "baz" });
+      expect(q.get()).toEqual({
+        foo: "foo",
+        bar: "not really a bar",
+        baz: "baz",
+      });
       expect(isDraft(q.get())).toEqual(false);
     });
 
@@ -41,7 +47,11 @@ describe("ImmerMiddleware", () => {
         return current;
       });
 
-      expect(q.get()).toEqual({ foo: "foo", bar: "not really a bar", baz: "baz" });
+      expect(q.get()).toEqual({
+        foo: "foo",
+        bar: "not really a bar",
+        baz: "baz",
+      });
       expect(originalCopy).toEqual({ foo: "foo", bar: "bar", baz: "baz" });
     });
 
@@ -67,7 +77,7 @@ describe("ImmerMiddleware", () => {
           bar: "not really a bar",
           baz: "baz",
         },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -96,7 +106,7 @@ describe("ImmerMiddleware", () => {
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -124,7 +134,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "1", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "1", bar: "bar", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async () => {
@@ -142,7 +152,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "bar", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -162,7 +172,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "3", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -180,7 +190,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "4", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "4", bar: "3", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
   });
@@ -196,7 +206,7 @@ describe("ImmerMiddleware", () => {
               return state;
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -217,7 +227,7 @@ describe("ImmerMiddleware", () => {
           foo: "foo",
           bar: "not a bar",
           baz: "baz",
-        })
+        }),
       );
       expect(isDraft(rendered.result.current.value)).toEqual(false);
     });
@@ -233,7 +243,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -249,7 +259,7 @@ describe("ImmerMiddleware", () => {
           foo: "foo",
           bar: "not a bar",
           baz: "baz",
-        })
+        }),
       );
       expect(isDraft(rendered.result.current.value)).toEqual(false);
 
@@ -272,7 +282,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -289,7 +299,7 @@ describe("ImmerMiddleware", () => {
           foo: "not a foo",
           bar: "not a bar",
           baz: "baz",
-        })
+        }),
       );
 
       expect(onStateChange).toHaveBeenCalledWith(
@@ -298,7 +308,7 @@ describe("ImmerMiddleware", () => {
           bar: "not a bar",
           baz: "baz",
         },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -318,7 +328,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -335,12 +345,12 @@ describe("ImmerMiddleware", () => {
           foo: "a",
           bar: "bar",
           baz: "b",
-        })
+        }),
       );
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
   });

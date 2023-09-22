@@ -116,7 +116,11 @@ describe("quark()", () => {
     });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
-        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = (_, value, resume) => {
+        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = (
+          _,
+          value,
+          resume,
+        ) => {
           if (typeof value === "number") {
             resume({ 1: "BAR", 2: "BAZ" }[value]);
           } else {
@@ -161,7 +165,11 @@ describe("quark()", () => {
         };
 
         const q = quark(0, {
-          middlewares: [multiplyMiddleware, subtractMiddleware, squareMiddleware],
+          middlewares: [
+            multiplyMiddleware,
+            subtractMiddleware,
+            squareMiddleware,
+          ],
         });
 
         q.set(2);
@@ -179,7 +187,9 @@ describe("quark()", () => {
           resume(undefined);
         }) satisfies QuarkMiddleware<any, undefined>;
 
-        const q = quark("FOO", { middlewares: [firstMiddleware, secondMiddleware] });
+        const q = quark("FOO", {
+          middlewares: [firstMiddleware, secondMiddleware],
+        });
 
         expect(firstMiddleware).toBeCalledTimes(1);
         expect(secondMiddleware).toBeCalledTimes(1);
@@ -858,52 +868,72 @@ describe("quark()", () => {
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(24),
+          );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(64),
+          );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(128),
+          );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(256),
+          );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(512),
+          );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1024),
+          );
         });
       });
       describe("for a sync final update", () => {
@@ -930,27 +960,37 @@ describe("quark()", () => {
 
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1),
+          );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
       });
       describe("for a async generator final update", () => {
@@ -977,52 +1017,72 @@ describe("quark()", () => {
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(24),
+          );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(64),
+          );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(128),
+          );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(256),
+          );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(512),
+          );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1024),
+          );
         });
       });
       describe("for a sync generator final update", () => {
@@ -1049,27 +1109,37 @@ describe("quark()", () => {
 
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1),
+          );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
       });
     });
@@ -1101,52 +1171,72 @@ describe("quark()", () => {
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(24),
+          );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(64),
+          );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(128),
+          );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(256),
+          );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(512),
+          );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1024),
+          );
         });
       });
       describe("for a sync final update", () => {
@@ -1175,27 +1265,37 @@ describe("quark()", () => {
 
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1),
+          );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
       });
       describe("for a async generator final update", () => {
@@ -1224,52 +1324,72 @@ describe("quark()", () => {
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(24),
+          );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(64),
+          );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(128),
+          );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(256),
+          );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(512),
+          );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1024),
+          );
         });
       });
       describe("for a sync generator final update", () => {
@@ -1298,27 +1418,37 @@ describe("quark()", () => {
 
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1),
+          );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
       });
     });
@@ -1336,7 +1466,9 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             if (rndBool()) {
-              q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+              q.set(
+                promises.generate(() => rndTResolve({ value: rndString() })),
+              );
             } else {
               q.set(() =>
                 promises.generate(() => rndTResolve({ value: rndString() })),
@@ -1344,8 +1476,10 @@ describe("quark()", () => {
             }
           }
 
-          if (rndBool()) q.set(promises.generate(() => rndTResolve(expectedResult)));
-          else q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+          if (rndBool())
+            q.set(promises.generate(() => rndTResolve(expectedResult)));
+          else
+            q.set(() => promises.generate(() => rndTResolve(expectedResult)));
 
           await promises.waitForAll();
 
@@ -1355,52 +1489,72 @@ describe("quark()", () => {
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(24));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(24),
+          );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(64));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(64),
+          );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(128));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(128),
+          );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(256));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(256),
+          );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(512));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(512),
+          );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1024));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1024),
+          );
         });
       });
       describe("for a sync generator final update", () => {
@@ -1415,7 +1569,9 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             if (rndBool())
-              q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+              q.set(
+                promises.generate(() => rndTResolve({ value: rndString() })),
+              );
             else
               q.set(() =>
                 promises.generate(() => rndTResolve({ value: rndString() })),
@@ -1433,27 +1589,37 @@ describe("quark()", () => {
 
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(1));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(1),
+          );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(2));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(2),
+          );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(4));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(4),
+          );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(8));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(8),
+          );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
-          await forAwait(array(32), () => runTestWithRandomPromiseResolveTime(16));
+          await forAwait(array(32), () =>
+            runTestWithRandomPromiseResolveTime(16),
+          );
         });
       });
     });

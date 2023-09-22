@@ -67,12 +67,12 @@ describe("generateCustomActions()", () => {
     expect(appendMock).toHaveBeenCalledTimes(1);
     expect(appendMock).toHaveBeenCalledWith(
       expect.objectContaining({ value: "foo", prev: "" }),
-      "bar"
+      "bar",
     );
 
     expect(setStateMock).toHaveBeenCalledTimes(1);
     expect(setStateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ value: "bar", prev: "foo" })
+      expect.objectContaining({ value: "bar", prev: "foo" }),
     );
   });
 

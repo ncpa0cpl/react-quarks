@@ -60,7 +60,8 @@ export function rndBool() {
 
 export function rndString(length = 10) {
   var result = "";
-  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  var characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   var charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -92,7 +93,7 @@ export const testPromiseGenerator = () => {
 
 export function forAwait<T>(
   iterable: Array<T>,
-  fn: (v: T, key: number | string) => Promise<void>
+  fn: (v: T, key: number | string) => Promise<void>,
 ) {
   const stack = testPromiseGenerator();
 

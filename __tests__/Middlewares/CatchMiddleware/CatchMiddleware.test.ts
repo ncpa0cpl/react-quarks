@@ -121,7 +121,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 5 })
+          expect(state.result.current.value).toMatchObject({ value: 5 }),
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -138,7 +138,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 3 })
+          expect(state.result.current.value).toMatchObject({ value: 3 }),
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -156,7 +156,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 7 })
+          expect(state.result.current.value).toMatchObject({ value: 7 }),
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -169,12 +169,14 @@ describe("CatchMiddleware", () => {
         expect(state.result.current.value).toMatchObject({ value: 1 });
 
         await act(async () => {
-          state.result.current.set((v) => Promise.resolve({ value: v.value + 2 }));
+          state.result.current.set((v) =>
+            Promise.resolve({ value: v.value + 2 }),
+          );
           await sleep(0);
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 3 })
+          expect(state.result.current.value).toMatchObject({ value: 3 }),
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -192,7 +194,7 @@ describe("CatchMiddleware", () => {
         expect(() =>
           q.set(() => {
             throw "foo";
-          })
+          }),
         ).toThrow("foo");
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -211,7 +213,7 @@ describe("CatchMiddleware", () => {
           expect(() =>
             result.result.current.set(() => {
               throw "foo";
-            })
+            }),
           ).toThrow("foo");
         });
 
@@ -232,7 +234,7 @@ describe("CatchMiddleware", () => {
         expect(() =>
           q.set(() => {
             throw "foo";
-          })
+          }),
         ).not.toThrow();
 
         expect(onCatchMock).toBeCalledTimes(1);
@@ -273,7 +275,7 @@ describe("CatchMiddleware", () => {
           expect(() =>
             result.result.current.set(() => {
               throw "foo";
-            })
+            }),
           ).not.toThrow();
         });
 

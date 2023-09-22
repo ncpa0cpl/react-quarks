@@ -25,27 +25,33 @@ describe("unpackStateSetter", () => {
     const generator = () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("bar");
-    });
+    unpackStateSetter(self, asyncController, generator).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      },
+    );
   });
 
   it("should unpack a nested generator", () => {
     const generator = () => () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("bar");
-    });
+    unpackStateSetter(self, asyncController, generator).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      },
+    );
   });
 
   it("should unpack a deeply nested generator", () => {
     const generator = () => () => () => () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("bar");
-    });
+    unpackStateSetter(self, asyncController, generator).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      },
+    );
   });
 
   it("should unpack a promise", () => {
@@ -59,7 +65,7 @@ describe("unpackStateSetter", () => {
 
   it("should unpack a nested promise", () => {
     const promise = new Promise((resolve1) =>
-      resolve1(new Promise((resolve2) => resolve2("baz")))
+      resolve1(new Promise((resolve2) => resolve2("baz"))),
     );
 
     expect.assertions(1);
@@ -75,10 +81,10 @@ describe("unpackStateSetter", () => {
           resolve2(
             new Promise((resolve3) => {
               resolve3(new Promise((resolve4) => resolve4("baz")));
-            })
-          )
-        )
-      )
+            }),
+          ),
+        ),
+      ),
     );
 
     expect.assertions(1);
@@ -91,18 +97,22 @@ describe("unpackStateSetter", () => {
     const generator = () => Promise.resolve("qux");
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("qux");
-    });
+    unpackStateSetter(self, asyncController, generator).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("qux");
+      },
+    );
   });
 
   it("should unpack a promise nested within generator (deeply)", () => {
     const generator = () => Promise.resolve(() => Promise.resolve("qux"));
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("qux");
-    });
+    unpackStateSetter(self, asyncController, generator).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("qux");
+      },
+    );
   });
 
   it("should cancel the last async updates before executing 'then' handler", () => {

@@ -71,8 +71,8 @@ describe("Async Updates", () => {
         expect(consoleErrorMock).toHaveBeenCalledTimes(1);
         expect(consoleErrorMock).toHaveBeenCalledWith(
           new Error(
-            "Asynchronous state update was unsuccessful due to an error. [bar]"
-          )
+            "Asynchronous state update was unsuccessful due to an error. [bar]",
+          ),
         );
       });
 
@@ -100,7 +100,7 @@ describe("Async Updates", () => {
   describe("asyncUpdatesController()", () => {
     it("when allowRaceConditions option is enabled updates are not canceled", async () => {
       const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: true } })
+        getTestQuarkContext({ configOptions: { allowRaceConditions: true } }),
       );
 
       const myPromise = Promise.resolve("foo");
@@ -119,7 +119,7 @@ describe("Async Updates", () => {
 
     it("when allowRaceConditions option is disabled updates are canceled", async () => {
       const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: false } })
+        getTestQuarkContext({ configOptions: { allowRaceConditions: false } }),
       );
 
       const myPromise = Promise.resolve("foo");

@@ -9,7 +9,9 @@ describe("generateCustomSelectors()", () => {
   });
 
   it("should generate a new object with the same named methods as it was provided", () => {
-    const context = getTestQuarkContext({ value: { prop1: "foo", prop2: "bar" } });
+    const context = getTestQuarkContext({
+      value: { prop1: "foo", prop2: "bar" },
+    });
 
     const originalContext = cloneDeep(context);
 
@@ -44,7 +46,9 @@ describe("generateCustomSelectors()", () => {
       return state.prop1;
     });
 
-    const selectors = generateCustomSelectors(context, { prop1: useSelectMock });
+    const selectors = generateCustomSelectors(context, {
+      prop1: useSelectMock,
+    });
 
     const hook = renderHook(() => {
       return selectors.useProp1();
