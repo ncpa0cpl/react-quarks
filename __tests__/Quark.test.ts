@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react-hooks";
+import { describe, expect, it, vitest } from "vitest";
 import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
 import { quark } from "../src";
 import {
@@ -10,6 +11,7 @@ import {
   sleep,
   testPromiseGenerator,
 } from "./helpers";
+
 
 describe("quark()", () => {
   describe("correctly works outside react", () => {
@@ -178,12 +180,12 @@ describe("quark()", () => {
       });
 
       it("set() correctly omits following middlewares", () => {
-        const firstMiddleware = jest.fn((state, value, resume, set) => {
+        const firstMiddleware = vitest.fn((state, value, resume, set) => {
           if (typeof value === "number") return set(`${value}`);
           return resume(value);
         }) satisfies QuarkMiddleware<any, number>;
 
-        const secondMiddleware = jest.fn((state, value, resume, set) => {
+        const secondMiddleware = vitest.fn((state, value, resume, set) => {
           resume(undefined);
         }) satisfies QuarkMiddleware<any, undefined>;
 
@@ -331,8 +333,8 @@ describe("quark()", () => {
       it("correctly calls the callback with the current state", async () => {
         const q = quark("foo");
 
-        const onSubOne = jest.fn();
-        const onSubTwo = jest.fn();
+        const onSubOne = vitest.fn();
+        const onSubTwo = vitest.fn();
 
         q.subscribe((state) => {
           onSubOne(state);
@@ -359,8 +361,8 @@ describe("quark()", () => {
       it("correctly cancels the subscription", async () => {
         const q = quark("foo");
 
-        const onSubOne = jest.fn();
-        const onSubTwo = jest.fn();
+        const onSubOne = vitest.fn();
+        const onSubTwo = vitest.fn();
 
         const subOne = q.subscribe((state) => {
           onSubOne(state);
@@ -391,8 +393,8 @@ describe("quark()", () => {
       it("does not notify subscriptions that were cancelled after update", async () => {
         const q = quark("foo");
 
-        const onSubOne = jest.fn();
-        const onSubTwo = jest.fn();
+        const onSubOne = vitest.fn();
+        const onSubTwo = vitest.fn();
 
         const subOne = q.subscribe((state) => {
           onSubOne(state);
@@ -708,7 +710,7 @@ describe("quark()", () => {
     });
     it("useSelector() correctly avoids unnecessary re-renders", async () => {
       const q = quark({ value1: 0, value2: 100 });
-      const reRenderCounter = jest.fn();
+      const reRenderCounter = vitest.fn();
 
       const selectV1 = (a: QuarkType<typeof q>) => a.value1;
 
@@ -756,7 +758,7 @@ describe("quark()", () => {
           },
         },
       );
-      const reRenderCounter = jest.fn();
+      const reRenderCounter = vitest.fn();
 
       const state = renderHook(() => {
         reRenderCounter();
@@ -848,7 +850,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -940,7 +942,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -997,7 +999,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1089,7 +1091,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1149,7 +1151,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1243,7 +1245,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1302,7 +1304,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1396,7 +1398,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1458,7 +1460,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 
@@ -1561,7 +1563,7 @@ describe("quark()", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
           const q = quark({ value: "foo" });
 
-          const setSpy = jest.spyOn(q, "set");
+          const setSpy = vitest.spyOn(q, "set");
 
           const expectedResult = { value: "bar" };
 

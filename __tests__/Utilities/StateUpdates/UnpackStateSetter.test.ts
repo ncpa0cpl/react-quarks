@@ -1,3 +1,4 @@
+import { beforeAll, beforeEach, describe, expect, it, vitest } from "vitest";
 import { asyncUpdatesController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
 import { unpackStateSetter } from "../../../src/Utilities/StateUpdates/UnpackStateSetter";
 import { getTestQuarkContext, sleep } from "../../helpers";
@@ -7,11 +8,11 @@ describe("unpackStateSetter", () => {
   const asyncController = asyncUpdatesController(self);
 
   beforeAll(() => {
-    jest.spyOn(asyncController, "preventLastAsyncUpdate");
+    vitest.spyOn(asyncController, "preventLastAsyncUpdate");
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vitest.clearAllMocks();
   });
 
   it("should return the passed value if it's not a generator or a promise", () => {
@@ -28,7 +29,7 @@ describe("unpackStateSetter", () => {
     unpackStateSetter(self, asyncController, generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
-      },
+      }
     );
   });
 
@@ -39,7 +40,7 @@ describe("unpackStateSetter", () => {
     unpackStateSetter(self, asyncController, generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
-      },
+      }
     );
   });
 
@@ -50,7 +51,7 @@ describe("unpackStateSetter", () => {
     unpackStateSetter(self, asyncController, generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
-      },
+      }
     );
   });
 
@@ -63,34 +64,38 @@ describe("unpackStateSetter", () => {
     });
   });
 
-  it("should unpack a nested promise", () => {
+  it("should unpack a nested promise", async () => {
     const promise = new Promise((resolve1) =>
-      resolve1(new Promise((resolve2) => resolve2("baz"))),
+      resolve1(new Promise((resolve2) => resolve2("baz")))
     );
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, promise).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("baz");
-    });
+    await unpackStateSetter(self, asyncController, promise).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("baz");
+      }
+    );
   });
 
-  it("should unpack a deeply nested promise", () => {
+  it("should unpack a deeply nested promise", async () => {
     const promise = new Promise((resolve1) =>
       resolve1(
         new Promise((resolve2) =>
           resolve2(
             new Promise((resolve3) => {
               resolve3(new Promise((resolve4) => resolve4("baz")));
-            }),
-          ),
-        ),
-      ),
+            })
+          )
+        )
+      )
     );
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, promise).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("baz");
-    });
+    await unpackStateSetter(self, asyncController, promise).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("baz");
+      }
+    );
   });
 
   it("should unpack a promise nested within generator", () => {
@@ -100,7 +105,7 @@ describe("unpackStateSetter", () => {
     unpackStateSetter(self, asyncController, generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("qux");
-      },
+      }
     );
   });
 
@@ -111,7 +116,7 @@ describe("unpackStateSetter", () => {
     unpackStateSetter(self, asyncController, generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("qux");
-      },
+      }
     );
   });
 
@@ -133,7 +138,7 @@ describe("unpackStateSetter", () => {
       p.resolve = resolve;
     });
 
-    const onThen = jest.fn();
+    const onThen = vitest.fn();
 
     expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(0);
 

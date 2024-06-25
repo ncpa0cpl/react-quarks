@@ -1,11 +1,12 @@
 import { cloneDeep } from "lodash";
+import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { QuarkContext } from "../../src";
 import { generateCustomActions } from "../../src/Utilities";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomActions()", () => {
   let context: QuarkContext<any, any>;
-  const setStateMock = jest.fn();
+  const setStateMock = vitest.fn();
   const setState = (v: any) => {
     let s: any;
     if (typeof v === "function") {
@@ -17,7 +18,7 @@ describe("generateCustomActions()", () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vitest.resetAllMocks();
   });
 
   it("should generate a new object with the same methods as it was provided", () => {
@@ -50,9 +51,11 @@ describe("generateCustomActions()", () => {
 
     context = getTestQuarkContext({ value: initValue });
 
-    const appendMock = jest.fn((state: typeof initValue, newValue: string) => {
-      return { value: newValue, prev: state.value };
-    });
+    const appendMock = vitest.fn(
+      (state: typeof initValue, newValue: string) => {
+        return { value: newValue, prev: state.value };
+      },
+    );
 
     const actions = {
       add(state: typeof initValue, newValue: string) {

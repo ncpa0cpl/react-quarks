@@ -1,15 +1,16 @@
 import { act, renderHook } from "@testing-library/react-hooks";
+import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { createCatchMiddleware, quark } from "../../../src";
 import { sleep } from "../../helpers";
 
 describe("CatchMiddleware", () => {
-  const onCatchMock = jest.fn();
+  const onCatchMock = vitest.fn();
   const catchMiddleware = createCatchMiddleware({ onCatch: onCatchMock });
 
-  global.console.error = jest.fn();
+  global.console.error = vitest.fn();
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vitest.resetAllMocks();
   });
 
   describe("should resolve as usual when no errors are thrown", () => {
@@ -121,7 +122,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 5 }),
+          expect(state.result.current.value).toMatchObject({ value: 5 })
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -138,7 +139,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 3 }),
+          expect(state.result.current.value).toMatchObject({ value: 3 })
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -156,7 +157,7 @@ describe("CatchMiddleware", () => {
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 7 }),
+          expect(state.result.current.value).toMatchObject({ value: 7 })
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -170,13 +171,13 @@ describe("CatchMiddleware", () => {
 
         await act(async () => {
           state.result.current.set((v) =>
-            Promise.resolve({ value: v.value + 2 }),
+            Promise.resolve({ value: v.value + 2 })
           );
           await sleep(0);
         });
 
         await state.waitFor(() =>
-          expect(state.result.current.value).toMatchObject({ value: 3 }),
+          expect(state.result.current.value).toMatchObject({ value: 3 })
         );
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -194,7 +195,7 @@ describe("CatchMiddleware", () => {
         expect(() =>
           q.set(() => {
             throw "foo";
-          }),
+          })
         ).toThrow("foo");
 
         expect(onCatchMock).toBeCalledTimes(0);
@@ -213,7 +214,7 @@ describe("CatchMiddleware", () => {
           expect(() =>
             result.result.current.set(() => {
               throw "foo";
-            }),
+            })
           ).toThrow("foo");
         });
 
@@ -234,7 +235,7 @@ describe("CatchMiddleware", () => {
         expect(() =>
           q.set(() => {
             throw "foo";
-          }),
+          })
         ).not.toThrow();
 
         expect(onCatchMock).toBeCalledTimes(1);
@@ -275,7 +276,7 @@ describe("CatchMiddleware", () => {
           expect(() =>
             result.result.current.set(() => {
               throw "foo";
-            }),
+            })
           ).not.toThrow();
         });
 

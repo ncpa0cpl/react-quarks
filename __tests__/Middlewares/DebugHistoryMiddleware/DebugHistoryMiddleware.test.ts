@@ -1,7 +1,14 @@
 import { DateTime } from "luxon";
+import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { createDebugHistoryMiddleware, quark } from "../../../src";
 import { getStateUpdateHistory } from "../../../src/Middlewares/DebugHistoryMiddleware/UpdateHistory";
 import { sleep } from "../../helpers";
+
+declare module "luxon" {
+  interface TSSettings {
+    throwOnInvalid: true;
+  }
+}
 
 declare const global: {
   __quark_history_tracker__: ReturnType<typeof getStateUpdateHistory>;
@@ -17,7 +24,7 @@ function* timeGenerator(): Generator<number, number, unknown> {
 
 let getTime = timeGenerator();
 
-jest
+vitest
   .spyOn(DateTime, "now")
   .mockImplementation(() => DateTime.fromMillis(getTime.next().value));
 

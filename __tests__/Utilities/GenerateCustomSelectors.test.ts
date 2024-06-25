@@ -1,11 +1,12 @@
 import { renderHook } from "@testing-library/react-hooks";
 import { cloneDeep } from "lodash";
+import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { generateCustomSelectors } from "../../src/Utilities";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomSelectors()", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vitest.resetAllMocks();
   });
 
   it("should generate a new object with the same named methods as it was provided", () => {
@@ -42,7 +43,7 @@ describe("generateCustomSelectors()", () => {
 
     const context = getTestQuarkContext({ value: initValue });
 
-    const useSelectMock = jest.fn((state: QT) => {
+    const useSelectMock = vitest.fn((state: QT) => {
       return state.prop1;
     });
 

@@ -1,3 +1,4 @@
+import { describe, expect, it, vitest } from "vitest";
 import { createEventsDebouncer } from "../../../src/Utilities/StateUpdates/EventsDispatcher";
 import { processStateUpdate } from "../../../src/Utilities/StateUpdates/ProcessStateUpdate";
 import { getTestQuarkContext, sleep } from "../../helpers";
@@ -7,16 +8,16 @@ describe("processStateUpdate", () => {
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => true,
-      sideEffect: jest.fn(),
+      sideEffect: vitest.fn(),
     });
 
-    const setFnMock = jest.fn();
+    const setFnMock = vitest.fn();
 
     processStateUpdate({
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      debounceEvent: jest.fn(),
+      debounceEvent: vitest.fn(),
     });
 
     expect(self.sideEffect).toHaveBeenCalledWith("bar", "foo", setFnMock);
@@ -26,34 +27,34 @@ describe("processStateUpdate", () => {
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => false,
-      sideEffect: jest.fn(),
+      sideEffect: vitest.fn(),
     });
 
-    const setFnMock = jest.fn();
+    const setFnMock = vitest.fn();
 
     processStateUpdate({
       self,
       previousState: "bar",
       applyMiddlewaresAndUpdateState: setFnMock,
-      debounceEvent: jest.fn(),
+      debounceEvent: vitest.fn(),
     });
 
     expect(self.sideEffect).toHaveBeenCalledTimes(0);
   });
 
   it("should notify subscribers if the state changed", async () => {
-    const subOne = jest.fn();
-    const subTwo = jest.fn();
+    const subOne = vitest.fn();
+    const subTwo = vitest.fn();
 
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => true,
-      sideEffect: jest.fn(),
+      sideEffect: vitest.fn(),
       subscribers: new Set([subOne, subTwo]),
     });
 
-    const setFnMock = jest.fn();
-    const dispatchEventMock = jest.fn((ev: Function) => ev());
+    const setFnMock = vitest.fn();
+    const dispatchEventMock = vitest.fn((ev: Function) => ev());
 
     processStateUpdate({
       self,
@@ -79,19 +80,19 @@ describe("processStateUpdate", () => {
   });
 
   it("should notify all of the subscribers even if they were not present at the time of state update or have been removed at the last moment", async () => {
-    const subOne = jest.fn();
-    const subTwo = jest.fn();
-    const subThree = jest.fn();
-    const subFour = jest.fn();
+    const subOne = vitest.fn();
+    const subTwo = vitest.fn();
+    const subThree = vitest.fn();
+    const subFour = vitest.fn();
 
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => true,
-      sideEffect: jest.fn(),
+      sideEffect: vitest.fn(),
       subscribers: new Set([subOne, subTwo, subThree]),
     });
 
-    const setFnMock = jest.fn();
+    const setFnMock = vitest.fn();
 
     const { debounceEvent } = createEventsDebouncer();
 

@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import { isDraft } from "immer";
+import { beforeAll, describe, expect, it, vitest } from "vitest";
 import {
   createImmerMiddleware,
   quark,
@@ -56,7 +57,7 @@ describe("ImmerMiddleware", () => {
     });
 
     it("should notify subscribers when updating the state with mutations as usual", async () => {
-      const onStateChange = jest.fn((newState: any) => {});
+      const onStateChange = vitest.fn((newState: any) => {});
 
       const q = quark({ foo: "foo", bar: "bar", baz: "baz" });
 
@@ -77,12 +78,12 @@ describe("ImmerMiddleware", () => {
           bar: "not really a bar",
           baz: "baz",
         },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
     });
 
     it("should work correctly with async updates", async () => {
-      const onStateChange = jest.fn((newState: any) => {});
+      const onStateChange = vitest.fn((newState: any) => {});
 
       const q = quark({ foo: "foo", bar: "bar", baz: "baz" });
 
@@ -106,12 +107,12 @@ describe("ImmerMiddleware", () => {
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
     });
 
     it("should work correctly with async generators", async () => {
-      const onStateChange = jest.fn((newState: any) => {});
+      const onStateChange = vitest.fn((newState: any) => {});
 
       const q = quark({ foo: "foo", bar: "bar", baz: "baz" });
 
@@ -134,7 +135,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "1", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "1", bar: "bar", baz: "baz" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
 
       await q.set(async () => {
@@ -152,7 +153,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "bar", baz: "baz" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -172,7 +173,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "3", baz: "baz" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -190,7 +191,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "4", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "4", bar: "3", baz: "baz" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
     });
   });
@@ -206,7 +207,7 @@ describe("ImmerMiddleware", () => {
               return state;
             },
           },
-        },
+        }
       );
 
       const rendered = renderHook(() => q.use());
@@ -227,7 +228,7 @@ describe("ImmerMiddleware", () => {
           foo: "foo",
           bar: "not a bar",
           baz: "baz",
-        }),
+        })
       );
       expect(isDraft(rendered.result.current.value)).toEqual(false);
     });
@@ -243,7 +244,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        },
+        }
       );
 
       const rendered = renderHook(() => q.use());
@@ -259,7 +260,7 @@ describe("ImmerMiddleware", () => {
           foo: "foo",
           bar: "not a bar",
           baz: "baz",
-        }),
+        })
       );
       expect(isDraft(rendered.result.current.value)).toEqual(false);
 
@@ -267,7 +268,7 @@ describe("ImmerMiddleware", () => {
     });
 
     it("should notify subscribers when updating the state with mutations as usual", async () => {
-      const onStateChange = jest.fn((newState: any) => {});
+      const onStateChange = vitest.fn((newState: any) => {});
 
       const q = quark(
         { foo: "foo", bar: "bar", baz: "baz" },
@@ -282,7 +283,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        },
+        }
       );
 
       const rendered = renderHook(() => q.use());
@@ -299,7 +300,7 @@ describe("ImmerMiddleware", () => {
           foo: "not a foo",
           bar: "not a bar",
           baz: "baz",
-        }),
+        })
       );
 
       expect(onStateChange).toHaveBeenCalledWith(
@@ -308,12 +309,12 @@ describe("ImmerMiddleware", () => {
           bar: "not a bar",
           baz: "baz",
         },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
     });
 
     it("should work correctly with async updates", async () => {
-      const onStateChange = jest.fn((newState: any) => {});
+      const onStateChange = vitest.fn((newState: any) => {});
 
       const q = quark(
         { foo: "foo", bar: "bar", baz: "baz" },
@@ -328,7 +329,7 @@ describe("ImmerMiddleware", () => {
               return currentState;
             },
           },
-        },
+        }
       );
 
       const rendered = renderHook(() => q.use());
@@ -345,12 +346,12 @@ describe("ImmerMiddleware", () => {
           foo: "a",
           bar: "bar",
           baz: "b",
-        }),
+        })
       );
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything(), // cancelSubscription function
+        expect.anything() // cancelSubscription function
       );
     });
   });

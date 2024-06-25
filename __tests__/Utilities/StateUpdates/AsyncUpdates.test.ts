@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vitest } from "vitest";
 import {
   asyncUpdatesController,
   CancelablePromise,
@@ -7,11 +8,11 @@ import { getTestQuarkContext, sleep } from "../../helpers";
 
 describe("Async Updates", () => {
   describe("CancelablePromise()", () => {
-    const consoleErrorMock = jest.fn();
+    const consoleErrorMock = vitest.fn();
 
     beforeEach(() => {
-      jest.resetAllMocks();
-      jest.spyOn(console, "error").mockImplementation(consoleErrorMock);
+      vitest.resetAllMocks();
+      vitest.spyOn(console, "error").mockImplementation(consoleErrorMock);
     });
 
     describe("with resolved promise", () => {
@@ -20,7 +21,7 @@ describe("Async Updates", () => {
 
         const cancelablePromise = CancelablePromise(myPromise);
 
-        const onResolve = jest.fn();
+        const onResolve = vitest.fn();
 
         cancelablePromise.then(onResolve);
 
@@ -38,7 +39,7 @@ describe("Async Updates", () => {
 
         const cancelablePromise = CancelablePromise(myPromise);
 
-        const onResolve = jest.fn();
+        const onResolve = vitest.fn();
 
         cancelablePromise.then(onResolve);
 
@@ -59,7 +60,7 @@ describe("Async Updates", () => {
 
         const cancelablePromise = CancelablePromise(myPromise);
 
-        const onResolve = jest.fn();
+        const onResolve = vitest.fn();
 
         cancelablePromise.then(onResolve).catch(() => {});
 
@@ -71,8 +72,8 @@ describe("Async Updates", () => {
         expect(consoleErrorMock).toHaveBeenCalledTimes(1);
         expect(consoleErrorMock).toHaveBeenCalledWith(
           new Error(
-            "Asynchronous state update was unsuccessful due to an error. [bar]",
-          ),
+            "Asynchronous state update was unsuccessful due to an error. [bar]"
+          )
         );
       });
 
@@ -81,7 +82,7 @@ describe("Async Updates", () => {
 
         const cancelablePromise = CancelablePromise(myPromise);
 
-        const onResolve = jest.fn();
+        const onResolve = vitest.fn();
 
         cancelablePromise.then(onResolve).catch(() => {});
 
@@ -100,12 +101,12 @@ describe("Async Updates", () => {
   describe("asyncUpdatesController()", () => {
     it("when allowRaceConditions option is enabled updates are not canceled", async () => {
       const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: true } }),
+        getTestQuarkContext({ configOptions: { allowRaceConditions: true } })
       );
 
       const myPromise = Promise.resolve("foo");
 
-      const setStateMock = jest.fn();
+      const setStateMock = vitest.fn();
 
       controller.dispatchAsyncUpdate(myPromise, setStateMock);
 
@@ -119,12 +120,12 @@ describe("Async Updates", () => {
 
     it("when allowRaceConditions option is disabled updates are canceled", async () => {
       const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: false } }),
+        getTestQuarkContext({ configOptions: { allowRaceConditions: false } })
       );
 
       const myPromise = Promise.resolve("foo");
 
-      const setStateMock = jest.fn();
+      const setStateMock = vitest.fn();
 
       controller.dispatchAsyncUpdate(myPromise, setStateMock);
 
@@ -143,7 +144,7 @@ describe("Async Updates", () => {
       const myPromise2 = Promise.resolve("bar");
       const myPromise3 = Promise.resolve("baz");
 
-      const setStateMock = jest.fn();
+      const setStateMock = vitest.fn();
 
       controller.dispatchAsyncUpdate(myPromise1, setStateMock);
       controller.dispatchAsyncUpdate(myPromise2, setStateMock);

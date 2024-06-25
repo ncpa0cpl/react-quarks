@@ -16,9 +16,8 @@
         "script": "test:fmt"
       },
       {
-        "mustRunAlone": true,
-        "name": "Jest Tests",
-        "script": "test:jest"
+        "name": "Unit Test",
+        "script": "test:unit"
       }
     ]
   }

@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`DebugHistoryMiddleware correctly handles async updates 1`] = `
+exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
 {
   "0_q1": [
     {
@@ -87,7 +87,7 @@ exports[`DebugHistoryMiddleware correctly handles async updates 1`] = `
 }
 `;
 
-exports[`DebugHistoryMiddleware correctly saves updates to the history tracker 1`] = `
+exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker 1`] = `
 {
   "0_q1": [
     {

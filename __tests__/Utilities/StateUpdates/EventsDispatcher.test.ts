@@ -1,3 +1,4 @@
+import { describe, expect, it, vitest } from "vitest";
 import { createEventsDebouncer } from "../../../src/Utilities/StateUpdates/EventsDispatcher";
 import { sleep } from "../../helpers";
 
@@ -5,11 +6,11 @@ describe("createEventsDispatcher", () => {
   it("should only execute the latest dispatched event when multiple actions are dispatched simultaneously", async () => {
     const events = createEventsDebouncer();
 
-    const ev1 = jest.fn();
-    const ev2 = jest.fn();
-    const ev3 = jest.fn();
-    const ev4 = jest.fn();
-    const ev5 = jest.fn();
+    const ev1 = vitest.fn();
+    const ev2 = vitest.fn();
+    const ev3 = vitest.fn();
+    const ev4 = vitest.fn();
+    const ev5 = vitest.fn();
 
     events.debounceEvent(ev1);
     events.debounceEvent(ev2);
@@ -29,11 +30,11 @@ describe("createEventsDispatcher", () => {
   it("should allow for all dispatched events to execute if not dispatched simultaneously", async () => {
     const events = createEventsDebouncer();
 
-    const ev1 = jest.fn();
-    const ev2 = jest.fn();
-    const ev3 = jest.fn();
-    const ev4 = jest.fn();
-    const ev5 = jest.fn();
+    const ev1 = vitest.fn();
+    const ev2 = vitest.fn();
+    const ev3 = vitest.fn();
+    const ev4 = vitest.fn();
+    const ev5 = vitest.fn();
 
     events.debounceEvent(ev1);
     await sleep(0);
