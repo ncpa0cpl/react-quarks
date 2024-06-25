@@ -8,7 +8,7 @@
         "script": "test:tsc"
       },
       {
-        "name": "ESLint",
+        "name": "Lint",
         "script": "test:lint"
       },
       {
