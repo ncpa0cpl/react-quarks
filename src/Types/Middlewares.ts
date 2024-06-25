@@ -27,14 +27,11 @@ export type QuarkMiddleware<T, ET> = (
   updateType: QuarkUpdateType,
 ) => void;
 
-type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I>
-  ? I
+type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I
   : never;
 
 export type GetMiddlewareTypes<M extends any[]> = {
   [K in keyof M]: MiddlewareInputType<M[K]>;
-} extends Array<infer T>
-  ? T extends undefined
-    ? never
-    : T
+} extends Array<infer T> ? T extends undefined ? never
+  : T
   : never;

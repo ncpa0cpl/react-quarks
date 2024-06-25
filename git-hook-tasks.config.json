@@ -12,8 +12,8 @@
         "script": "test:lint"
       },
       {
-        "name": "Prettier",
-        "script": "test:prettier"
+        "name": "Fmt",
+        "script": "test:fmt"
       },
       {
         "mustRunAlone": true,

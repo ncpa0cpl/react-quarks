@@ -32,7 +32,7 @@ export function generateCustomActions<
       actionMethod = actionMethod.bind(actions);
       const wrappedAction = (...args: ARGS) => {
         const r = setState((currentState: T) =>
-          actionMethod(currentState, ...args),
+          actionMethod(currentState, ...args)
         );
         return r;
       };

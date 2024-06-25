@@ -8,7 +8,7 @@ export const useCachedSelector = <T, ARGS extends any[], R>(
   selector: QuarkSelector<T, ARGS, R>,
   self: QuarkContext<T, any>,
   latestArgs: ARGS,
-): (() => R) => {
+): () => R => {
   const portal = React.useRef({
     cache: {
       prevState: NULL_SYM as typeof NULL_SYM | T,
@@ -28,9 +28,9 @@ export const useCachedSelector = <T, ARGS extends any[], R>(
     const state = self.value;
 
     if (
-      prevResult === NULL_SYM ||
-      state !== prevState ||
-      !isEqual(args, prevArgs)
+      prevResult === NULL_SYM
+      || state !== prevState
+      || !isEqual(args, prevArgs)
     ) {
       const result = selectorImpl(state, ...args);
 

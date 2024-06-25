@@ -1,10 +1,10 @@
-import { generateSelectHook } from ".";
 import type {
   ParseSelectors,
   QuarkContext,
   QuarkSelector,
   QuarkSelectors,
 } from "../Types";
+import { generateSelectHook } from ".";
 
 /**
  * @internal

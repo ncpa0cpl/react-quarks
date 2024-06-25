@@ -6,10 +6,10 @@ const CANCEL_UPDATE_SYMBOL = Symbol();
 export class CancelUpdate {
   static isCancel(e: unknown) {
     return (
-      typeof e === "object" &&
-      e !== null &&
-      "identifier" in e &&
-      (e as { identifier: unknown }).identifier === CANCEL_UPDATE_SYMBOL
+      typeof e === "object"
+      && e !== null
+      && "identifier" in e
+      && (e as { identifier: unknown }).identifier === CANCEL_UPDATE_SYMBOL
     );
   }
 
