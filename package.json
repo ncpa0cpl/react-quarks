@@ -1,6 +1,6 @@
 {
   "name": "react-quarks",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "React state management library with async support.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
