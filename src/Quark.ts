@@ -13,8 +13,9 @@ import { QuarkProcedures } from "./Types/Procedures";
 import {
   applyMiddlewares,
   generateCustomActions,
+  generateCustomHookSelectors,
   generateCustomSelectors,
-  generateSelectHook,
+  generateSelectorHooks,
   generateSetter,
   generateUseHook,
   isUpdateNecessary,
@@ -78,11 +79,16 @@ export function quark<
     config?.selectors ?? ({} as S)
   );
 
+  const customHookSelectors = generateCustomHookSelectors(
+    self,
+    config?.selectors ?? ({} as S)
+  );
+
   const get = () => self.value as DeepReadonly<T>;
 
   const use = generateUseHook(self, customActions, customProcedures, set);
 
-  const useSelector = generateSelectHook(self);
+  const useSelector = generateSelectorHooks(self, customHookSelectors);
 
   const subscribe = generateSubscribeFunction(self);
 
@@ -92,9 +98,8 @@ export function quark<
     use,
     useSelector,
     subscribe,
-    ...customActions,
-    ...customProcedures,
-    ...customSelectors,
+    act: { ...customActions, ...customProcedures },
+    select: customSelectors,
   };
 
   if (config.name !== undefined) {

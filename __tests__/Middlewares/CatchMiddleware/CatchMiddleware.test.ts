@@ -137,7 +137,7 @@ describe("CatchMiddleware", () => {
 
         expect(q.get()).toEqual("A");
 
-        q.procedureA();
+        q.act.procedureA();
         await sleep(0);
         expect(q.get()).toEqual("B");
 
@@ -250,7 +250,7 @@ describe("CatchMiddleware", () => {
           },
         });
 
-        await expect(q.procedureA()).rejects.toEqual("bar");
+        await expect(q.act.procedureA()).rejects.toEqual("bar");
 
         expect(q.get()).toEqual("");
       });
@@ -332,7 +332,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await expect(q.procedureA()).resolves.toBeUndefined();
+        await expect(q.act.procedureA()).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("baz");
@@ -356,7 +356,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        const procedureRes = q2.procedureB();
+        const procedureRes = q2.act.procedureB();
 
         await sleep(0);
         expect(q2.get()).toEqual("A");

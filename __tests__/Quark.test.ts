@@ -108,14 +108,38 @@ describe("quark()", () => {
 
       expect(q.get()).toMatchObject({ value: 0 });
 
-      q.increment();
+      q.act.increment();
 
       expect(q.get()).toMatchObject({ value: 1 });
 
-      q.multiply(12);
+      q.act.multiply(12);
 
       expect(q.get()).toMatchObject({ value: 12 });
     });
+    it("correctly handles selectors", () => {
+      const q = quark(
+        { value1: 5, value2: 321 },
+        {
+          actions: {
+            SetVal1: (s, v: number) => ({ ...s, value1: v }),
+            SetVal2: (s, v: number) => ({ ...s, value2: v }),
+          },
+        }
+      );
+
+      const selectV1 = (s: QuarkType<typeof q>) => s.value1;
+      const selectV2 = (s: QuarkType<typeof q>) => s.value2;
+      const selectSum = (s: QuarkType<typeof q>) => s.value1 + s.value2;
+
+      expect(q.select.$(selectV1)).toEqual(5);
+      expect(q.select.$(selectV2)).toEqual(321);
+      expect(q.select.$(selectSum)).toEqual(326);
+
+      q.act.SetVal1(10);
+
+      expect(q.select.$(selectV1)).toEqual(10);
+      expect(q.select.$(selectSum)).toEqual(331);
+    })
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
         const mapMiddleware: QuarkMiddleware<any, 1 | 2> = ({
@@ -265,7 +289,7 @@ describe("quark()", () => {
 
         expect(q.get()).toMatchObject({ value: 0, derivedValue: "0" });
 
-        q.increment();
+        q.act.increment();
 
         expect(q.get()).toMatchObject({ value: 1, derivedValue: "1" });
       });
@@ -445,14 +469,14 @@ describe("quark()", () => {
           }
         );
 
-        expect(q.selectValue1()).toEqual(5);
-        expect(q.selectValue2()).toEqual(321);
-        expect(q.selectValueSum()).toEqual(326);
+        expect(q.select.value1()).toEqual(5);
+        expect(q.select.value2()).toEqual(321);
+        expect(q.select.valueSum()).toEqual(326);
 
-        q.SetVal1(10);
+        q.act.SetVal1(10);
 
-        expect(q.selectValue1()).toEqual(10);
-        expect(q.selectValueSum()).toEqual(331);
+        expect(q.select.value1()).toEqual(10);
+        expect(q.select.valueSum()).toEqual(331);
       });
       it("correctly handle arguments", () => {
         const q = quark(
@@ -469,14 +493,14 @@ describe("quark()", () => {
           }
         );
 
-        expect(q.selectV(1)).toEqual(5);
-        expect(q.selectV(2)).toEqual(321);
-        expect(q.selectMultipliedBy(12)).toEqual(60);
+        expect(q.select.v(1)).toEqual(5);
+        expect(q.select.v(2)).toEqual(321);
+        expect(q.select.multipliedBy(12)).toEqual(60);
 
-        q.SetVal1(69);
+        q.act.SetVal1(69);
 
-        expect(q.selectV(1)).toEqual(69);
-        expect(q.selectMultipliedBy(10)).toEqual(690);
+        expect(q.select.v(1)).toEqual(69);
+        expect(q.select.multipliedBy(10)).toEqual(690);
       });
     });
     describe("procedures", () => {
@@ -496,7 +520,7 @@ describe("quark()", () => {
           }
         );
 
-        q.runProcedure();
+        q.act.runProcedure();
 
         await sleep(0);
 
@@ -524,7 +548,7 @@ describe("quark()", () => {
           }
         );
 
-        q.runProcedure();
+        q.act.runProcedure();
 
         await sleep(0);
 
@@ -560,7 +584,7 @@ describe("quark()", () => {
           }
         );
 
-        q.runProcedure();
+        q.act.runProcedure();
 
         await sleep(0);
 
@@ -591,7 +615,7 @@ describe("quark()", () => {
           }
         );
 
-        q.runProcedure();
+        q.act.runProcedure();
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: true, value: 0 });
 
@@ -632,11 +656,11 @@ describe("quark()", () => {
           }
         );
 
-        q.runProcedure();
+        q.act.runProcedure();
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: true, value: 0 });
 
-        await q.fetchValue();
+        await q.act.fetchValue();
         expect(q.get()).toMatchObject({ inProgress: false, value: 100 });
 
         p1.resolve({ value: 10 });
@@ -710,7 +734,7 @@ describe("quark()", () => {
 
       const state = renderHook(
         (props) => {
-          return q.useIndex(props.index);
+          return q.useSelector.index(props.index);
         },
         {
           initialProps: { index: 2 },
@@ -838,7 +862,7 @@ describe("quark()", () => {
       expect(state.result.current.value).toMatchObject({ value: 0 });
 
       act(() => {
-        q.increment();
+        q.act.increment();
       });
 
       await state.waitFor(() =>
@@ -889,7 +913,7 @@ describe("quark()", () => {
 
       const state = renderHook(() => {
         reRenderCounter();
-        return q.useSelector(selectV1);
+        return q.useSelector.$(selectV1);
       });
 
       expect(q.get().value2).toEqual(100);
@@ -935,7 +959,7 @@ describe("quark()", () => {
 
       const state = renderHook(() => {
         reRenderCounter();
-        return q.useValue1();
+        return q.useSelector.value1();
       });
 
       expect(q.get().value2).toEqual(321);
@@ -943,7 +967,7 @@ describe("quark()", () => {
       expect(reRenderCounter).toHaveBeenCalledTimes(1);
 
       await act(async () => {
-        q.SetVal1(15);
+        q.act.SetVal1(15);
         await sleep(0);
       });
 
@@ -952,7 +976,7 @@ describe("quark()", () => {
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
 
       await act(async () => {
-        q.SetVal2(55);
+        q.act.SetVal2(55);
         await sleep(20);
       });
 
@@ -964,7 +988,7 @@ describe("quark()", () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       const { result, rerender } = renderHook(() =>
-        q.useSelector((s) => s.filter((x) => !(x % 2)))
+        q.useSelector.$((s) => s.filter((x) => !(x % 2)))
       );
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
@@ -982,7 +1006,9 @@ describe("quark()", () => {
         },
       });
 
-      const { result, rerender } = renderHook(() => q.useEvenNumbers());
+      const { result, rerender } = renderHook(() =>
+        q.useSelector.evenNumbers()
+      );
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
 
@@ -1000,7 +1026,8 @@ describe("quark()", () => {
       });
 
       const { result, rerender } = renderHook(
-        (props: { a: number; b: number }) => q.useSumOf(props.a, props.b),
+        (props: { a: number; b: number }) =>
+          q.useSelector.sumOf(props.a, props.b),
         {
           initialProps: {
             a: 0,

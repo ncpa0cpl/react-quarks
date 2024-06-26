@@ -21,7 +21,7 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
   self: QuarkContext<T, ET>,
   actions: ParseActions<A>,
   procedures: ParseProcedures<P>,
-  set: QuarkSetterFn<T, ET>
+  set: QuarkSetterFn<T, ET>,
 ): () => QuarkHook<T, A, P, M> {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
@@ -33,7 +33,7 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
   return () => {
     const value = useSyncExternalStore(
       subscribe,
-      getSnapshot
+      getSnapshot,
     ) as DeepReadonly<T>;
 
     return {

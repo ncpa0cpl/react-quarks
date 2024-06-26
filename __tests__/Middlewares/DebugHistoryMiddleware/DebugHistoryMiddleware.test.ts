@@ -92,7 +92,7 @@ describe("DebugHistoryMiddleware", () => {
       global.__quark_history_tracker__.showHistory()["1_q2"].length
     ).toEqual(1);
 
-    await q.start();
+    await q.act.start();
 
     expect(q.get()).toEqual({ value: "bar", loading: false });
     expect(

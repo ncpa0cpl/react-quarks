@@ -26,10 +26,8 @@ describe("generateCustomSelectors()", () => {
     });
 
     expect(selectors).toMatchObject({
-      useProp1: expect.any(Function),
-      useProp2: expect.any(Function),
-      selectProp1: expect.any(Function),
-      selectProp2: expect.any(Function),
+      prop1: expect.any(Function),
+      prop2: expect.any(Function),
     });
 
     // Assert the context didn't change
@@ -52,7 +50,7 @@ describe("generateCustomSelectors()", () => {
     });
 
     const hook = renderHook(() => {
-      return selectors.useProp1();
+      return selectors.prop1();
     });
 
     expect(useSelectMock).not.toHaveBeenCalledTimes(0);
