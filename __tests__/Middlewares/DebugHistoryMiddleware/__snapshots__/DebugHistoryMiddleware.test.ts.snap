@@ -57,7 +57,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
         "type": "Value",
         "value": "FOO",
       },
-      "isCanceled": true,
+      "isCanceled": false,
       "source": "Async-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000400,
@@ -70,7 +70,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       },
       "initialState": {
         "type": "Value",
-        "value": "FOO",
+        "value": "BAR",
       },
       "isCanceled": false,
       "source": "Function-Dispatch",

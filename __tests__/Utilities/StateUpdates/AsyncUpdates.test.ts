@@ -64,6 +64,42 @@ describe("Async Updates", () => {
 
       const controller = createUpdateController(context, setStateMock);
 
+      const myPromise1 = sleep(30).then(() => "foo");
+      const myPromise2 = sleep(20).then(() => "bar");
+      const myPromise3 = sleep(10).then(() => "baz");
+
+      const p1Updater = controller.atomicUpdate();
+      myPromise1.then((v) => {
+        p1Updater.update(v);
+      });
+
+      const p2Updater = controller.atomicUpdate();
+      myPromise2.then((v) => {
+        p2Updater.update(v);
+      });
+
+      const p3Updater = controller.atomicUpdate();
+      myPromise3.then((v) => {
+        p3Updater.update(v);
+      });
+
+      await sleep(50);
+
+      expect(setStateMock).toHaveBeenCalledTimes(1);
+      expect(setStateMock).toHaveBeenLastCalledWith("baz");
+      expect(context.value).toEqual("baz");
+    });
+
+    it("consecutive dispatches should not cancel previous updates if executed in order", async () => {
+      const context = getTestQuarkContext({
+        configOptions: { allowRaceConditions: false },
+      });
+      const setStateMock = vitest.fn((v: string) => {
+        context.value = v;
+      });
+
+      const controller = createUpdateController(context, setStateMock);
+
       const myPromise1 = Promise.resolve("foo");
       const myPromise2 = Promise.resolve("bar");
       const myPromise3 = Promise.resolve("baz");
@@ -85,8 +121,10 @@ describe("Async Updates", () => {
 
       await sleep(0);
 
-      expect(setStateMock).toHaveBeenCalledTimes(1);
-      expect(setStateMock).toHaveBeenLastCalledWith("baz");
+      expect(setStateMock).toHaveBeenCalledTimes(3);
+      expect(setStateMock).toHaveBeenNthCalledWith(1, "foo");
+      expect(setStateMock).toHaveBeenNthCalledWith(2, "bar");
+      expect(setStateMock).toHaveBeenNthCalledWith(3, "baz");
       expect(context.value).toEqual("baz");
     });
   });

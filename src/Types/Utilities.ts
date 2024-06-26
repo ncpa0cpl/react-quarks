@@ -1,7 +1,7 @@
 import type { Quark } from "./Quark";
 
-export type QuarkType<Q extends Quark<any, any, any, any, any>> =
-  Q extends Quark<infer T, any, any, any, any> ? T : never;
+export type QuarkType<Q extends Quark<any, any, any, any, any>> = Q extends
+  Quark<infer T, any, any, any, any> ? T : never;
 
 export type RecordValue<T extends object> = {
   [K in keyof T]: IsUnknownOrAny<T[K]> extends true ? undefined : T[K];

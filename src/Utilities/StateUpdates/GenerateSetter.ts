@@ -46,7 +46,10 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
 
     const type = resolveUpdateType(action);
     return applyMiddlewares(self, action, type, updater, (action2) =>
-      unpackStateSetter(self, updater, action2).then((s) => updater.update(s))
+      unpackStateSetter(self, updater, action2).then((s) => {
+        updater.update(s);
+        updater.complete();
+      })
     );
   };
 
@@ -56,6 +59,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     return unpackStateSetter(self, updater, action).then((newState) => {
       if (updater.isCanceled) return;
       self.value = newState;
+      updater.complete();
     });
   };
 
@@ -75,7 +79,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
             ProcedureStateSetter<T>
           >;
           do {
-            if (updater.isCanceled) return;
+            if (updater.isCanceled) break;
 
             nextUp = await generator.next(self.value);
             const v = nextUp.value;
@@ -87,6 +91,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
               })
             );
           } while (!nextUp.done);
+          updater.complete();
         } catch (err) {
           if (CancelUpdate.isCancel(err)) {
             return;

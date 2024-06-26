@@ -16,6 +16,7 @@ export type UpdateController<T> = {
 export type AtomicUpdater<T> = {
   update(action: T): void;
   cancel(): void;
+  complete(): void;
   isCanceled: boolean;
   id: string;
 };
@@ -46,14 +47,20 @@ export function createUpdateController<T>(
   if (self.configOptions.allowRaceConditions) {
     return {
       atomicUpdate() {
-        return (currentUpdate = {
+        const updater = (currentUpdate = {
           id: getNextUpdaterId(),
           isCanceled: false,
           cancel() {},
+          complete() {
+            if (currentUpdate === updater) {
+              currentUpdate = undefined;
+            }
+          },
           update(action) {
             return setState(action);
           },
         });
+        return updater;
       },
       currentUpdate() {
         return currentUpdate;
@@ -62,19 +69,35 @@ export function createUpdateController<T>(
   }
 
   const atomicUpdate = (): AtomicUpdater<T> => {
+    let prevUpdate = currentUpdate;
+
     const updater: AtomicUpdater<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
+        prevUpdate?.cancel();
+        prevUpdate = undefined;
+
         if (updater.isCanceled) return;
         return setState(state);
       },
       cancel() {
+        prevUpdate?.cancel();
+        prevUpdate = undefined;
+
         updater.isCanceled = true;
+      },
+      complete() {
+        prevUpdate = undefined;
+        if (currentUpdate === updater) {
+          currentUpdate = undefined;
+        }
+        updater.update = () => {
+          throw new Error("state update after it was completed");
+        };
       },
     };
 
-    currentUpdate?.cancel();
     currentUpdate = updater;
 
     return updater;
