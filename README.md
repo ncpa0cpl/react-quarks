@@ -252,14 +252,14 @@ Here both `title` and `theme` are stored in the same Quark, this means that if w
 
 Selectors can be used in two ways
 
-1. via the builtin hook `useSelector`
+1. via the builtin hook `useSelector.$`
 2. or by adding custom selector to the Quark definition
 
 ##### useSelector
 
 ```tsx
 const PageHeader: React.FC = () => {
-  const title = siteSettings.useSelector((state) => state.title);
+  const title = siteSettings.useSelector.$((state) => state.title);
 
   return <h1>{title}</h1>;
 };
@@ -277,7 +277,7 @@ const siteSettings = quark(
   },
   {
     selectors: {
-      useTitle(state) {
+      title(state) {
         return state.title;
       },
     },
@@ -285,14 +285,18 @@ const siteSettings = quark(
 );
 ```
 
-And with this the `useTitle` hook will be added to our Quark.
+And with this the `useSelector.title()` hook will be added to the Quark.
 
 ```tsx
+// In react components:
 const PageHeader: React.FC = () => {
-  const title = siteSettings.useTitle();
+  const title = siteSettings.useSelector.title();
 
   return <h1>{title}</h1>;
 };
+
+// Outside react:
+const title = siteSettings.select.title();
 ```
 
 Both of the above solution achieve the same thing - the `PageHeader` component will re-render whenever the title changes but not when the theme changes.
@@ -311,7 +315,7 @@ const siteSettings = quark(
   },
   {
     selectors: {
-      useTitleLetter(state, letterIndex: number) {
+      titleLetter(state, letterIndex: number) {
         return state.title[letterIndex];
       },
     },
@@ -322,11 +326,15 @@ const siteSettings = quark(
 and then,
 
 ```tsx
+// In react components:
 const PageHeader: React.FC = () => {
-  const letter = siteSettings.useTitleLetter(3);
+  const letter = siteSettings.useSelector.titleLetter(2);
 
   return <h1>Third letter of the title is: {letter}</h1>;
 };
+
+// Outside react:
+const letter = siteSettings.select.titleLetter(2);
 ```
 
 ### Actions
@@ -367,11 +375,102 @@ const siteSettings = quark(
 And with that the actions can be used like so:
 
 ```ts
-siteSettings.setTitle("My new website title");
-siteSettings.setThemeAfter1sec("light");
+siteSettings.act.setTitle("My new website title");
+siteSettings.act.setThemeAfter1sec("light");
 ```
 
 Actions always take the Quark state as it's first argument, and optionally some other following arguments. The method exposed by the Quark will be called the same as the one in the Quark definition but without the first argument with Quark state.
+
+### Async Procedures
+
+Async procedures are a special kind of async actions. Procedures are defined with async function generators and can dispatch multiple state updates, moreover they can be interrupted.
+
+```ts
+const users = quark(
+  {
+    loading: false,
+    data: [],
+    lastError: undefined as Error | undefined,
+  },
+  {
+    procedures: {
+      async *fetchUsers(initState, auth: string) {
+        // yielding a value will set it as the new state
+        yield { ...initState, loading: true, data: [] };
+        try {
+          const data = await getUsers(auth);
+          return {
+            loading: false,
+            data,
+          };
+        } catch (err) {
+          // on error set the lastError property
+          // and restore the initial data
+          return {
+            loading: false,
+            lastError: err,
+            data: initState.data,
+          };
+        }
+      },
+    },
+  }
+);
+```
+
+To use it:
+
+```ts
+users.act.fetchUsers("Bearer token: 123");
+// > { loading: true, data: [] }
+// > { loading: false, data: [ ... ] }
+```
+
+#### Interruptions
+
+Procedures can be interrupted, this means that if another state update is dispatched while a procedure is running, next yield statement will not cause an update and never return control back to the procedure (nothing after the yield statement will be executed).
+
+```ts
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const q = quark(0, {
+  procedures: {
+    async *proc() {
+      console.log("first yield");
+      yield 1;
+
+      console.log("sleeping first time");
+      await sleep(100);
+
+      console.log("second yield");
+      yield 2;
+
+      await sleep(100);
+
+      console.log("return");
+      return 3;
+    },
+  },
+});
+
+q.act.proc();
+// > log: first yield
+console.log(q.get()); // > log: 1
+
+await sleep(1);
+// > log: sleeping first time
+
+q.set(-1);
+console.log(q.get()); // > log: -1
+
+await sleep(100);
+// > log: second yield
+console.log(q.get()); // > log: -1
+
+// Return never happens
+```
+
+In the above example, the procedure is interrupted by the `q.set(-1)` call, then when the `yield 2` is reached, it's ignored since a newer update has been dispatched. That same yield is also the last thing that will be executed in that procedure, since any following updates would be ignored anyway.
 
 ### Side Effects
 
@@ -427,29 +526,36 @@ subscribe() method takes a callback as it's argument that's invoked whenever the
 
 Middlewares give you the ability to intercept any state updates and modify or prevent them from occurring as well as observe actions sent to the Quarks.
 
-A middleware ought to be a function taking up to 5 arguments:
+A middleware is given one object as it's argument with the following properties:
 
-- arg_0 - `function getState(): T` - method which returns the current Quark state value
-- arg_1 - `action: SetStateAction<T, M>` - dispatched value, this is the same as what is provided to the set() function argument
-- arg_2 - `function resume(v: SetStateAction<T, M>): void` - this method will resume the update flow, value provided to it will be forwarded to the next middleware
-- arg_3 - `function set(v: SetStateAction<T, M>): void` - this method allows to break out from the update flow and set the state immediately bypassing any following middlewares
-- arg_4 - `updateType: 'sync' | 'async'` - this argument indicates if the source of the update was synchronous or asynchronous, whatever is provided to the `set()` method will always have a `sync` type at first, then if the passed value is a Promise or a function returning a Promise, the resolved value from that Promise will be given to the middleware with a type of `async`.
+- getState - `() => T` - method which returns the current Quark state value
+- action - `SetStateAction<T, M> | QuarkCustomProcedure<T, any[]>` - dispatched value, this is the same as what is provided to the set() function argument or in case of async procedure this is the generator function
+- resume - `(v: SetStateAction<T, M> | QuarkCustomProcedure<T, any[]>) => void` - this method will resume the update flow, value provided to it will be forwarded to the next middleware
+- set - `(v: SetStateAction<T, M>) => void` - this method allows to break out from the update flow and set the state immediately bypassing any following middlewares
+- updateType - `'sync' | 'async' | 'function' | 'async-generator'` - this argument indicates what the source of this update is
+- updater - an internal interface used to dispatch state updated
 
 ##### Example
 
 A naive middleware that will catch any errors thrown by an action.
 
 ```ts
-const catchMiddleware: QuarkMiddleware<number, never> = (
+const catchMiddleware: QuarkMiddleware<number, never> = ({
   getState,
   action,
-  resume
-) => {
-  try {
-    resume(action);
-  } catch (e) {
-    console.error("An error occurred during state update!");
+  resume,
+  updateType,
+}) => {
+  if (updateType === "function") {
+    return resume((...args) => {
+      try {
+        return action(...args);
+      } catch (e) {
+        console.error("An error occurred in the given dispatch function!");
+      }
+    });
   }
+  return resume(action);
 };
 
 const counter = quark(0, { middlewares: [catchMiddleware] });
@@ -457,7 +563,7 @@ const counter = quark(0, { middlewares: [catchMiddleware] });
 // The action in this case will be a function
 counter.set(() => {
   throw new Error();
-}); // Output: 'An error occurred during state update!'
+}); // log: 'An error occurred in the given dispatch function!'
 ```
 
 #### Creating a Middleware
@@ -471,11 +577,11 @@ This can be easily achieved with a right middleware.
 ##### Example
 
 ```ts
-const numParserMiddleware: QuarkMiddleware<number, string> = (
+const numParserMiddleware: QuarkMiddleware<number, string> = ({
   getState,
   action,
-  resume
-) => {
+  resume,
+}) => {
   // If the action is a string, rather than a number, parse it to a number and continue the update with it
   if (typeof action === "string") {
     const num = Number(action);
