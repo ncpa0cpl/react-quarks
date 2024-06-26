@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type {
   ParseHookSelectors,
   QuarkContext,
@@ -5,18 +6,6 @@ import type {
   QuarkSelectors,
   StandaloneSelectors,
 } from "../Types";
-import { generateStandaloneSelectorHook } from ".";
-
-/**
- * @internal
- */
-function generatePredefinedSelectHook<T, U, ET, ARGS extends any[]>(
-  self: QuarkContext<T, ET>,
-  selector: QuarkSelector<T, ARGS, U>,
-) {
-  const hook = generateStandaloneSelectorHook(self);
-  return (...args: ARGS) => hook(selector, ...args);
-}
 
 /**
  * Generate `selector` React Hooks based on the selectors defined in the Quark
@@ -32,18 +21,20 @@ function generatePredefinedSelectHook<T, U, ET, ARGS extends any[]>(
 export function generateCustomSelectors<
   T,
   ET,
-  S extends QuarkSelectors<T, any>,
->(self: QuarkContext<T, ET>, selectors: S): StandaloneSelectors<T, S> {
-  const entries = Object.entries(selectors);
+  S extends QuarkSelectors<T, any>
+>(
+  self: QuarkContext<T, ET>,
+  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>
+): StandaloneSelectors<T, S> {
   return Object.fromEntries(
-    entries
+    selectors
       .map(([selectorName, selectorMethod]) => {
         return [
           selectorName,
           (...args: any[]) => selectorMethod(self.value, ...args),
         ];
       })
-      .concat([["$", (selectFn: Function) => selectFn(self.value)]]),
+      .concat([["$", (selectFn: Function) => selectFn(self.value)]])
   ) as unknown as StandaloneSelectors<T, S>;
 }
 
@@ -61,16 +52,31 @@ export function generateCustomSelectors<
 export function generateCustomHookSelectors<
   T,
   ET,
-  S extends QuarkSelectors<T, any>,
->(self: QuarkContext<T, ET>, selectors: S): ParseHookSelectors<S> {
-  const entries = Object.entries(selectors);
+  S extends QuarkSelectors<T, any>
+>(
+  self: QuarkContext<T, ET>,
+  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>
+): ParseHookSelectors<S> {
   return Object.fromEntries(
-    entries.map(([selectorName, selectorMethod]) => {
-      const wrappedSelector = generatePredefinedSelectHook(
-        self,
-        selectorMethod.bind(selectors),
-      );
-      return [selectorName, wrappedSelector];
-    }),
+    selectors.map(([selectorName, selector]) => {
+      const boundSelector = (...args: any[]) => {
+        return selector(self.value, ...args);
+      };
+      return [selectorName, hookifySelector(self, boundSelector)];
+    })
   ) as unknown as ParseHookSelectors<S>;
+}
+
+function hookifySelector<T, ET, R>(
+  self: QuarkContext<T, ET>,
+  select: (...args: any[]) => R
+) {
+  const subscribe = (callback: () => void) => {
+    self.subscribers.add(callback);
+    return () => self.subscribers.delete(callback);
+  };
+
+  return (...args: any[]) => {
+    return useSyncExternalStore(subscribe, () => select(...args));
+  };
 }

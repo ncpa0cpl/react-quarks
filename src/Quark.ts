@@ -6,6 +6,7 @@ import type {
   QuarkConfig,
   QuarkContext,
   QuarkMiddleware,
+  QuarkSelector,
   QuarkSelectors,
   Widen,
 } from "./Types";
@@ -20,6 +21,7 @@ import {
   generateUseHook,
   isUpdateNecessary,
 } from "./Utilities";
+import { createCachedSelector } from "./Utilities/CreateCachedSelector";
 import { generateCustomProcedures } from "./Utilities/GenerateCustomProcedures";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
@@ -74,15 +76,18 @@ export function quark<
     config?.procedures ?? ({} as P)
   );
 
-  const customSelectors = generateCustomSelectors(
-    self,
-    config?.selectors ?? ({} as S)
+  const selectors = Object.entries(config?.selectors ?? ({} as S)).map(
+    ([key, selector]) => {
+      return [key, createCachedSelector(selector)] as [
+        keyof S,
+        QuarkSelector<T, any>
+      ];
+    }
   );
 
-  const customHookSelectors = generateCustomHookSelectors(
-    self,
-    config?.selectors ?? ({} as S)
-  );
+  const customSelectors = generateCustomSelectors(self, selectors);
+
+  const customHookSelectors = generateCustomHookSelectors(self, selectors);
 
   const get = () => self.value as DeepReadonly<T>;
 

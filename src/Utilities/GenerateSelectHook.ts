@@ -1,3 +1,4 @@
+import React from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type {
   ParseHookSelectors,
@@ -5,11 +6,14 @@ import type {
   QuarkSelector,
   QuarkSelectors,
 } from "../Types";
-import { useCachedSelector } from "./UseCachedSelector";
+import { createCachedSelector } from "./CreateCachedSelector";
 
-export function generateStandaloneSelectorHook<T, ET>(
-  self: QuarkContext<T, ET>,
-) {
+const CachedSelectors = new WeakMap<
+  QuarkSelector<any, any, any>,
+  QuarkSelector<any, any, any>
+>();
+
+function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
     return () => self.subscribers.delete(callback);
@@ -19,11 +23,23 @@ export function generateStandaloneSelectorHook<T, ET>(
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
   ) => {
-    const getSnapshot = useCachedSelector(selector, self, args);
+    const latestArgs = React.useRef<ARGS>(args);
+    latestArgs.current = args;
 
-    const value = useSyncExternalStore(subscribe, getSnapshot);
+    const cachedSelector = React.useMemo(() => {
+      let select = CachedSelectors.get(selector);
+      if (!select) {
+        select = createCachedSelector(selector);
+        CachedSelectors.set(selector, select);
+      }
 
-    return value;
+      return select;
+      // return () => select(self.value, ...latestArgs.current);
+    }, [selector]);
+
+    return useSyncExternalStore(subscribe, () =>
+      cachedSelector(self.value, ...latestArgs.current)
+    );
   };
 }
 
@@ -38,10 +54,10 @@ export function generateStandaloneSelectorHook<T, ET>(
  */
 export function generateSelectorHooks<T, ET, S extends QuarkSelectors<T, any>>(
   self: QuarkContext<T, ET>,
-  hookSelectors: ParseHookSelectors<S>,
+  hookSelectors: ParseHookSelectors<S>
 ) {
   return {
-    $: generateStandaloneSelectorHook(self),
+    $: createStandaloneSelectorHook(self),
     ...hookSelectors,
   };
 }

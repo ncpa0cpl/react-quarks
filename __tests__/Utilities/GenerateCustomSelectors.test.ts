@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { generateCustomSelectors } from "../../src/Utilities";
 import { getTestQuarkContext } from "../helpers";
 
+const entries = Object.entries as <T>(o: T) => [[keyof T, T[keyof T]]];
+
 describe("generateCustomSelectors()", () => {
   beforeEach(() => {
     vitest.resetAllMocks();
@@ -16,14 +18,17 @@ describe("generateCustomSelectors()", () => {
 
     const originalContext = cloneDeep(context);
 
-    const selectors = generateCustomSelectors(context, {
-      prop1(state) {
-        return state.prop1;
-      },
-      prop2(state) {
-        return state.prop2;
-      },
-    });
+    const selectors = generateCustomSelectors(
+      context,
+      entries({
+        prop1(state) {
+          return state.prop1;
+        },
+        prop2(state) {
+          return state.prop2;
+        },
+      })
+    );
 
     expect(selectors).toMatchObject({
       prop1: expect.any(Function),
@@ -45,9 +50,16 @@ describe("generateCustomSelectors()", () => {
       return state.prop1;
     });
 
-    const selectors = generateCustomSelectors(context, {
-      prop1: useSelectMock,
-    });
+    const selectors = generateCustomSelectors<
+      typeof initValue,
+      any,
+      { prop1(): string }
+    >(
+      context,
+      entries({
+        prop1: useSelectMock,
+      })
+    );
 
     const hook = renderHook(() => {
       return selectors.prop1();
@@ -57,7 +69,7 @@ describe("generateCustomSelectors()", () => {
     expect(useSelectMock).toHaveBeenLastCalledWith(initValue);
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual("foo");
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual(
-      hook.result.current,
+      hook.result.current
     );
   });
 });

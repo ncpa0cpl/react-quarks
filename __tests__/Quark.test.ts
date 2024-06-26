@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, vitest } from "vitest";
 import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
-import { createImmerMiddleware, quark } from "../src";
+import { composeSelectors, createImmerMiddleware, quark } from "../src";
 import {
   array,
   controlledPromise,
@@ -139,7 +139,7 @@ describe("quark()", () => {
 
       expect(q.select.$(selectV1)).toEqual(10);
       expect(q.select.$(selectSum)).toEqual(331);
-    })
+    });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
         const mapMiddleware: QuarkMiddleware<any, 1 | 2> = ({
@@ -942,48 +942,6 @@ describe("quark()", () => {
       await state.waitFor(() => expect(state.result.current).toEqual(5));
       expect(reRenderCounter).toHaveBeenCalledTimes(2);
     });
-    it("custom selectors correctly avoid unnecessary re-renders", async () => {
-      const q = quark(
-        { value1: 1, value2: 321 },
-        {
-          actions: {
-            SetVal1: (s, v: number) => ({ ...s, value1: v }),
-            SetVal2: (s, v: number) => ({ ...s, value2: v }),
-          },
-          selectors: {
-            value1: (s) => s.value1,
-          },
-        }
-      );
-      const reRenderCounter = vitest.fn();
-
-      const state = renderHook(() => {
-        reRenderCounter();
-        return q.useSelector.value1();
-      });
-
-      expect(q.get().value2).toEqual(321);
-      expect(state.result.current).toEqual(1);
-      expect(reRenderCounter).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        q.act.SetVal1(15);
-        await sleep(0);
-      });
-
-      expect(q.get().value2).toEqual(321);
-      await state.waitFor(() => expect(state.result.current).toEqual(15));
-      expect(reRenderCounter).toHaveBeenCalledTimes(2);
-
-      await act(async () => {
-        q.act.SetVal2(55);
-        await sleep(20);
-      });
-
-      expect(q.get().value2).toEqual(55);
-      expect(state.result.current).toEqual(15);
-      expect(reRenderCounter).toHaveBeenCalledTimes(2);
-    });
     it("useSelector() correctly handles situations where the selector returns a different value on each rerender", async () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
@@ -1015,6 +973,12 @@ describe("quark()", () => {
       rerender();
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
+
+      q.set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+      await sleep(0);
+
+      expect(result.current).toEqual([0, 2, 4, 6, 8, 10]);
     });
     it("custom selectors correctly handles arguments", async () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], {
@@ -1041,6 +1005,235 @@ describe("quark()", () => {
       rerender({ a: 1, b: 5 });
 
       expect(result.current).toEqual(10);
+    });
+    describe("avoid unnecessary re-renders", () => {
+      it("custom selectors with primitive", async () => {
+        const q = quark(
+          { value1: 1, value2: 321 },
+          {
+            actions: {
+              SetVal1: (s, v: number) => ({ ...s, value1: v }),
+              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+            },
+            selectors: {
+              value1: (s) => s.value1,
+            },
+          }
+        );
+        const reRenderCounter = vitest.fn();
+
+        const state = renderHook(() => {
+          reRenderCounter();
+          return q.useSelector.value1();
+        });
+
+        expect(q.get().value2).toEqual(321);
+        expect(state.result.current).toEqual(1);
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          q.act.SetVal1(15);
+          await sleep(0);
+        });
+
+        expect(q.get().value2).toEqual(321);
+        await state.waitFor(() => expect(state.result.current).toEqual(15));
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+
+        await act(async () => {
+          q.act.SetVal2(55);
+          await sleep(20);
+        });
+
+        expect(q.get().value2).toEqual(55);
+        expect(state.result.current).toEqual(15);
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+      });
+      it("custom selector of nested stable object", async () => {
+        const q = quark(
+          { box1: { value: "hello" }, box2: { value: "world" } },
+          {
+            actions: {
+              SetVal1: (s, v: string) => ({ ...s, box1: { value: v } }),
+              SetVal2: (s, v: string) => ({ ...s, box2: { value: v } }),
+            },
+            selectors: {
+              value1: (s) => s.box1,
+            },
+          }
+        );
+        const reRenderCounter = vitest.fn();
+
+        const state = renderHook(() => {
+          reRenderCounter();
+          return q.useSelector.value1();
+        });
+
+        expect(state.result.current).toEqual({ value: "hello" });
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          q.act.SetVal1("HELLO");
+          await sleep(0);
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current).toEqual({ value: "HELLO" })
+        );
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+
+        await act(async () => {
+          q.act.SetVal2("WORLD");
+          await sleep(20);
+        });
+
+        expect(state.result.current).toEqual({ value: "HELLO" });
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+      });
+      it("custom composed selectors", async () => {
+        const q = quark(
+          { value1: 1, value2: 321 },
+          {
+            actions: {
+              SetVal1: (s, v: number) => ({ ...s, value1: v }),
+              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+            },
+            selectors: {
+              boxed: composeSelectors(
+                (s) => s.value1,
+                (v1) => ({ value: v1 })
+              ),
+            },
+          }
+        );
+        const reRenderCounter = vitest.fn();
+
+        const state = renderHook(() => {
+          reRenderCounter();
+          return q.useSelector.boxed();
+        });
+
+        expect(q.get().value2).toEqual(321);
+        expect(state.result.current).toEqual({ value: 1 });
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          q.act.SetVal1(15);
+          await sleep(0);
+        });
+
+        expect(q.get().value2).toEqual(321);
+        await state.waitFor(() =>
+          expect(state.result.current).toEqual({ value: 15 })
+        );
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+
+        await act(async () => {
+          q.act.SetVal2(55);
+          await sleep(20);
+        });
+
+        expect(q.get().value2).toEqual(55);
+        expect(state.result.current).toEqual({ value: 15 });
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+      });
+      it("custom composed selectors with arguments", async () => {
+        const q = quark([{ value: "1" }, { value: "2" }, { value: "3" }], {
+          selectors: {
+            boxed: composeSelectors(
+              (s, idx: number) => s[idx],
+              (v, idx) => v[idx],
+              (v1, v2, idx) => ({ v1, v2, idx })
+            ),
+          },
+        });
+        const reRenderCounter = vitest.fn();
+
+        const state = renderHook(
+          (props: { idx: number }) => {
+            reRenderCounter();
+            return q.useSelector.boxed(props.idx);
+          },
+          { initialProps: { idx: 0 } }
+        );
+
+        expect(state.result.current).toEqual({
+          idx: 0,
+          v1: { value: "1" },
+          v2: { value: "1" },
+        });
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          q.set((current) => {
+            return current.map((v, idx) => {
+              if (idx === 0) return { value: "15" };
+              return v;
+            });
+          });
+          await sleep(0);
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current).toEqual({
+            idx: 0,
+            v1: { value: "15" },
+            v2: { value: "15" },
+          })
+        );
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+
+        await act(async () => {
+          q.set((current) => {
+            return current.map((v, idx) => {
+              if (idx === 0) return v;
+              if (idx === 1) return { value: "432" };
+              if (idx === 2) return { value: "000" };
+              return v;
+            });
+          });
+          await sleep(0);
+        });
+
+        expect(state.result.current).toEqual({
+          idx: 0,
+          v1: { value: "15" },
+          v2: { value: "15" },
+        });
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+
+        state.rerender({ idx: 1 });
+        expect(state.result.current).toEqual({
+          idx: 1,
+          v1: { value: "432" },
+          v2: { value: "432" },
+        });
+        expect(reRenderCounter).toHaveBeenCalledTimes(3);
+
+        state.rerender({ idx: 2 });
+        expect(state.result.current).toEqual({
+          idx: 2,
+          v1: { value: "000" },
+          v2: { value: "000" },
+        });
+        expect(reRenderCounter).toHaveBeenCalledTimes(4);
+
+        await act(async () => {
+          q.set((current) => {
+            return current.map((v, idx) => {
+              if (idx === 0) return { value: "111" };
+              return v;
+            });
+          });
+          await sleep(0);
+        });
+        expect(state.result.current).toEqual({
+          idx: 2,
+          v1: { value: "000" },
+          v2: { value: "000" },
+        });
+        expect(reRenderCounter).toHaveBeenCalledTimes(4);
+      });
     });
     describe("procedures", () => {
       it("correctly update the state with yielded values", async () => {
