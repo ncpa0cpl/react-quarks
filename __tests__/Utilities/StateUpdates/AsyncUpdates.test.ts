@@ -1,163 +1,93 @@
-import { beforeEach, describe, expect, it, vitest } from "vitest";
-import {
-  asyncUpdatesController,
-  CancelablePromise,
-  extractIsPromiseCanceled,
-} from "../../../src/Utilities/StateUpdates/AsyncUpdates";
+import { describe, expect, it, vitest } from "vitest";
+import { createUpdateController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
 import { getTestQuarkContext, sleep } from "../../helpers";
 
 describe("Async Updates", () => {
-  describe("CancelablePromise()", () => {
-    const consoleErrorMock = vitest.fn();
-
-    beforeEach(() => {
-      vitest.resetAllMocks();
-      vitest.spyOn(console, "error").mockImplementation(consoleErrorMock);
-    });
-
-    describe("with resolved promise", () => {
-      it("should propagate thenable function", async () => {
-        const myPromise = Promise.resolve("foo");
-
-        const cancelablePromise = CancelablePromise(myPromise);
-
-        const onResolve = vitest.fn();
-
-        cancelablePromise.then(onResolve);
-
-        await sleep(0);
-
-        expect(extractIsPromiseCanceled(myPromise)).toEqual(false);
-        expect(onResolve).toHaveBeenCalledTimes(1);
-        expect(onResolve).toHaveBeenCalledWith("foo");
-
-        expect(consoleErrorMock).toHaveBeenCalledTimes(0);
-      });
-
-      it("should prevent thenable function from executing when canceled", async () => {
-        const myPromise = Promise.resolve("foo");
-
-        const cancelablePromise = CancelablePromise(myPromise);
-
-        const onResolve = vitest.fn();
-
-        cancelablePromise.then(onResolve);
-
-        cancelablePromise.cancel();
-
-        await sleep(0);
-
-        expect(extractIsPromiseCanceled(myPromise)).toEqual(true);
-        expect(onResolve).toHaveBeenCalledTimes(0);
-
-        expect(consoleErrorMock).toHaveBeenCalledTimes(0);
-      });
-    });
-
-    describe("with rejected promise", () => {
-      it("should log the error, and not execute the thenable", async () => {
-        const myPromise = Promise.reject(new Error("bar"));
-
-        const cancelablePromise = CancelablePromise(myPromise);
-
-        const onResolve = vitest.fn();
-
-        cancelablePromise.then(onResolve).catch(() => {});
-
-        await sleep(0);
-
-        expect(extractIsPromiseCanceled(myPromise)).toEqual(false);
-        expect(onResolve).toHaveBeenCalledTimes(0);
-
-        expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-        expect(consoleErrorMock).toHaveBeenCalledWith(
-          new Error(
-            "Asynchronous state update was unsuccessful due to an error. [bar]"
-          )
-        );
-      });
-
-      it("should not execute the thenable when canceled nor log it", async () => {
-        const myPromise = Promise.reject("bar");
-
-        const cancelablePromise = CancelablePromise(myPromise);
-
-        const onResolve = vitest.fn();
-
-        cancelablePromise.then(onResolve).catch(() => {});
-
-        cancelablePromise.cancel();
-
-        await sleep(0);
-
-        expect(extractIsPromiseCanceled(myPromise)).toEqual(true);
-        expect(onResolve).toHaveBeenCalledTimes(0);
-
-        expect(consoleErrorMock).toHaveBeenCalledTimes(0);
-      });
-    });
-  });
-
   describe("asyncUpdatesController()", () => {
     it("when allowRaceConditions option is enabled updates are not canceled", async () => {
-      const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: true } })
-      );
+      const context = getTestQuarkContext({
+        configOptions: { allowRaceConditions: true },
+      });
+      const setStateMock = vitest.fn((v: string) => {
+        context.value = v;
+      });
+
+      const controller = createUpdateController(context, setStateMock);
 
       const myPromise = Promise.resolve("foo");
 
-      const setStateMock = vitest.fn();
+      const p1Updater = controller.atomicUpdate();
+      myPromise.then((v) => {
+        p1Updater.update(v);
+      });
 
-      controller.dispatchAsyncUpdate(myPromise, setStateMock);
-
-      controller.preventLastAsyncUpdate();
+      p1Updater.cancel();
 
       await sleep(0);
 
       expect(setStateMock).toHaveBeenCalledTimes(1);
-      expect(extractIsPromiseCanceled(myPromise)).toEqual(false);
+      expect(context.value).toEqual("foo");
     });
 
     it("when allowRaceConditions option is disabled updates are canceled", async () => {
-      const controller = asyncUpdatesController(
-        getTestQuarkContext({ configOptions: { allowRaceConditions: false } })
-      );
+      const context = getTestQuarkContext({
+        configOptions: { allowRaceConditions: false },
+      });
+      const setStateMock = vitest.fn((v: string) => {
+        context.value = v;
+      });
+
+      const controller = createUpdateController(context, setStateMock);
 
       const myPromise = Promise.resolve("foo");
 
-      const setStateMock = vitest.fn();
+      const p1Updater = controller.atomicUpdate();
+      myPromise.then((v) => {
+        p1Updater.update(v);
+      });
 
-      controller.dispatchAsyncUpdate(myPromise, setStateMock);
-
-      controller.preventLastAsyncUpdate();
+      p1Updater.cancel();
 
       await sleep(0);
 
       expect(setStateMock).toHaveBeenCalledTimes(0);
-      expect(extractIsPromiseCanceled(myPromise)).toEqual(true);
+      expect(context.value).toEqual("");
     });
 
     it("consecutive dispatches should cancel the previous updates", async () => {
-      const controller = asyncUpdatesController(getTestQuarkContext());
+      const context = getTestQuarkContext({
+        configOptions: { allowRaceConditions: false },
+      });
+      const setStateMock = vitest.fn((v: string) => {
+        context.value = v;
+      });
+
+      const controller = createUpdateController(context, setStateMock);
 
       const myPromise1 = Promise.resolve("foo");
       const myPromise2 = Promise.resolve("bar");
       const myPromise3 = Promise.resolve("baz");
 
-      const setStateMock = vitest.fn();
+      const p1Updater = controller.atomicUpdate();
+      myPromise1.then((v) => {
+        p1Updater.update(v);
+      });
 
-      controller.dispatchAsyncUpdate(myPromise1, setStateMock);
-      controller.dispatchAsyncUpdate(myPromise2, setStateMock);
-      controller.dispatchAsyncUpdate(myPromise3, setStateMock);
+      const p2Updater = controller.atomicUpdate();
+      myPromise2.then((v) => {
+        p2Updater.update(v);
+      });
+
+      const p3Updater = controller.atomicUpdate();
+      myPromise3.then((v) => {
+        p3Updater.update(v);
+      });
 
       await sleep(0);
 
       expect(setStateMock).toHaveBeenCalledTimes(1);
       expect(setStateMock).toHaveBeenLastCalledWith("baz");
-
-      expect(extractIsPromiseCanceled(myPromise1)).toEqual(true);
-      expect(extractIsPromiseCanceled(myPromise2)).toEqual(true);
-      expect(extractIsPromiseCanceled(myPromise3)).toEqual(false);
+      expect(context.value).toEqual("baz");
     });
   });
 });

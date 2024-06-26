@@ -2,7 +2,7 @@ import type { GetMiddlewareTypes, QuarkCustomEffect } from ".";
 import type { QuarkMiddleware } from "./Middlewares";
 import type { QuarkComparatorFn } from "./Quark";
 
-export type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
+export type QuarkConfig<T, A, P, S, M extends QuarkMiddleware<any, any>[]> = {
   /**
    * This method defines when the subscribed component should update. It
    * receives as it's arguments the old quark state and the new state and
@@ -49,6 +49,7 @@ export type QuarkConfig<T, A, S, M extends QuarkMiddleware<any, any>[]> = {
    *   counter.add(123); // add 123 to the counter
    */
   actions?: A;
+  procedures?: P;
   /**
    * Custom selectors allow for creating shortcuts for the `useSelector()` hook.
    *

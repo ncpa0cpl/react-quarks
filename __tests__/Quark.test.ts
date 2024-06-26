@@ -1,9 +1,10 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, vitest } from "vitest";
 import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
-import { quark } from "../src";
+import { createImmerMiddleware, quark } from "../src";
 import {
   array,
+  controlledPromise,
   forAwait,
   rndBool,
   rndString,
@@ -11,7 +12,6 @@ import {
   sleep,
   testPromiseGenerator,
 } from "./helpers";
-
 
 describe("quark()", () => {
   describe("correctly works outside react", () => {
@@ -103,7 +103,7 @@ describe("quark()", () => {
               return { value: state.value * by };
             },
           },
-        },
+        }
       );
 
       expect(q.get()).toMatchObject({ value: 0 });
@@ -118,15 +118,15 @@ describe("quark()", () => {
     });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
-        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = (
-          _,
-          value,
+        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = ({
           resume,
-        ) => {
-          if (typeof value === "number") {
-            resume({ 1: "BAR", 2: "BAZ" }[value]);
+          action,
+          updateType,
+        }) => {
+          if (updateType !== "async-generator" && typeof action === "number") {
+            resume({ 1: "BAR", 2: "BAZ" }[action]);
           } else {
-            resume(value);
+            resume(action);
           }
         };
 
@@ -141,29 +141,33 @@ describe("quark()", () => {
         expect(q.get()).toEqual("QUX");
       });
       it("resume() correctly pipes results from one middleware to the next", () => {
-        const multiplyMiddleware: QuarkMiddleware<number, number> = (
-          _,
-          value,
+        const multiplyMiddleware: QuarkMiddleware<any, number> = ({
+          action,
           resume,
-        ) => {
-          if (typeof value === "number") resume(value * 2);
-          else resume(value);
+          updateType,
+        }) => {
+          if (updateType !== "async-generator" && typeof action === "number") {
+            return resume(action * 2);
+          }
+          resume(action);
         };
-        const subtractMiddleware: QuarkMiddleware<number, number> = (
-          _,
-          value,
+        const subtractMiddleware: QuarkMiddleware<any, number> = ({
+          action,
           resume,
-        ) => {
-          if (typeof value === "number") resume(value - 1);
-          else resume(value);
+          updateType,
+        }) => {
+          if (updateType !== "async-generator" && typeof action === "number")
+            resume(action - 1);
+          else resume(action);
         };
-        const squareMiddleware: QuarkMiddleware<number, number> = (
-          _,
-          value,
+        const squareMiddleware: QuarkMiddleware<any, number> = ({
+          action,
           resume,
-        ) => {
-          if (typeof value === "number") resume(value ** 2);
-          else resume(value);
+          updateType,
+        }) => {
+          if (updateType !== "async-generator" && typeof action === "number")
+            resume(action ** 2);
+          else resume(action);
         };
 
         const q = quark(0, {
@@ -180,13 +184,13 @@ describe("quark()", () => {
       });
 
       it("set() correctly omits following middlewares", () => {
-        const firstMiddleware = vitest.fn((state, value, resume, set) => {
-          if (typeof value === "number") return set(`${value}`);
-          return resume(value);
+        const firstMiddleware = vitest.fn(({ action, set, resume }) => {
+          if (typeof action === "number") return set(`${action}`);
+          return resume(action);
         }) satisfies QuarkMiddleware<any, number>;
 
-        const secondMiddleware = vitest.fn((state, value, resume, set) => {
-          resume(undefined);
+        const secondMiddleware = vitest.fn(({ resume, action }) => {
+          resume(action);
         }) satisfies QuarkMiddleware<any, undefined>;
 
         const q = quark("FOO", {
@@ -222,7 +226,7 @@ describe("quark()", () => {
       const deriveValue = (
         prevState: Q,
         newState: Q,
-        set: QuarkSetterFn<Q, never>,
+        set: QuarkSetterFn<Q, never>
       ) => {
         if (prevState.value !== newState.value) {
           set((v) => setDerivedValue(v, `${newState.value}`));
@@ -238,7 +242,7 @@ describe("quark()", () => {
               setDerivedValue,
             },
             effect: deriveValue,
-          },
+          }
         );
 
         expect(q.get()).toMatchObject({ value: 0, derivedValue: "0" });
@@ -256,7 +260,7 @@ describe("quark()", () => {
               setDerivedValue,
             },
             effect: deriveValue,
-          },
+          }
         );
 
         expect(q.get()).toMatchObject({ value: 0, derivedValue: "0" });
@@ -280,7 +284,7 @@ describe("quark()", () => {
         const deriveValue = (
           prevState: Q,
           newState: Q,
-          set: QuarkSetterFn<Q, never>,
+          set: QuarkSetterFn<Q, never>
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));
@@ -309,7 +313,7 @@ describe("quark()", () => {
               increment,
             },
             effect: deriveValue,
-          },
+          }
         );
 
         expect(q.get()).toMatchObject({
@@ -438,7 +442,7 @@ describe("quark()", () => {
               value2: (s) => s.value2,
               valueSum: (s) => s.value1 + s.value2,
             },
-          },
+          }
         );
 
         expect(q.selectValue1()).toEqual(5);
@@ -462,7 +466,7 @@ describe("quark()", () => {
               v: (s, n: 1 | 2) => s[`value${n}`],
               multipliedBy: (s, n: number) => s.value1 * n,
             },
-          },
+          }
         );
 
         expect(q.selectV(1)).toEqual(5);
@@ -473,6 +477,175 @@ describe("quark()", () => {
 
         expect(q.selectV(1)).toEqual(69);
         expect(q.selectMultipliedBy(10)).toEqual(690);
+      });
+    });
+    describe("procedures", () => {
+      it("correctly update the state with yielded values", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure(initState) {
+                yield { ...initState, inProgress: true };
+                const newValue = await p.promise;
+                return { inProgress: false, value: newValue.value };
+              },
+            },
+          }
+        );
+
+        q.runProcedure();
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: true, value: 2 });
+
+        p.resolve({ value: 5 });
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
+      });
+      it("correctly update the state with yielded fn setters", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield (current) => ({ ...current, inProgress: true });
+                const newValue = await p.promise;
+                return () => ({ inProgress: false, value: newValue.value });
+              },
+            },
+          }
+        );
+
+        q.runProcedure();
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: true, value: 2 });
+
+        p.resolve({ value: 5 });
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
+      });
+      it("correctly update the state with yielded fn setters and immer", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 20 },
+          {
+            middlewares: [createImmerMiddleware()],
+            procedures: {
+              async *runProcedure() {
+                yield (draft) => {
+                  draft.inProgress = true;
+                  return draft;
+                };
+                const newValue = await p.promise;
+                return (draft) => {
+                  draft.inProgress = false;
+                  draft.value = newValue.value;
+                  return draft;
+                };
+              },
+            },
+          }
+        );
+
+        q.runProcedure();
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: true, value: 20 });
+
+        p.resolve({ value: 1234 });
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ inProgress: false, value: 1234 });
+      });
+      it("interrupts a procedure if another state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+            },
+          }
+        );
+
+        q.runProcedure();
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: true, value: 0 });
+
+        p1.resolve({ value: 10 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: true, value: 10 });
+
+        q.set({ inProgress: false, value: 15 });
+
+        expect(q.get()).toMatchObject({ inProgress: false, value: 15 });
+
+        p2.resolve({ value: 20 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: false, value: 15 });
+      });
+      it("interrupts a procedure if an async state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+            },
+            actions: {
+              async fetchValue(s) {
+                await sleep(0);
+                return { value: 100, inProgress: false };
+              },
+            },
+          }
+        );
+
+        q.runProcedure();
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: true, value: 0 });
+
+        await q.fetchValue();
+        expect(q.get()).toMatchObject({ inProgress: false, value: 100 });
+
+        p1.resolve({ value: 10 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: false, value: 100 });
+
+        p2.resolve({ value: 20 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: false, value: 100 });
       });
     });
   });
@@ -490,7 +663,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 5 }),
+        expect(state.result.current.value).toMatchObject({ value: 5 })
       );
     });
     it("use() and local set() work correctly for async updates", async () => {
@@ -505,13 +678,13 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 5 }),
+        expect(state.result.current.value).toMatchObject({ value: 5 })
       );
     });
     it("use() correctly exposes custom actions", async () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
+        { actions: { increment: (s) => ({ value: s.value + 1 }) } }
       );
 
       const state = renderHook(() => q.use());
@@ -523,7 +696,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 1 }),
+        expect(state.result.current.value).toMatchObject({ value: 1 })
       );
     });
     it("use() correctly exposes custom selectors with parameters", async () => {
@@ -541,7 +714,7 @@ describe("quark()", () => {
         },
         {
           initialProps: { index: 2 },
-        },
+        }
       );
 
       expect(state.result.current).toEqual("c");
@@ -557,7 +730,7 @@ describe("quark()", () => {
           actions: {
             incrementAsync: (s) => Promise.resolve({ value: s.value + 1 }),
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -569,7 +742,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 1 }),
+        expect(state.result.current.value).toMatchObject({ value: 1 })
       );
     });
     it("use() correctly triggers custom effects when local set is called", async () => {
@@ -582,7 +755,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -594,7 +767,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 }),
+        expect(state.result.current.value).toMatchObject({ value: 2 })
       );
     });
     it("use() correctly triggers custom effects when global set is called", async () => {
@@ -607,7 +780,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -619,7 +792,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 }),
+        expect(state.result.current.value).toMatchObject({ value: 2 })
       );
     });
     it("use() correctly triggers custom effects when local custom action is called", async () => {
@@ -632,7 +805,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -644,7 +817,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 }),
+        expect(state.result.current.value).toMatchObject({ value: 2 })
       );
     });
     it("use() correctly triggers custom effects when global custom action is called", async () => {
@@ -657,7 +830,7 @@ describe("quark()", () => {
               set({ value: curr.value + 1 });
             }
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -669,7 +842,7 @@ describe("quark()", () => {
       });
 
       await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 2 }),
+        expect(state.result.current.value).toMatchObject({ value: 2 })
       );
     });
     it("use() correctly rerenders when an effect dispatches a Promise", async () => {
@@ -683,11 +856,11 @@ describe("quark()", () => {
                 sleep(10).then((): { value: number; derivedValue: string } => ({
                   ...current,
                   derivedValue: `${current.value}`,
-                })),
+                }))
               );
             }
           },
-        },
+        }
       );
 
       const state = renderHook(() => q.use());
@@ -705,7 +878,7 @@ describe("quark()", () => {
         expect(state.result.current.value).toMatchObject({
           value: 1,
           derivedValue: "1",
-        }),
+        })
       );
     });
     it("useSelector() correctly avoids unnecessary re-renders", async () => {
@@ -756,7 +929,7 @@ describe("quark()", () => {
           selectors: {
             value1: (s) => s.value1,
           },
-        },
+        }
       );
       const reRenderCounter = vitest.fn();
 
@@ -791,7 +964,7 @@ describe("quark()", () => {
       const q = quark([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       const { result, rerender } = renderHook(() =>
-        q.useSelector((s) => s.filter((x) => !(x % 2))),
+        q.useSelector((s) => s.filter((x) => !(x % 2)))
       );
 
       expect(result.current).toEqual([0, 2, 4, 6, 8]);
@@ -833,7 +1006,7 @@ describe("quark()", () => {
             a: 0,
             b: 3,
           },
-        },
+        }
       );
 
       expect(result.current).toEqual(3);
@@ -871,70 +1044,70 @@ describe("quark()", () => {
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(24),
+            runTestWithRandomPromiseResolveTime(24)
           );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(64),
+            runTestWithRandomPromiseResolveTime(64)
           );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(128),
+            runTestWithRandomPromiseResolveTime(128)
           );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(256),
+            runTestWithRandomPromiseResolveTime(256)
           );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(512),
+            runTestWithRandomPromiseResolveTime(512)
           );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1024),
+            runTestWithRandomPromiseResolveTime(1024)
           );
         });
       });
@@ -963,35 +1136,35 @@ describe("quark()", () => {
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1),
+            runTestWithRandomPromiseResolveTime(1)
           );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
       });
@@ -1020,70 +1193,70 @@ describe("quark()", () => {
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(24),
+            runTestWithRandomPromiseResolveTime(24)
           );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(64),
+            runTestWithRandomPromiseResolveTime(64)
           );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(128),
+            runTestWithRandomPromiseResolveTime(128)
           );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(256),
+            runTestWithRandomPromiseResolveTime(256)
           );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(512),
+            runTestWithRandomPromiseResolveTime(512)
           );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1024),
+            runTestWithRandomPromiseResolveTime(1024)
           );
         });
       });
@@ -1112,35 +1285,35 @@ describe("quark()", () => {
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1),
+            runTestWithRandomPromiseResolveTime(1)
           );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
       });
@@ -1159,7 +1332,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.generate(() => rndTResolve({ value: rndString() }))
             );
           }
 
@@ -1174,70 +1347,70 @@ describe("quark()", () => {
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(24),
+            runTestWithRandomPromiseResolveTime(24)
           );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(64),
+            runTestWithRandomPromiseResolveTime(64)
           );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(128),
+            runTestWithRandomPromiseResolveTime(128)
           );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(256),
+            runTestWithRandomPromiseResolveTime(256)
           );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(512),
+            runTestWithRandomPromiseResolveTime(512)
           );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1024),
+            runTestWithRandomPromiseResolveTime(1024)
           );
         });
       });
@@ -1253,7 +1426,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.generate(() => rndTResolve({ value: rndString() }))
             );
           }
 
@@ -1268,35 +1441,35 @@ describe("quark()", () => {
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1),
+            runTestWithRandomPromiseResolveTime(1)
           );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
       });
@@ -1312,7 +1485,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.generate(() => rndTResolve({ value: rndString() }))
             );
           }
 
@@ -1327,70 +1500,70 @@ describe("quark()", () => {
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(24),
+            runTestWithRandomPromiseResolveTime(24)
           );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(64),
+            runTestWithRandomPromiseResolveTime(64)
           );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(128),
+            runTestWithRandomPromiseResolveTime(128)
           );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(256),
+            runTestWithRandomPromiseResolveTime(256)
           );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(512),
+            runTestWithRandomPromiseResolveTime(512)
           );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1024),
+            runTestWithRandomPromiseResolveTime(1024)
           );
         });
       });
@@ -1406,7 +1579,7 @@ describe("quark()", () => {
 
           for (const _ in array(batchSize)) {
             q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.generate(() => rndTResolve({ value: rndString() }))
             );
           }
 
@@ -1421,35 +1594,35 @@ describe("quark()", () => {
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1),
+            runTestWithRandomPromiseResolveTime(1)
           );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
       });
@@ -1469,11 +1642,11 @@ describe("quark()", () => {
           for (const _ in array(batchSize)) {
             if (rndBool()) {
               q.set(
-                promises.generate(() => rndTResolve({ value: rndString() })),
+                promises.generate(() => rndTResolve({ value: rndString() }))
               );
             } else {
               q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() })),
+                promises.generate(() => rndTResolve({ value: rndString() }))
               );
             }
           }
@@ -1492,70 +1665,70 @@ describe("quark()", () => {
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
 
         it("(batch size of 24)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(24),
+            runTestWithRandomPromiseResolveTime(24)
           );
         });
 
         it("(batch size of 64)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(64),
+            runTestWithRandomPromiseResolveTime(64)
           );
         });
 
         it("(batch size of 128)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(128),
+            runTestWithRandomPromiseResolveTime(128)
           );
         });
 
         it("(batch size of 256)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(256),
+            runTestWithRandomPromiseResolveTime(256)
           );
         });
 
         it("(batch size of 512)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(512),
+            runTestWithRandomPromiseResolveTime(512)
           );
         });
 
         it("(batch size of 1024)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1024),
+            runTestWithRandomPromiseResolveTime(1024)
           );
         });
       });
@@ -1572,11 +1745,11 @@ describe("quark()", () => {
           for (const _ in array(batchSize)) {
             if (rndBool())
               q.set(
-                promises.generate(() => rndTResolve({ value: rndString() })),
+                promises.generate(() => rndTResolve({ value: rndString() }))
               );
             else
               q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() })),
+                promises.generate(() => rndTResolve({ value: rndString() }))
               );
           }
 
@@ -1592,35 +1765,35 @@ describe("quark()", () => {
         it("(batch size of 1)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(1),
+            runTestWithRandomPromiseResolveTime(1)
           );
         });
 
         it("(batch size of 2)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(2),
+            runTestWithRandomPromiseResolveTime(2)
           );
         });
 
         it("(batch size of 4)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(4),
+            runTestWithRandomPromiseResolveTime(4)
           );
         });
 
         it("(batch size of 8)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(8),
+            runTestWithRandomPromiseResolveTime(8)
           );
         });
 
         it("(batch size of 16)", async () => {
           expect.assertions(32 * 2);
           await forAwait(array(32), () =>
-            runTestWithRandomPromiseResolveTime(16),
+            runTestWithRandomPromiseResolveTime(16)
           );
         });
       });

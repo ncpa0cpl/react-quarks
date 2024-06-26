@@ -1,9 +1,15 @@
 import type { QuarkContext, SetStateAction } from "../../Types";
+import {
+  InitiateProcedureFn,
+  ProcedureStateSetter,
+} from "../../Types/Procedures";
+import { CancelUpdate } from "../CancelUpdate";
 import { applyMiddlewares } from "./ApplyMiddlewares";
-import { asyncUpdatesController } from "./AsyncUpdates";
+import { createUpdateController } from "./AsyncUpdates";
 import { createEventsDebouncer as createEventDebouncer } from "./EventsDispatcher";
 import { processStateUpdate } from "./ProcessStateUpdate";
-import { unpackStateSetter } from "./UnpackStateSetter";
+import { resolveUpdateType } from "./ResolveUpdateType";
+import { unpackStateSetter, unpackStateSetterSync } from "./UnpackStateSetter";
 
 /**
  * Generates a function that allows for updating the state of the Quark.
@@ -17,8 +23,18 @@ import { unpackStateSetter } from "./UnpackStateSetter";
  * @internal
  */
 export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
-  const asyncUpdates = asyncUpdatesController<T, ET>(self);
   const { debounceEvent } = createEventDebouncer();
+  const updateController = createUpdateController(self, (action) => {
+    const previousState = self.value;
+    self.value = action;
+
+    return processStateUpdate({
+      self,
+      previousState,
+      applyMiddlewaresAndUpdateState: set,
+      debounceEvent,
+    });
+  });
 
   /**
    * A method for updating the Quark state, this method can take as it's
@@ -26,25 +42,59 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
    * to the new value.
    */
   const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
-    return applyMiddlewares(self, action, "sync", (action2) =>
-      unpackStateSetter(self, asyncUpdates, action2).then((newState) => {
-        const previousState = self.value;
-        self.value = newState;
+    const updater = updateController.atomicUpdate();
 
-        return processStateUpdate({
-          self,
-          previousState,
-          applyMiddlewaresAndUpdateState: set,
-          debounceEvent,
-        });
-      }),
+    const type = resolveUpdateType(action);
+    return applyMiddlewares(self, action, type, updater, (action2) =>
+      unpackStateSetter(self, updater, action2).then((s) => updater.update(s))
     );
   };
 
   const bareboneSet = (action: SetStateAction<T, ET>) => {
-    return unpackStateSetter(self, asyncUpdates, action).then((newState) => {
+    const updater = updateController.atomicUpdate();
+
+    return unpackStateSetter(self, updater, action).then((newState) => {
+      if (updater.isCanceled) return;
       self.value = newState;
     });
+  };
+
+  const initiateProcedure: InitiateProcedureFn<T> = async (procedure) => {
+    const updater = updateController.atomicUpdate();
+
+    return applyMiddlewares(
+      self,
+      procedure,
+      "async-generator",
+      updater,
+      async (p) => {
+        try {
+          const generator = p();
+          let nextUp: IteratorResult<
+            ProcedureStateSetter<T>,
+            ProcedureStateSetter<T>
+          >;
+          do {
+            if (updater.isCanceled) return;
+
+            nextUp = await generator.next(self.value);
+            const v = nextUp.value;
+
+            const type = resolveUpdateType(v);
+            applyMiddlewares(self, v, type, updater, (action) =>
+              unpackStateSetterSync(self, updater, action).then((newState) => {
+                updater.update(newState);
+              })
+            );
+          } while (!nextUp.done);
+        } catch (err) {
+          if (CancelUpdate.isCancel(err)) {
+            return;
+          }
+          throw err;
+        }
+      }
+    );
   };
 
   return {
@@ -58,5 +108,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
      * subscribents of the state change.
      */
     bareboneSet,
+    initiateProcedure,
+    updateController: updateController,
   };
 }

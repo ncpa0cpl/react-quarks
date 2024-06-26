@@ -20,20 +20,9 @@ export function createTrackedQuark(options: TrackedQuarkParams): TrackedQuark {
     : () => {};
 
   const addHistoryEntry = (entry: AddHistoryEntryParam) => {
-    const change = ["Promise", "Generator"].includes(
-      entry.dispatchedUpdate.type,
-    )
-      ? "Postponed"
-      : "Immediate";
-
     const newEntry: QuarkStateChangeHistoricalEntry = {
       ...entry,
       time: DateTime.now().toMillis(),
-      change,
-      stateAfterUpdate:
-        change === "Postponed"
-          ? entry.initialState.value
-          : entry.dispatchedUpdate.value,
     };
 
     stateChangeHistory.push(newEntry);

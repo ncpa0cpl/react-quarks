@@ -8,25 +8,23 @@ import type {
 } from "./Types/TrackedQuark";
 
 const PROPERTIES_FRIENDLY_NAMES_MAP: Record<HistoryPropertiesKeys, string> = {
+  updateID: "Update ID:",
   value: "Value:",
   type: "Value Type:",
-  change: "Value Change is:",
   initialState: "Previous state value:",
   dispatchedUpdate: "Dispatched state value:",
   name: "Quark Name:",
   source: "Update Source:",
   stackTrace: "Stack Trace:",
-  stateAfterUpdate: "Next state value:",
   time: "Timestamp:",
   isCanceled: "Canceled:",
 };
 
 const columns: HistoryPropertiesKeys[] = [
+  "updateID",
   "initialState",
   "dispatchedUpdate",
-  "stateAfterUpdate",
   "isCanceled",
-  "change",
   "source",
   "time",
   "stackTrace",

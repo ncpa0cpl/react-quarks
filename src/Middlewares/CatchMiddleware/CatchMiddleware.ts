@@ -1,18 +1,44 @@
 import type { QuarkMiddleware } from "../../Types";
+import { CancelUpdate } from "../../Utilities/CancelUpdate";
 
 export function createCatchMiddleware(params?: {
   onCatch: (e: unknown) => void;
 }): QuarkMiddleware<any, undefined> {
   const onCatch = params?.onCatch ?? (() => {});
 
-  return (prevState, value, resume) => {
-    if (value instanceof Promise) {
-      value.catch((e) => onCatch(e));
-      return resume(value);
+  return (params) => {
+    if (params.updateType === "async-generator") {
+      const { action, resume, getState } = params;
+      return resume(async function* () {
+        try {
+          const gen = action();
+
+          let next: IteratorResult<unknown, unknown>;
+          do {
+            next = await gen.next(getState());
+            if (next.done) {
+              return next.value;
+            }
+            yield next.value;
+          } while (!next.done);
+        } catch (e) {
+          onCatch(e);
+          throw new CancelUpdate();
+        }
+      });
+    }
+
+    if (params.action instanceof Promise) {
+      return params.resume(
+        params.action.catch((err) => {
+          onCatch(err);
+          throw new CancelUpdate();
+        })
+      );
     }
 
     try {
-      return resume(value);
+      return params.resume(params.action);
     } catch (e) {
       return onCatch(e);
     }

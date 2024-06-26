@@ -4,56 +4,51 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
 {
   "0_q1": [
     {
-      "change": "Postponed",
       "dispatchedUpdate": {
         "type": "Promise",
-        "value": Promise {
-          Symbol(__quark_internal_is_promise_canceled__): true,
-        },
+        "value": Promise {},
       },
       "initialState": {
         "type": "Value",
         "value": "FOO",
       },
-      "source": "Sync-Dispatch",
+      "isCanceled": false,
+      "source": "Async-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "FOO",
       "time": 1600000000100,
+      "updateID": "6",
     },
     {
-      "change": "Postponed",
       "dispatchedUpdate": {
-        "type": "Generator",
+        "type": "Function",
         "value": [Function],
       },
       "initialState": {
         "type": "Value",
         "value": "FOO",
       },
-      "source": "Sync-Dispatch",
+      "isCanceled": false,
+      "source": "Function-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "FOO",
       "time": 1600000000200,
+      "updateID": "7",
     },
     {
-      "change": "Postponed",
       "dispatchedUpdate": {
         "type": "Promise",
-        "value": Promise {
-          Symbol(__quark_internal_is_promise_canceled__): false,
-        },
+        "value": Promise {},
       },
       "initialState": {
         "type": "Value",
         "value": "FOO",
       },
-      "source": "Sync-Dispatch",
+      "isCanceled": false,
+      "source": "Function-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "FOO",
       "time": 1600000000300,
+      "updateID": "7",
     },
     {
-      "change": "Immediate",
       "dispatchedUpdate": {
         "type": "Value",
         "value": "BAR",
@@ -65,11 +60,10 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "isCanceled": true,
       "source": "Async-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAR",
       "time": 1600000000400,
+      "updateID": "6",
     },
     {
-      "change": "Immediate",
       "dispatchedUpdate": {
         "type": "Value",
         "value": "BAZ",
@@ -78,10 +72,157 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
         "type": "Value",
         "value": "FOO",
       },
-      "source": "Async-Dispatch",
+      "isCanceled": false,
+      "source": "Function-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAZ",
       "time": 1600000000500,
+      "updateID": "7",
+    },
+  ],
+}
+`;
+
+exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
+{
+  "0_q1": [],
+  "1_q2": [
+    {
+      "dispatchedUpdate": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": undefined,
+        },
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Sync-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000100,
+      "updateID": "9",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "AsyncGenerator",
+        "value": [Function],
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000200,
+      "updateID": "11",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "Function",
+        "value": [Function],
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000300,
+      "updateID": "11",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "Value",
+        "value": {
+          "loading": true,
+          "value": undefined,
+        },
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000400,
+      "updateID": "11",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "Function",
+        "value": [Function],
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": true,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000500,
+      "updateID": "11",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "Value",
+        "value": {
+          "loading": true,
+          "value": "foo",
+        },
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": true,
+          "value": undefined,
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000600,
+      "updateID": "11",
+    },
+    {
+      "dispatchedUpdate": {
+        "type": "Value",
+        "value": {
+          "loading": false,
+          "value": "bar",
+        },
+      },
+      "initialState": {
+        "type": "Value",
+        "value": {
+          "loading": true,
+          "value": "foo",
+        },
+      },
+      "isCanceled": false,
+      "source": "Async-Generator-Dispatch",
+      "stackTrace": undefined,
+      "time": 1600000000700,
+      "updateID": "11",
     },
   ],
 }
@@ -91,7 +232,6 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
 {
   "0_q1": [
     {
-      "change": "Immediate",
       "dispatchedUpdate": {
         "type": "Value",
         "value": "BAR",
@@ -100,28 +240,28 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
         "type": "Value",
         "value": "FOO",
       },
+      "isCanceled": false,
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAR",
       "time": 1600000000100,
+      "updateID": "3",
     },
     {
-      "change": "Postponed",
       "dispatchedUpdate": {
-        "type": "Generator",
+        "type": "Function",
         "value": [Function],
       },
       "initialState": {
         "type": "Value",
         "value": "BAR",
       },
-      "source": "Sync-Dispatch",
+      "isCanceled": false,
+      "source": "Function-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAR",
       "time": 1600000000200,
+      "updateID": "4",
     },
     {
-      "change": "Immediate",
       "dispatchedUpdate": {
         "type": "Value",
         "value": "BAZ",
@@ -130,10 +270,11 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
         "type": "Value",
         "value": "BAR",
       },
-      "source": "Sync-Dispatch",
+      "isCanceled": false,
+      "source": "Function-Dispatch",
       "stackTrace": undefined,
-      "stateAfterUpdate": "BAZ",
       "time": 1600000000300,
+      "updateID": "4",
     },
   ],
 }

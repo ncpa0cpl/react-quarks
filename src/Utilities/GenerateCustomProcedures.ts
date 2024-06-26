@@ -1,4 +1,9 @@
-import type { ParseActions, QuarkActions, QuarkSetterFn } from "../Types";
+import { QuarkContext } from "../Types";
+import {
+  InitiateProcedureFn,
+  ParseProcedures,
+  QuarkProcedures,
+} from "../Types/Procedures";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -12,22 +17,22 @@ import type { ParseActions, QuarkActions, QuarkSetterFn } from "../Types";
  * @returns An object with the same structure as the `actions` argument
  * @internal
  */
-export function generateCustomActions<
+export function generateCustomProcedures<
   T,
   ARGS extends any[],
   ET,
-  A extends QuarkActions<T, ET, ARGS>,
->(setState: QuarkSetterFn<T, ET>, actions: A): ParseActions<A> {
+  P extends QuarkProcedures<T, ARGS>,
+>(
+  self: QuarkContext<T, ET>,
+  initiateProcedure: InitiateProcedureFn<T>,
+  procedures: P,
+): ParseProcedures<P> {
   return Object.fromEntries(
-    Object.entries(actions).map(([actionName, actionMethod]) => {
-      actionMethod = actionMethod.bind(actions);
+    Object.entries(procedures).map(([actionName, generatorFactory]) => {
       const wrappedAction = (...args: ARGS) => {
-        const r = setState((currentState: T) =>
-          actionMethod(currentState, ...args)
-        );
-        return r;
+        return initiateProcedure(() => generatorFactory(self.value, ...args));
       };
       return [actionName, wrappedAction];
     }),
-  ) as unknown as ParseActions<A>;
+  ) as unknown as ParseProcedures<P>;
 }

@@ -1,7 +1,17 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { createCatchMiddleware, quark } from "../../../src";
-import { sleep } from "../../helpers";
+import { controlledPromise, sleep } from "../../helpers";
+
+vitest.mock("../../../src/Utilities/CancelUpdate", () => {
+  class CancelUpdate {
+    static isCancel(e: unknown) {
+      return e instanceof CancelUpdate;
+    }
+  }
+
+  return { CancelUpdate };
+});
 
 describe("CatchMiddleware", () => {
   const onCatchMock = vitest.fn();
@@ -108,6 +118,37 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
+      it("async procedure", async () => {
+        const p1 = controlledPromise();
+        const p2 = controlledPromise();
+
+        const q = quark("A", {
+          middlewares: [catchMiddleware],
+          procedures: {
+            async *procedureA(initState) {
+              yield "B";
+              await p1.promise;
+              yield "C";
+              await p2.promise;
+              return "D";
+            },
+          },
+        });
+
+        expect(q.get()).toEqual("A");
+
+        q.procedureA();
+        await sleep(0);
+        expect(q.get()).toEqual("B");
+
+        p1.resolve();
+        await sleep(0);
+        expect(q.get()).toEqual("C");
+
+        p2.resolve();
+        await sleep(0);
+        expect(q.get()).toEqual("D");
+      });
     });
     describe("within react", () => {
       it("use() and local set() work correctly for simple values", async () => {
@@ -200,6 +241,19 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
+      it("for procedures", async () => {
+        const q = quark("", {
+          procedures: {
+            async *procedureA() {
+              throw "bar";
+            },
+          },
+        });
+
+        await expect(q.procedureA()).rejects.toEqual("bar");
+
+        expect(q.get()).toEqual("");
+      });
     });
 
     describe("within react", () => {
@@ -247,7 +301,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await q.set(Promise.reject("bar"));
+        await expect(q.set(Promise.reject("bar"))).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
@@ -258,10 +312,61 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await q.set(() => Promise.reject("bar"));
+        await expect(
+          q.set(() => Promise.reject("bar"))
+        ).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
+      });
+
+      it("for async procedures", async () => {
+        const q = quark("", {
+          middlewares: [catchMiddleware],
+          procedures: {
+            async *procedureA() {
+              throw "baz";
+            },
+          },
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        await expect(q.procedureA()).resolves.toBeUndefined();
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith("baz");
+
+        onCatchMock.mockClear();
+
+        const p1 = controlledPromise();
+
+        const q2 = quark("", {
+          middlewares: [catchMiddleware],
+          procedures: {
+            async *procedureB() {
+              yield "A";
+              await p1.promise;
+              yield "B";
+              throw "ERR";
+              return "corge";
+            },
+          },
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        const procedureRes = q2.procedureB();
+
+        await sleep(0);
+        expect(q2.get()).toEqual("A");
+
+        p1.resolve();
+        await sleep(0);
+        expect(q2.get()).toEqual("B");
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith("ERR");
+        expect(procedureRes).resolves.toBeUndefined();
       });
     });
     describe("within react", () => {
@@ -291,7 +396,7 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await q.set(Promise.reject("bar"));
+        await expect(q.set(Promise.reject("bar"))).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");
@@ -302,7 +407,9 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await q.set(() => Promise.reject("bar"));
+        await expect(
+          q.set(() => Promise.reject("bar"))
+        ).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("bar");

@@ -1,7 +1,6 @@
 import type {
   DeepReadonly,
   GetMiddlewareTypes,
-  ParseActions,
   Quark,
   QuarkActions,
   QuarkConfig,
@@ -10,6 +9,7 @@ import type {
   QuarkSelectors,
   Widen,
 } from "./Types";
+import { QuarkProcedures } from "./Types/Procedures";
 import {
   applyMiddlewares,
   generateCustomActions,
@@ -19,6 +19,7 @@ import {
   generateUseHook,
   isUpdateNecessary,
 } from "./Utilities";
+import { generateCustomProcedures } from "./Utilities/GenerateCustomProcedures";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
 import { registerQuark } from "./Utilities/QuarksCollection";
@@ -33,14 +34,16 @@ import { registerQuark } from "./Utilities/QuarksCollection";
 export function quark<
   T,
   A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
+  P extends QuarkProcedures<T, ProcedureArgs>,
   S extends QuarkSelectors<T, SelectorArgs>,
   M extends QuarkMiddleware<T, any>[] = never[],
   SelectorArgs extends any[] = never[],
   ActionArgs extends any[] = never[],
+  ProcedureArgs extends any[] = never[]
 >(
   initValue: T,
-  config: QuarkConfig<Widen<T>, A, S, M> = {},
-): Quark<Widen<T>, A, S, M> {
+  config: QuarkConfig<Widen<T>, A, P, S, M> = {}
+): Quark<Widen<T>, A, P, S, M> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
@@ -56,17 +59,23 @@ export function quark<
 
   self.middlewares.unshift(...getGlobalQuarkMiddlewares());
 
-  const { set, bareboneSet } = generateSetter(self);
+  const { set, bareboneSet, initiateProcedure, updateController } =
+    generateSetter(self);
 
   const customActions = generateCustomActions(
-    self,
     set,
-    config?.actions ?? {},
-  ) as ParseActions<A>;
+    config?.actions ?? ({} as A)
+  );
+
+  const customProcedures = generateCustomProcedures(
+    self,
+    initiateProcedure,
+    config?.procedures ?? ({} as P)
+  );
 
   const customSelectors = generateCustomSelectors(
     self,
-    config?.selectors ?? ({} as S),
+    config?.selectors ?? ({} as S)
   );
 
   const get = () => self.value as DeepReadonly<T>;
@@ -77,13 +86,14 @@ export function quark<
 
   const subscribe = generateSubscribeFunction(self);
 
-  const quark: Quark<T, A, S, M> = {
+  const quark: Quark<T, A, P, S, M> = {
     set: set as any,
     get,
     use,
     useSelector,
     subscribe,
     ...customActions,
+    ...customProcedures,
     ...customSelectors,
   };
 
@@ -91,7 +101,13 @@ export function quark<
     registerQuark(config.name, self);
   }
 
-  applyMiddlewares(self, initValue, "sync", bareboneSet);
+  applyMiddlewares(
+    self,
+    initValue,
+    "sync",
+    updateController.atomicUpdate(),
+    bareboneSet
+  );
 
   return quark as any;
 }

@@ -47,7 +47,13 @@ export const createImmerMiddleware = (options?: {
     immer.setAutoFreeze(options.autoFreeze);
   }
 
-  return (_, action, resume) => {
+  return (params) => {
+    if (params.updateType === "async-generator") {
+      return params.resume(params.action);
+    }
+
+    const { action, resume } = params;
+
     if (isDraft(action)) {
       return resume(immer.finishDraft(action));
     }

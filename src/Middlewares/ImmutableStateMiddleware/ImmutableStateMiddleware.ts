@@ -24,7 +24,9 @@ export const createImmutableStateMiddleware = (): QuarkMiddleware<
   any,
   undefined
 > => {
-  return (_, action, resume) => {
+  return (params) => {
+    const { action, resume } = params;
+
     if (
       typeof action === "object" &&
       action !== null &&

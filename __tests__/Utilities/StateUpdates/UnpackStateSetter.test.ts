@@ -1,14 +1,12 @@
-import { beforeAll, beforeEach, describe, expect, it, vitest } from "vitest";
-import { asyncUpdatesController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
+import { beforeEach, describe, expect, it, vitest } from "vitest";
+import { createUpdateController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
 import { unpackStateSetter } from "../../../src/Utilities/StateUpdates/UnpackStateSetter";
 import { getTestQuarkContext, sleep } from "../../helpers";
 
 describe("unpackStateSetter", () => {
   const self = getTestQuarkContext({ value: "foo" });
-  const asyncController = asyncUpdatesController(self);
-
-  beforeAll(() => {
-    vitest.spyOn(asyncController, "preventLastAsyncUpdate");
+  const updateController = createUpdateController(self, () => {
+    // do nothing
   });
 
   beforeEach(() => {
@@ -17,16 +15,18 @@ describe("unpackStateSetter", () => {
 
   it("should return the passed value if it's not a generator or a promise", () => {
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, "bar").then((unpackedValue) => {
-      expect(unpackedValue).toEqual("bar");
-    });
+    unpackStateSetter(self, updateController.atomicUpdate(), "bar").then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      }
+    );
   });
 
   it("should unpack a generator", () => {
     const generator = () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then(
+    unpackStateSetter(self, updateController.atomicUpdate(), generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
       }
@@ -37,7 +37,7 @@ describe("unpackStateSetter", () => {
     const generator = () => () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then(
+    unpackStateSetter(self, updateController.atomicUpdate(), generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
       }
@@ -48,7 +48,7 @@ describe("unpackStateSetter", () => {
     const generator = () => () => () => () => "bar";
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then(
+    unpackStateSetter(self, updateController.atomicUpdate(), generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("bar");
       }
@@ -59,9 +59,11 @@ describe("unpackStateSetter", () => {
     const promise = Promise.resolve("baz");
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, promise).then((unpackedValue) => {
-      expect(unpackedValue).toEqual("baz");
-    });
+    unpackStateSetter(self, updateController.atomicUpdate(), promise).then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("baz");
+      }
+    );
   });
 
   it("should unpack a nested promise", async () => {
@@ -70,11 +72,13 @@ describe("unpackStateSetter", () => {
     );
 
     expect.assertions(1);
-    await unpackStateSetter(self, asyncController, promise).then(
-      (unpackedValue) => {
-        expect(unpackedValue).toEqual("baz");
-      }
-    );
+    await unpackStateSetter(
+      self,
+      updateController.atomicUpdate(),
+      promise
+    ).then((unpackedValue) => {
+      expect(unpackedValue).toEqual("baz");
+    });
   });
 
   it("should unpack a deeply nested promise", async () => {
@@ -91,18 +95,20 @@ describe("unpackStateSetter", () => {
     );
 
     expect.assertions(1);
-    await unpackStateSetter(self, asyncController, promise).then(
-      (unpackedValue) => {
-        expect(unpackedValue).toEqual("baz");
-      }
-    );
+    await unpackStateSetter(
+      self,
+      updateController.atomicUpdate(),
+      promise
+    ).then((unpackedValue) => {
+      expect(unpackedValue).toEqual("baz");
+    });
   });
 
   it("should unpack a promise nested within generator", () => {
     const generator = () => Promise.resolve("qux");
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then(
+    unpackStateSetter(self, updateController.atomicUpdate(), generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("qux");
       }
@@ -113,7 +119,7 @@ describe("unpackStateSetter", () => {
     const generator = () => Promise.resolve(() => Promise.resolve("qux"));
 
     expect.assertions(1);
-    unpackStateSetter(self, asyncController, generator).then(
+    unpackStateSetter(self, updateController.atomicUpdate(), generator).then(
       (unpackedValue) => {
         expect(unpackedValue).toEqual("qux");
       }
@@ -121,14 +127,13 @@ describe("unpackStateSetter", () => {
   });
 
   it("should cancel the last async updates before executing 'then' handler", () => {
-    expect.assertions(3);
+    expect.assertions(1);
 
-    expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(0);
-
-    unpackStateSetter(self, asyncController, "bar").then((unpackedValue) => {
-      expect(unpackedValue).toEqual("bar");
-      expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(1);
-    });
+    unpackStateSetter(self, updateController.atomicUpdate(), "bar").then(
+      (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      }
+    );
   });
 
   it("should cancel the last async updates before executing then handler, but only after unpacking", async () => {
@@ -140,22 +145,20 @@ describe("unpackStateSetter", () => {
 
     const onThen = vitest.fn();
 
-    expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(0);
-
-    unpackStateSetter(self, asyncController, promise).then((unpackedValue) => {
-      onThen();
-    });
+    unpackStateSetter(self, updateController.atomicUpdate(), promise).then(
+      (unpackedValue) => {
+        onThen();
+      }
+    );
 
     await sleep(1);
 
-    expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(0);
     expect(onThen).toHaveBeenCalledTimes(0);
 
     p.resolve();
 
     await sleep(0);
 
-    expect(asyncController.preventLastAsyncUpdate).toHaveBeenCalledTimes(1);
     expect(onThen).toHaveBeenCalledTimes(1);
   });
 });

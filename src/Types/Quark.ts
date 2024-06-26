@@ -1,6 +1,7 @@
 import type { QuarkCustomEffect } from ".";
 import type { ParseActions } from "./Actions";
 import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
+import { ParseProcedures } from "./Procedures";
 import type { ParseSelectors, QuarkSelector } from "./Selectors";
 import type { QuarkSubscription } from "./Subscribe";
 import type { FinalReturnType } from "./Utilities";
@@ -66,20 +67,25 @@ export type QuarkGetterFn<T> = () => T;
 /**
  * Update type indicates where the update originates from.
  *
- * A `sync` type indicates the update was dispatched via `.set(<VALUE>)` method.
- *
- * An `async` type indicates the update was dispatched as a result of a resolved
- * Promise that was dispatched via `.set(<VALUE>)` method. (dispatching a
- * Promise itself is not considered `async`).
+ * - `sync` - the update originates from a synchronous call to the `set(value)` method.
+ * - `async` - the update originates from an asynchronous call to the `set(Promise<value>)` method.
+ * - `async-generator` - the update originates from an asynchronous procedure.
+ * - `function` - the update originates from a function call `set(() => value)`.
  */
-export type QuarkUpdateType = "sync" | "async";
+export type QuarkUpdateType = "sync" | "async" | "async-generator" | "function";
 
 export type QuarkSetResult<V extends SetStateAction<any, any>> =
   FinalReturnType<V> extends Promise<any> ? Promise<void>
     : Promise<any> extends FinalReturnType<V> ? Promise<void> | void
     : void;
 
-export type Quark<T, Actions, Selectors, Middlewares extends any[]> =
+export type Quark<
+  T,
+  Actions,
+  Procedures,
+  Selectors,
+  Middlewares extends any[],
+> =
   & {
     /**
      * Retrieves the data held in the quark.
@@ -154,4 +160,5 @@ export type Quark<T, Actions, Selectors, Middlewares extends any[]> =
     ): QuarkSubscription;
   }
   & ParseActions<Actions>
-  & ParseSelectors<Selectors>;
+  & ParseSelectors<Selectors>
+  & ParseProcedures<Procedures>;

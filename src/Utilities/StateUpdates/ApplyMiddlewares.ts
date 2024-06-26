@@ -3,6 +3,8 @@ import type {
   QuarkUpdateType,
   SetStateAction,
 } from "../../Types";
+import { QuarkCustomProcedure } from "../../Types/Procedures";
+import { AtomicUpdater } from "./AsyncUpdates";
 
 /**
  * Extract the list of middlewares from the Quark context and process the
@@ -14,31 +16,38 @@ import type {
  *
  * @param self Context of the Quark in question
  * @param value Value to be processed through middlewares
- * @param type Update type (one of: ['sync', 'async'])
+ * @param type Update type (one of: ['sync', 'async', 'async-generator'])
  * @param setterFn Function that updates the state of the Quark
  * @internal
  */
-export function applyMiddlewares<T, ET>(
+export function applyMiddlewares<
+  T,
+  ET,
+  A extends SetStateAction<T, ET> | QuarkCustomProcedure<T, any[]>
+>(
   self: QuarkContext<T, ET>,
-  value: SetStateAction<T, ET>,
+  value: A,
   type: QuarkUpdateType,
-  setterFn: (v: SetStateAction<T, ET>) => void | Promise<void>,
+  updater: AtomicUpdater<T>,
+  setterFn: (v: A) => void | Promise<void>
 ) {
   const applyMiddlewareOfIndex = (
     index: number,
-    v: SetStateAction<T, ET>,
+    v: A
   ): void | Promise<void> => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
-      return nextMiddleware(
-        () => self.value,
-        v,
-        (resumedValue) => applyMiddlewareOfIndex(index + 1, resumedValue),
-        setterFn,
-        type,
-      );
+      return nextMiddleware({
+        getState: () => self.value,
+        action: v as any,
+        resume: (resumedValue: any) =>
+          applyMiddlewareOfIndex(index + 1, resumedValue as A),
+        set: setterFn as any,
+        updateType: type as any,
+        updater,
+      });
     } else {
-      return setterFn(v);
+      return (setterFn as any)(v);
     }
   };
 

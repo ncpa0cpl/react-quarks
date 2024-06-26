@@ -1,11 +1,12 @@
 import { cloneDeep as _cloneDeep } from "lodash";
 import type { QuarkMiddleware } from "../../Types";
-import { extractIsPromiseCanceled } from "../../Utilities/StateUpdates/AsyncUpdates";
+import { AtomicUpdater } from "../../Utilities/StateUpdates/AsyncUpdates";
+import { DispatchSource } from "./Types/TrackedQuark";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
 function getValueType(val: any) {
   if (val instanceof Promise) return "Promise";
-  if (typeof val === "function") return "Generator";
+  if (typeof val === "function") return "Function";
   return "Value";
 }
 
@@ -20,6 +21,8 @@ export function createDebugHistoryMiddleware(options: {
   realTimeLogging?: boolean;
   useTablePrint?: boolean;
 }): QuarkMiddleware<any, undefined> {
+  const updaterSources = new WeakMap<AtomicUpdater<any>, DispatchSource>();
+
   const {
     name,
     trace = true,
@@ -32,66 +35,115 @@ export function createDebugHistoryMiddleware(options: {
     realTimeLogging,
     useTablePrint,
   });
-  return (getState, newValue, resume, _, type) => {
-    switch (type) {
+  return (params) => {
+    const { action, resume, updater, updateType, getState } = params;
+    let source = updaterSources.get(updater);
+
+    switch (updateType) {
       case "sync": {
+        if (!source) {
+          source = "Sync-Dispatch";
+          updaterSources.set(updater, source);
+        }
+
         const stackTrace = trace
           ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
           : undefined;
         quarkHistoryTracker.addHistoryEntry({
-          source: "Sync-Dispatch",
+          updateID: updater.id,
+          source,
           stackTrace,
           initialState: {
             type: "Value",
             value: cloneDeep(getState()),
           },
           dispatchedUpdate: {
-            type: getValueType(newValue),
-            value: cloneDeep(newValue),
+            type: getValueType(action),
+            value: cloneDeep(action),
           },
+          isCanceled: updater.isCanceled,
         });
         break;
       }
       case "async": {
+        if (!source) {
+          source = "Async-Dispatch";
+          updaterSources.set(updater, source);
+        }
+
+        const stackTrace = trace
+          ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
+          : undefined;
+
         quarkHistoryTracker.addHistoryEntry({
-          source: "Async-Dispatch",
-          stackTrace: undefined,
+          updateID: updater.id,
+          source,
+          stackTrace,
           initialState: {
             type: "Value",
             value: cloneDeep(getState()),
           },
           dispatchedUpdate: {
-            type: getValueType(newValue),
-            value: cloneDeep(newValue),
+            type: getValueType(action),
+            value: cloneDeep(action),
           },
+          isCanceled: updater.isCanceled,
         });
         break;
       }
+      case "function": {
+        if (!source) {
+          source = "Function-Dispatch";
+          updaterSources.set(updater, source);
+        }
+
+        const stackTrace = trace
+          ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
+          : undefined;
+
+        quarkHistoryTracker.addHistoryEntry({
+          updateID: updater.id,
+          source,
+          stackTrace,
+          initialState: {
+            type: "Value",
+            value: cloneDeep(getState()),
+          },
+          dispatchedUpdate: {
+            type: getValueType(action),
+            value: cloneDeep(action),
+          },
+          isCanceled: updater.isCanceled,
+        });
+        break;
+      }
+      case "async-generator": {
+        if (!source) {
+          source = "Async-Generator-Dispatch";
+          updaterSources.set(updater, source);
+        }
+
+        const stackTrace = trace
+          ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
+          : undefined;
+
+        quarkHistoryTracker.addHistoryEntry({
+          updateID: updater.id,
+          source,
+          stackTrace,
+          dispatchedUpdate: {
+            type: "AsyncGenerator",
+            value: action,
+          },
+          initialState: {
+            type: "Value",
+            value: cloneDeep(getState()),
+          },
+          isCanceled: updater.isCanceled,
+        });
+      }
     }
 
-    if (newValue instanceof Promise) {
-      newValue
-        .then((v) => {
-          const hasBeenCanceled = extractIsPromiseCanceled(newValue);
-          if (hasBeenCanceled) {
-            quarkHistoryTracker.addHistoryEntry({
-              dispatchedUpdate: {
-                type: getValueType(v),
-                value: cloneDeep(v),
-              },
-              initialState: {
-                type: "Value",
-                value: getState(),
-              },
-              source: "Async-Dispatch",
-              stackTrace: undefined,
-              isCanceled: true,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-
-    return resume(newValue);
+    return resume(action);
   };
 }

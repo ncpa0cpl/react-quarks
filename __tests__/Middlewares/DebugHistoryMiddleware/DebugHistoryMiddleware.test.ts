@@ -57,7 +57,7 @@ describe("DebugHistoryMiddleware", () => {
 
   it("correctly handles async updates", async () => {
     expect(
-      global.__quark_history_tracker__.showHistory()["0_q1"].length,
+      global.__quark_history_tracker__.showHistory()["0_q1"].length
     ).toEqual(0);
     expect(q.get()).toEqual("FOO");
 
@@ -67,6 +67,37 @@ describe("DebugHistoryMiddleware", () => {
 
     await sleep(0);
 
+    expect(global.__quark_history_tracker__.showHistory()).toMatchSnapshot();
+  });
+
+  it("correctly handles procedures", async () => {
+    const q = quark(
+      { value: undefined as string | undefined, loading: false },
+      {
+        middlewares: [
+          createDebugHistoryMiddleware({ name: "q2", trace: false }),
+        ],
+        procedures: {
+          async *start() {
+            yield (c) => ({ ...c, loading: true });
+            yield (c) => ({ ...c, value: "foo" });
+            return { value: "bar", loading: false };
+          },
+        },
+      }
+    );
+
+    expect(q.get()).toEqual({ value: undefined, loading: false });
+    expect(
+      global.__quark_history_tracker__.showHistory()["1_q2"].length
+    ).toEqual(1);
+
+    await q.start();
+
+    expect(q.get()).toEqual({ value: "bar", loading: false });
+    expect(
+      global.__quark_history_tracker__.showHistory()["1_q2"].length
+    ).toEqual(7);
     expect(global.__quark_history_tracker__.showHistory()).toMatchSnapshot();
   });
 });

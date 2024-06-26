@@ -35,7 +35,7 @@ describe("generateCustomActions()", () => {
       },
     };
 
-    const bindedActions = generateCustomActions(context, setState, actions);
+    const bindedActions = generateCustomActions(setState, actions);
 
     expect(bindedActions).toMatchObject({
       append: expect.any(Function),
@@ -63,7 +63,7 @@ describe("generateCustomActions()", () => {
       },
     };
 
-    const bindedActions = generateCustomActions(context, setState, actions);
+    const bindedActions = generateCustomActions(setState, actions);
 
     bindedActions.add("bar");
 
@@ -93,7 +93,7 @@ describe("generateCustomActions()", () => {
       },
     };
 
-    const bindedActions = generateCustomActions(context, setState, actions);
+    const bindedActions = generateCustomActions(setState, actions);
 
     bindedActions.append("-baz");
 

@@ -1,7 +1,9 @@
 import type { QuarkContext, SetStateAction } from "../../Types";
+import { CancelUpdate } from "../CancelUpdate";
 import { isGenerator } from "../IsGenerator";
 import { applyMiddlewares } from "./ApplyMiddlewares";
-import type { AsyncUpdateController } from "./AsyncUpdates";
+import { AtomicUpdater } from "./AsyncUpdates";
+import { resolveUpdateType } from "./ResolveUpdateType";
 
 /**
  * @internal
@@ -9,6 +11,8 @@ import type { AsyncUpdateController } from "./AsyncUpdates";
 export type UnpackStateSetterResult<T> = {
   then(handler: (state: T) => void): void | Promise<void>;
 };
+
+const thenableNoop = { then() {} };
 
 /**
  * If the provided value is a Promise or a State Generator, resolve it and the
@@ -25,34 +29,75 @@ export type UnpackStateSetterResult<T> = {
  */
 export function unpackStateSetter<T, ET>(
   self: QuarkContext<T, ET>,
-  asyncUpdates: AsyncUpdateController<T, ET>,
-  setter: SetStateAction<T, ET>,
+  updater: AtomicUpdater<T>,
+  setter: SetStateAction<T, ET>
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
       then(handler: (state: T) => void) {
-        return asyncUpdates.dispatchAsyncUpdate(setter, (state) => {
-          return applyMiddlewares(self, state, "async", (v) =>
-            unpackStateSetter(self, asyncUpdates, v).then(handler),
-          );
-        });
+        return setter
+          .then((state) => {
+            const type = resolveUpdateType(state);
+            return applyMiddlewares(self, state, type, updater, (v) =>
+              unpackStateSetter(self, updater, v).then(handler)
+            );
+          })
+          .catch((err) => {
+            if (CancelUpdate.isCancel(err)) {
+              updater.cancel();
+              return;
+            }
+            throw err;
+          });
       },
     };
   }
 
   if (isGenerator<T>(setter)) {
+    try {
+      const s = setter(self.value);
+
+      return {
+        then(handler: (state: T) => void) {
+          const type = resolveUpdateType(s);
+          return applyMiddlewares<T, ET, any>(self, s, type, updater, (v) =>
+            unpackStateSetter(self, updater, v).then(handler)
+          );
+        },
+      };
+    } catch (err) {
+      if (CancelUpdate.isCancel(err)) {
+        updater.cancel();
+        return thenableNoop;
+      }
+      throw err;
+    }
+  }
+
+  return {
+    then(handler: (state: T) => void) {
+      return handler(setter as T);
+    },
+  };
+}
+
+export function unpackStateSetterSync<T, ET>(
+  self: QuarkContext<T, ET>,
+  updater: AtomicUpdater<T>,
+  setter: SetStateAction<T, ET>
+): UnpackStateSetterResult<T> {
+  if (isGenerator<T>(setter)) {
     const s = setter(self.value);
 
     return {
       then(handler: (state: T) => void) {
-        return applyMiddlewares<T, ET>(self, s, "sync", (v) =>
-          unpackStateSetter(self, asyncUpdates, v).then(handler),
+        const type = resolveUpdateType(s);
+        return applyMiddlewares<T, ET, any>(self, s, type, updater, (v) =>
+          unpackStateSetterSync(self, updater, v).then(handler)
         );
       },
     };
   }
-
-  asyncUpdates.preventLastAsyncUpdate();
 
   return {
     then(handler: (state: T) => void) {
