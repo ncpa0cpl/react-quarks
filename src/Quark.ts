@@ -80,7 +80,7 @@ export function quark<
 
   const get = () => self.value as DeepReadonly<T>;
 
-  const use = generateUseHook(self, customActions, set);
+  const use = generateUseHook(self, customActions, customProcedures, set);
 
   const useSelector = generateSelectHook(self);
 

@@ -1015,6 +1015,242 @@ describe("quark()", () => {
 
       expect(result.current).toEqual(10);
     });
+    describe("procedures", () => {
+      it("correctly update the state with yielded values", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure(initState) {
+                yield { ...initState, inProgress: true };
+                const newValue = await p.promise;
+                return { inProgress: false, value: newValue.value };
+              },
+            },
+          }
+        );
+
+        const state = renderHook(() => q.use());
+
+        await act(async () => {
+          state.result.current.runProcedure();
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 2,
+        });
+
+        await act(async () => {
+          p.resolve({ value: 5 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 5,
+        });
+      });
+      it("correctly update the state with yielded fn setters", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield (current) => ({ ...current, inProgress: true });
+                const newValue = await p.promise;
+                return () => ({ inProgress: false, value: newValue.value });
+              },
+            },
+          }
+        );
+
+        const state = renderHook(() => q.use());
+
+        await act(async () => {
+          state.result.current.runProcedure();
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 2,
+        });
+
+        await act(async () => {
+          p.resolve({ value: 5 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 5,
+        });
+      });
+      it("correctly update the state with yielded fn setters and immer", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 20 },
+          {
+            middlewares: [createImmerMiddleware()],
+            procedures: {
+              async *runProcedure() {
+                yield (draft) => {
+                  draft.inProgress = true;
+                  return draft;
+                };
+                const newValue = await p.promise;
+                return (draft) => {
+                  draft.inProgress = false;
+                  draft.value = newValue.value;
+                  return draft;
+                };
+              },
+            },
+          }
+        );
+
+        const state = renderHook(() => q.use());
+
+        await act(async () => {
+          state.result.current.runProcedure();
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 20,
+        });
+
+        await act(async () => {
+          p.resolve({ value: 1234 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 1234,
+        });
+      });
+      it("interrupts a procedure if another state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+            },
+          }
+        );
+
+        const state = renderHook(() => q.use());
+
+        await act(async () => {
+          state.result.current.runProcedure();
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 0,
+        });
+
+        await act(async () => {
+          p1.resolve({ value: 10 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 10,
+        });
+
+        await act(async () => {
+          state.result.current.set({ inProgress: false, value: 15 });
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 15,
+        });
+
+        await act(async () => {
+          p2.resolve({ value: 20 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 15,
+        });
+      });
+      it("interrupts a procedure if an async state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+            },
+            actions: {
+              async fetchValue(s) {
+                await sleep(0);
+                return { value: 100, inProgress: false };
+              },
+            },
+          }
+        );
+
+        const state = renderHook(() => q.use());
+
+        await act(async () => {
+          state.result.current.runProcedure();
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: true,
+          value: 0,
+        });
+
+        await act(async () => {
+          await state.result.current.fetchValue();
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 100,
+        });
+
+        await act(async () => {
+          p1.resolve({ value: 10 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 100,
+        });
+
+        await act(async () => {
+          p2.resolve({ value: 20 });
+          await sleep(0);
+        });
+        expect(state.result.current.value).toMatchObject({
+          inProgress: false,
+          value: 100,
+        });
+      });
+    });
   });
 
   describe("async updates correctly avoid race conditions", () => {

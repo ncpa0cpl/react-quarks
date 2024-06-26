@@ -14,14 +14,16 @@ declare global {
 
 type IsReadonlyStateEnabled = Quarks.TypeConfig extends {
   ENABLE_READONLY_STATES: true;
-} ? true
+}
+  ? true
   : false;
 
 export type DeepReadonly<T> = IsReadonlyStateEnabled extends true
-  ? T extends any[] | object ? {
-      readonly [K in keyof T]: DeepReadonly<T[K]>;
-    }
-  : T
+  ? T extends any[] | object
+    ? {
+        readonly [K in keyof T]: DeepReadonly<T[K]>;
+      }
+    : T
   : T;
 
 export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
@@ -59,7 +61,7 @@ export type QuarkSubscriber<T> = (currentState: T) => void;
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
 export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
-  newValue: SetStateAction<QuarkType, MiddlewareTypes>,
+  newValue: SetStateAction<QuarkType, MiddlewareTypes>
 ) => void;
 
 export type QuarkGetterFn<T> = () => T;
@@ -75,90 +77,87 @@ export type QuarkGetterFn<T> = () => T;
 export type QuarkUpdateType = "sync" | "async" | "async-generator" | "function";
 
 export type QuarkSetResult<V extends SetStateAction<any, any>> =
-  FinalReturnType<V> extends Promise<any> ? Promise<void>
-    : Promise<any> extends FinalReturnType<V> ? Promise<void> | void
+  FinalReturnType<V> extends Promise<any>
+    ? Promise<void>
+    : Promise<any> extends FinalReturnType<V>
+    ? Promise<void> | void
     : void;
 
-export type Quark<
-  T,
-  Actions,
-  Procedures,
-  Selectors,
-  Middlewares extends any[],
-> =
-  & {
-    /**
-     * Retrieves the data held in the quark.
-     */
-    get(): DeepReadonly<T>;
-    /**
-     * Updates the data held in the quark.
-     *
-     * @param newVal A new data or a function that takes the previous state of the
-     *   quark and returns a new one.
-     */
-    set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
-      newValue: V,
-    ): QuarkSetResult<V>;
-    /**
-     * React hook to access the data in the quark. It can be only used within
-     * React functional components.
-     *
-     * Changes to the quark state will cause the functional component to
-     * re-render.
-     *
-     * This method returns two functions:
-     *
-     * - `get()` - to access the data
-     * - `set()` - to updated the data
-     */
-    use(): {
+    export type QuarkHook<T, Actions, Procedures, Middlewares extends any[]> = {
       value: DeepReadonly<T>;
       set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
-        newValue: V,
+        newValue: V
       ): QuarkSetResult<V>;
-    } & ParseActions<Actions>;
-    /**
-     * React hook to access a part of the data within the quark or to retrieve it
-     * and transform.
-     *
-     * This hook will only cause component updates if the result of the
-     * `selector()` function changes.
-     *
-     * How the `selector()` function return value is evaluated can be adjusted by
-     * passing a comparator method as the second argument.
-     *
-     * IMPORTANT!
-     *
-     * Avoid passing a new `selector` function on every render, use the React
-     * useCallback hook to memoize the selector or define it outside your
-     * component.
-     *
-     * @example
-     *   const myQuark = quark(["Hello", "World"]);
-     *
-     *   const selectFirstWord = (state) => state[0];
-     *
-     *   function MyComponent() {
-     *     const firstWord = myQuark.useSelector(selectFirstWord);
-     *     console.log(firstWord.get()); // Output: "Hello"
-     *   }
-     */
-    useSelector<ARGS extends any[], R>(
-      selector: QuarkSelector<T, ARGS, R>,
-      ...args: ARGS
-    ): DeepReadonly<R>;
-    /**
-     * Add a listener for the state changes of the Quark. Every time the state
-     * change is detected provided callback will be triggered.
-     *
-     * @returns An object containing a `cancel` method which will remove the
-     *   subscription when called.
-     */
-    subscribe(
-      onQuarkStateChange: (state: T, cancelSubscription: () => void) => void,
-    ): QuarkSubscription;
-  }
-  & ParseActions<Actions>
-  & ParseSelectors<Selectors>
-  & ParseProcedures<Procedures>;
+    } & ParseActions<Actions> &
+      ParseProcedures<Procedures>;
+
+export type Quark<T, Actions, Procedures, Selectors, Middlewares extends any[]> = {
+  /**
+   * Retrieves the data held in the quark.
+   */
+  get(): DeepReadonly<T>;
+  /**
+   * Updates the data held in the quark.
+   *
+   * @param newVal A new data or a function that takes the previous state of the
+   *   quark and returns a new one.
+   */
+  set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
+    newValue: V
+  ): QuarkSetResult<V>;
+  /**
+   * React hook to access the data in the quark. It can be only used within
+   * React functional components.
+   *
+   * Changes to the quark state will cause the functional component to
+   * re-render.
+   *
+   * This method returns two functions:
+   *
+   * - `get()` - to access the data
+   * - `set()` - to updated the data
+   */
+  use(): QuarkHook<T, Actions, Procedures, Middlewares>;
+  /**
+   * React hook to access a part of the data within the quark or to retrieve it
+   * and transform.
+   *
+   * This hook will only cause component updates if the result of the
+   * `selector()` function changes.
+   *
+   * How the `selector()` function return value is evaluated can be adjusted by
+   * passing a comparator method as the second argument.
+   *
+   * IMPORTANT!
+   *
+   * Avoid passing a new `selector` function on every render, use the React
+   * useCallback hook to memoize the selector or define it outside your
+   * component.
+   *
+   * @example
+   *   const myQuark = quark(["Hello", "World"]);
+   *
+   *   const selectFirstWord = (state) => state[0];
+   *
+   *   function MyComponent() {
+   *     const firstWord = myQuark.useSelector(selectFirstWord);
+   *     console.log(firstWord.get()); // Output: "Hello"
+   *   }
+   */
+  useSelector<ARGS extends any[], R>(
+    selector: QuarkSelector<T, ARGS, R>,
+    ...args: ARGS
+  ): DeepReadonly<R>;
+  /**
+   * Add a listener for the state changes of the Quark. Every time the state
+   * change is detected provided callback will be triggered.
+   *
+   * @returns An object containing a `cancel` method which will remove the
+   *   subscription when called.
+   */
+  subscribe(
+    onQuarkStateChange: (state: T, cancelSubscription: () => void) => void
+  ): QuarkSubscription;
+} & ParseActions<Actions> &
+  ParseSelectors<Selectors> &
+  ParseProcedures<Procedures>;

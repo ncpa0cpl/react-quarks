@@ -3,8 +3,10 @@ import type {
   DeepReadonly,
   ParseActions,
   QuarkContext,
+  QuarkHook,
   QuarkSetterFn,
 } from "../Types";
+import { ParseProcedures } from "../Types/Procedures";
 
 /**
  * Generate the react hook for this specific quark.
@@ -15,11 +17,12 @@ import type {
  * @returns A React Hook function exposing this quark state and actions
  * @internal
  */
-export function generateUseHook<T, A extends ParseActions<any>, ET>(
+export function generateUseHook<T, A, P, M extends any[], ET>(
   self: QuarkContext<T, ET>,
-  actions: A,
-  set: QuarkSetterFn<T, ET>,
-) {
+  actions: ParseActions<A>,
+  procedures: ParseProcedures<P>,
+  set: QuarkSetterFn<T, ET>
+): () => QuarkHook<T, A, P, M> {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
     return () => void self.subscribers.delete(callback);
@@ -30,13 +33,14 @@ export function generateUseHook<T, A extends ParseActions<any>, ET>(
   return () => {
     const value = useSyncExternalStore(
       subscribe,
-      getSnapshot,
+      getSnapshot
     ) as DeepReadonly<T>;
 
     return {
       set: set as any,
       value,
       ...actions,
+      ...procedures,
     };
   };
 }
