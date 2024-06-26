@@ -5,7 +5,7 @@ function isCached(selector: any): boolean {
 }
 
 export function createCachedSelector<A extends any[], R>(
-  selector: (...args: A) => R
+  selector: (...args: A) => R,
 ): (...args: A) => R {
   if (isCached(selector)) return selector;
 

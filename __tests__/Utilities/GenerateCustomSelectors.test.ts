@@ -27,7 +27,7 @@ describe("generateCustomSelectors()", () => {
         prop2(state) {
           return state.prop2;
         },
-      })
+      }),
     );
 
     expect(selectors).toMatchObject({
@@ -58,7 +58,7 @@ describe("generateCustomSelectors()", () => {
       context,
       entries({
         prop1: useSelectMock,
-      })
+      }),
     );
 
     const hook = renderHook(() => {
@@ -69,7 +69,7 @@ describe("generateCustomSelectors()", () => {
     expect(useSelectMock).toHaveBeenLastCalledWith(initValue);
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual("foo");
     expect(useSelectMock.mock.results.reverse()[0].value).toEqual(
-      hook.result.current
+      hook.result.current,
     );
   });
 });

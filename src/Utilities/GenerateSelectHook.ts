@@ -37,8 +37,9 @@ function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
       // return () => select(self.value, ...latestArgs.current);
     }, [selector]);
 
-    return useSyncExternalStore(subscribe, () =>
-      cachedSelector(self.value, ...latestArgs.current)
+    return useSyncExternalStore(
+      subscribe,
+      () => cachedSelector(self.value, ...latestArgs.current),
     );
   };
 }
@@ -54,7 +55,7 @@ function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
  */
 export function generateSelectorHooks<T, ET, S extends QuarkSelectors<T, any>>(
   self: QuarkContext<T, ET>,
-  hookSelectors: ParseHookSelectors<S>
+  hookSelectors: ParseHookSelectors<S>,
 ) {
   return {
     $: createStandaloneSelectorHook(self),

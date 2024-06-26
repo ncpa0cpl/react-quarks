@@ -21,10 +21,10 @@ import type {
 export function generateCustomSelectors<
   T,
   ET,
-  S extends QuarkSelectors<T, any>
+  S extends QuarkSelectors<T, any>,
 >(
   self: QuarkContext<T, ET>,
-  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>
+  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>,
 ): StandaloneSelectors<T, S> {
   return Object.fromEntries(
     selectors
@@ -34,7 +34,7 @@ export function generateCustomSelectors<
           (...args: any[]) => selectorMethod(self.value, ...args),
         ];
       })
-      .concat([["$", (selectFn: Function) => selectFn(self.value)]])
+      .concat([["$", (selectFn: Function) => selectFn(self.value)]]),
   ) as unknown as StandaloneSelectors<T, S>;
 }
 
@@ -52,10 +52,10 @@ export function generateCustomSelectors<
 export function generateCustomHookSelectors<
   T,
   ET,
-  S extends QuarkSelectors<T, any>
+  S extends QuarkSelectors<T, any>,
 >(
   self: QuarkContext<T, ET>,
-  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>
+  selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>,
 ): ParseHookSelectors<S> {
   return Object.fromEntries(
     selectors.map(([selectorName, selector]) => {
@@ -63,13 +63,13 @@ export function generateCustomHookSelectors<
         return selector(self.value, ...args);
       };
       return [selectorName, hookifySelector(self, boundSelector)];
-    })
+    }),
   ) as unknown as ParseHookSelectors<S>;
 }
 
 function hookifySelector<T, ET, R>(
   self: QuarkContext<T, ET>,
-  select: (...args: any[]) => R
+  select: (...args: any[]) => R,
 ) {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
