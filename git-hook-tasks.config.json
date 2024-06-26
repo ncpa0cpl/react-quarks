@@ -1,5 +1,5 @@
 {
-  "packageManager": "npm",
+  "packageManager": "yarn",
   "parallel": true,
   "hooks": {
     "pre-push": [
