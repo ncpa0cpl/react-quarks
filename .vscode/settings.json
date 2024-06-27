@@ -1,22 +1,17 @@
 {
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit",
-    "source.fixAll.eslint": "explicit"
-  },
-  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": ["Immer", "Middlewares"],
   "json.schemas": [
