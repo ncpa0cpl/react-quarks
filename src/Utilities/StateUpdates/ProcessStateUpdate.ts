@@ -29,9 +29,14 @@ export function processStateUpdate<T, ET>(params: {
     } finally {
       debounceEvent(() => {
         for (const subscriber of self.subscribers) {
-          queueMicrotask(() => {
+          try {
             subscriber(self.value);
-          });
+          } catch (err) {
+            console.error(
+              `One of the Quark subscribers returned with an error (${subscriber.name}):`,
+              err
+            );
+          }
         }
       });
     }

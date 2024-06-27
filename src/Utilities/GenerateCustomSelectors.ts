@@ -1,3 +1,4 @@
+import React from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import type {
   ParseHookSelectors,
@@ -6,6 +7,7 @@ import type {
   QuarkSelectors,
   StandaloneSelectors,
 } from "../Types";
+import { createBasicCachedSelector } from "./CreateCachedSelector";
 
 /**
  * Generate `selector` React Hooks based on the selectors defined in the Quark
@@ -59,24 +61,24 @@ export function generateCustomHookSelectors<
 ): ParseHookSelectors<S> {
   return Object.fromEntries(
     selectors.map(([selectorName, selector]) => {
-      const boundSelector = (...args: any[]) => {
-        return selector(self.value, ...args);
-      };
-      return [selectorName, hookifySelector(self, boundSelector)];
+      return [selectorName, hookifySelector(self, selector)];
     }),
   ) as unknown as ParseHookSelectors<S>;
 }
 
 function hookifySelector<T, ET, R>(
   self: QuarkContext<T, ET>,
-  select: (...args: any[]) => R,
+  selector: (state: T, ...args: any[]) => R,
 ) {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
     return () => self.subscribers.delete(callback);
   };
 
+  const initCachedSelector = () => createBasicCachedSelector(selector);
+
   return (...args: any[]) => {
-    return useSyncExternalStore(subscribe, () => select(...args));
+    const [select] = React.useState(initCachedSelector);
+    return useSyncExternalStore(subscribe, () => select(self.value, ...args));
   };
 }

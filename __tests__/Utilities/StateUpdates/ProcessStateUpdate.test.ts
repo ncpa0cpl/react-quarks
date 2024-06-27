@@ -46,6 +46,7 @@ describe("processStateUpdate", () => {
     const subOne = vitest.fn();
     const subTwo = vitest.fn();
 
+    const { debounceEvent } = createEventsDebouncer();
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => true,
@@ -54,7 +55,7 @@ describe("processStateUpdate", () => {
     });
 
     const setFnMock = vitest.fn();
-    const dispatchEventMock = vitest.fn((ev: Function) => ev());
+    const dispatchEventMock = vitest.fn(debounceEvent);
 
     processStateUpdate({
       self,

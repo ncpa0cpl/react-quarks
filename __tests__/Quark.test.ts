@@ -1234,6 +1234,124 @@ describe("quark()", () => {
         });
         expect(reRenderCounter).toHaveBeenCalledTimes(4);
       });
+      it("multiple simultaneous selectors with different params", async () => {
+        const q = quark([1, 2, 3, 4], {
+          selectors: {
+            idx(state, idx: number) {
+              const entry = state[idx];
+              return { value: entry };
+            },
+          },
+        });
+
+        let i = 0;
+        const reRenderCounter = vitest.fn(() => {
+          i++;
+          if (i > 10) {
+            throw new Error("Too many re-renders");
+          }
+        });
+
+        const state1 = renderHook(() => {
+          reRenderCounter();
+          return {
+            idx0: q.useSelector.idx(0),
+            idx1: q.useSelector.idx(1),
+          };
+        });
+
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+        expect(state1.result.current).toEqual({
+          idx0: { value: 1 },
+          idx1: { value: 2 },
+        });
+
+        await act(async () => {
+          q.set([10, 2, 3, 4]);
+          await sleep(0);
+        });
+
+        expect(reRenderCounter).toHaveBeenCalledTimes(3);
+        await state1.waitFor(() =>
+          expect(state1.result.current).toEqual({
+            idx0: { value: 10 },
+            idx1: { value: 2 },
+          })
+        );
+      });
+      it("simultaneous selectors with different params exceeding cache max entries", async () => {
+        const q = quark([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], {
+          selectors: {
+            idx(state, idx: number) {
+              const entry = state[idx];
+              return { value: entry };
+            },
+          },
+        });
+
+        let i = 0;
+        const reRenderCounter = vitest.fn(() => {
+          i++;
+          if (i > 10) {
+            throw new Error("Too many re-renders");
+          }
+        });
+
+        const state1 = renderHook(() => {
+          reRenderCounter();
+          return {
+            idx0: q.useSelector.idx(0),
+            idx1: q.useSelector.idx(1),
+            idx2: q.useSelector.idx(2),
+            idx3: q.useSelector.idx(3),
+            idx4: q.useSelector.idx(4),
+            idx5: q.useSelector.idx(5),
+            idx6: q.useSelector.idx(6),
+            idx7: q.useSelector.idx(7),
+            idx8: q.useSelector.idx(8),
+            idx9: q.useSelector.idx(9),
+            idx10: q.useSelector.idx(10),
+            idx11: q.useSelector.idx(11),
+          };
+        });
+
+        expect(reRenderCounter).toHaveBeenCalledTimes(1);
+        expect(state1.result.current).toEqual({
+          idx0: { value: 1 },
+          idx1: { value: 2 },
+          idx2: { value: 3 },
+          idx3: { value: 4 },
+          idx4: { value: 5 },
+          idx5: { value: 6 },
+          idx6: { value: 7 },
+          idx7: { value: 8 },
+          idx8: { value: 9 },
+          idx9: { value: 10 },
+          idx10: { value: 11 },
+          idx11: { value: 12 },
+        });
+
+        await act(async () => {
+          q.set([1, 2, 3, 4, 5, 951, 7, 8, 9, 10, 11, 12]);
+          await sleep(0);
+        });
+
+        expect(reRenderCounter).toHaveBeenCalledTimes(3);
+        expect(state1.result.current).toEqual({
+          idx0: { value: 1 },
+          idx1: { value: 2 },
+          idx2: { value: 3 },
+          idx3: { value: 4 },
+          idx4: { value: 5 },
+          idx5: { value: 951 },
+          idx6: { value: 7 },
+          idx7: { value: 8 },
+          idx8: { value: 9 },
+          idx9: { value: 10 },
+          idx10: { value: 11 },
+          idx11: { value: 12 },
+        });
+      });
     });
     describe("procedures", () => {
       it("correctly update the state with yielded values", async () => {

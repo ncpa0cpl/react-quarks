@@ -8,11 +8,6 @@ import type {
 } from "../Types";
 import { createCachedSelector } from "./CreateCachedSelector";
 
-const CachedSelectors = new WeakMap<
-  QuarkSelector<any, any, any>,
-  QuarkSelector<any, any, any>
->();
-
 function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
   const subscribe = (callback: () => void) => {
     self.subscribers.add(callback);
@@ -23,23 +18,13 @@ function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
   ) => {
-    const latestArgs = React.useRef<ARGS>(args);
-    latestArgs.current = args;
-
-    const cachedSelector = React.useMemo(() => {
-      let select = CachedSelectors.get(selector);
-      if (!select) {
-        select = createCachedSelector(selector);
-        CachedSelectors.set(selector, select);
-      }
-
-      return select;
-      // return () => select(self.value, ...latestArgs.current);
-    }, [selector]);
+    const [cachedSelector] = React.useState(() =>
+      createCachedSelector(selector)
+    );
 
     return useSyncExternalStore(
       subscribe,
-      () => cachedSelector(self.value, ...latestArgs.current),
+      () => cachedSelector(self.value, ...args),
     );
   };
 }
