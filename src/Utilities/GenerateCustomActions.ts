@@ -1,5 +1,4 @@
-import { ParseActions, QuarkActions } from "../Types/Actions";
-import { QuarkSetterFn } from "../Types/Quark";
+import { InitiateActionFn, ParseActions, QuarkActions } from "../Types/Actions";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -16,17 +15,14 @@ import { QuarkSetterFn } from "../Types/Quark";
 export function generateCustomActions<
   T,
   ARGS extends any[],
-  ET,
-  A extends QuarkActions<T, ET, ARGS>,
->(setState: QuarkSetterFn<T, ET>, actions: A): ParseActions<A> {
+  M,
+  A extends QuarkActions<T, M, ARGS>,
+>(initiateAction: InitiateActionFn<T, M>, actions: A): ParseActions<A> {
   return Object.fromEntries(
     Object.entries(actions).map(([actionName, actionMethod]) => {
       actionMethod = actionMethod.bind(actions);
       const wrappedAction = (...args: ARGS) => {
-        const r = setState((currentState: T) =>
-          actionMethod(currentState, ...args)
-        );
-        return r;
+        return initiateAction((api) => actionMethod(api, ...args));
       };
       return [actionName, wrappedAction];
     }),

@@ -10,6 +10,7 @@ import { QuarkContext } from "../../Types/Quark";
  */
 export type UpdateController<T> = {
   atomicUpdate(): AtomicUpdater<T>;
+  unsafeUpdate(): AtomicUpdater<T>;
   currentUpdate(): AtomicUpdater<T> | undefined;
 };
 
@@ -45,23 +46,26 @@ export function createUpdateController<T>(
   let currentUpdate: AtomicUpdater<T> | undefined;
 
   if (self.configOptions.allowRaceConditions) {
+    const unsafeUpdate = (): AtomicUpdater<T> => {
+      const updater = (currentUpdate = {
+        id: getNextUpdaterId(),
+        isCanceled: false,
+        cancel() {},
+        complete() {
+          if (currentUpdate === updater) {
+            currentUpdate = undefined;
+          }
+        },
+        update(action) {
+          return setState(action);
+        },
+      });
+      return updater;
+    };
+
     return {
-      atomicUpdate() {
-        const updater = (currentUpdate = {
-          id: getNextUpdaterId(),
-          isCanceled: false,
-          cancel() {},
-          complete() {
-            if (currentUpdate === updater) {
-              currentUpdate = undefined;
-            }
-          },
-          update(action) {
-            return setState(action);
-          },
-        });
-        return updater;
-      },
+      atomicUpdate: unsafeUpdate,
+      unsafeUpdate: unsafeUpdate,
       currentUpdate() {
         return currentUpdate;
       },
@@ -92,9 +96,7 @@ export function createUpdateController<T>(
         if (currentUpdate === updater) {
           currentUpdate = undefined;
         }
-        updater.update = () => {
-          throw new Error("state update after it was completed");
-        };
+        updater.update = () => {};
       },
     };
 
@@ -103,8 +105,25 @@ export function createUpdateController<T>(
     return updater;
   };
 
+  const unsafeUpdate = (): AtomicUpdater<T> => {
+    const updater: AtomicUpdater<T> = {
+      id: getNextUpdaterId(),
+      isCanceled: false,
+      update(state) {
+        return setState(state);
+      },
+      cancel() {},
+      complete() {
+        updater.update = () => {};
+      },
+    };
+
+    return updater;
+  };
+
   return {
     atomicUpdate,
+    unsafeUpdate,
     currentUpdate() {
       return currentUpdate;
     },

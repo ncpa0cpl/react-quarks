@@ -87,9 +87,20 @@ export type QuarkSetResult<V extends SetStateAction<any, any>> =
 export type QuarkHook<T, Actions, Procedures, Middlewares extends any[]> =
   & {
     value: DeepReadonly<T>;
+    /**
+     * Updates the data held in the quark.
+     *
+     * @param newVal A new data or a function that takes the previous state of the
+     *   quark and returns a new one.
+     */
     set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
       newValue: V,
     ): QuarkSetResult<V>;
+    /**
+     * Sets the state regardless of what the current active dispatch is and will
+     * not cancel any in-flight updates.
+     */
+    unsafeSet(newValue: T): void;
   }
   & ParseActions<Actions>
   & ParseProcedures<Procedures>;
@@ -154,6 +165,11 @@ export type Quark<
   set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
     newValue: V,
   ): QuarkSetResult<V>;
+  /**
+   * Sets the state regardless of what the current active dispatch is and will
+   * not cancel any in-flight updates.
+   */
+  unsafeSet(newValue: T): void;
   /**
    * React hook to access the data in the quark. It can be only used within
    * React functional components.

@@ -78,7 +78,7 @@ describe("ImmerMiddleware", () => {
           bar: "not really a bar",
           baz: "baz",
         },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -107,7 +107,7 @@ describe("ImmerMiddleware", () => {
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -135,7 +135,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "1", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "1", bar: "bar", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async () => {
@@ -153,7 +153,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "bar", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "bar", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -173,7 +173,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "2", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "2", bar: "3", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
 
       await q.set(async (current1) => {
@@ -191,7 +191,7 @@ describe("ImmerMiddleware", () => {
       expect(q.get()).toEqual({ foo: "4", bar: "3", baz: "baz" });
       expect(onStateChange).toHaveBeenLastCalledWith(
         { foo: "4", bar: "3", baz: "baz" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
   });
@@ -202,12 +202,14 @@ describe("ImmerMiddleware", () => {
         { foo: "foo", bar: "bar", baz: "baz" },
         {
           actions: {
-            setBar(state, value: string) {
-              state.bar = value;
-              return state;
+            setBar(api, value: string) {
+              api.setState((state) => {
+                state.bar = value;
+                return state;
+              });
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -238,13 +240,15 @@ describe("ImmerMiddleware", () => {
         { foo: "foo", bar: "bar", baz: "baz" },
         {
           actions: {
-            setBar(currentState, value: string) {
-              expect(isDraft(currentState)).toEqual(true);
-              currentState.bar = value;
-              return currentState;
+            setBar(api, value: string) {
+              api.setState(state => {
+                expect(isDraft(state)).toEqual(true);
+                state.bar = value;
+                return state;
+              });
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -274,16 +278,20 @@ describe("ImmerMiddleware", () => {
         { foo: "foo", bar: "bar", baz: "baz" },
         {
           actions: {
-            setFoo(currentState, value: string) {
-              currentState.foo = value;
-              return currentState;
+            setFoo(api, value: string) {
+              api.setState(currentState => {
+                currentState.foo = value;
+                return currentState;
+              });
             },
-            setBar(currentState, value: string) {
-              currentState.bar = value;
-              return currentState;
+            setBar(api, value: string) {
+              api.setState(currentState => {
+                currentState.bar = value;
+                return currentState;
+              });
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -309,7 +317,7 @@ describe("ImmerMiddleware", () => {
           bar: "not a bar",
           baz: "baz",
         },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
 
@@ -320,16 +328,20 @@ describe("ImmerMiddleware", () => {
         { foo: "foo", bar: "bar", baz: "baz" },
         {
           actions: {
-            async setFoo(currentState, value: Promise<string>) {
-              currentState.foo = await value;
-              return currentState;
+            async setFoo(api, value: Promise<string>) {
+              await api.setState(async currentState => {
+                currentState.foo = await value;
+                return currentState;
+              });
             },
-            async setBaz(currentState, value: Promise<string>) {
-              currentState.baz = await value;
-              return currentState;
+            async setBaz(api, value: Promise<string>) {
+              await api.setState(async (currentState) => {
+                currentState.baz = await value;
+                return currentState;
+              });
             },
           },
-        }
+        },
       );
 
       const rendered = renderHook(() => q.use());
@@ -351,7 +363,7 @@ describe("ImmerMiddleware", () => {
 
       expect(onStateChange).toHaveBeenCalledWith(
         { foo: "a", bar: "bar", baz: "b" },
-        expect.anything() // cancelSubscription function
+        expect.anything(), // cancelSubscription function
       );
     });
   });

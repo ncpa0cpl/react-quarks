@@ -1,3 +1,4 @@
+import { InitiateActionFn } from "../../Types/Actions";
 import {
   InitiateProcedureFn,
   ProcedureStateSetter,
@@ -5,7 +6,7 @@ import {
 import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { CancelUpdate } from "../CancelUpdate";
 import { applyMiddlewares } from "./ApplyMiddlewares";
-import { createUpdateController } from "./AsyncUpdates";
+import { AtomicUpdater, createUpdateController } from "./AsyncUpdates";
 import { createEventsDebouncer as createEventDebouncer } from "./EventsDispatcher";
 import { processStateUpdate } from "./ProcessStateUpdate";
 import { resolveUpdateType } from "./ResolveUpdateType";
@@ -36,14 +37,10 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     });
   });
 
-  /**
-   * A method for updating the Quark state, this method can take as it's
-   * argument the new state value, a generator function or a Promise resolving
-   * to the new value.
-   */
-  const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
-    const updater = updateController.atomicUpdate();
-
+  const setVia = (
+    action: SetStateAction<T, ET>,
+    updater: AtomicUpdater<T>,
+  ): void | Promise<void> => {
     const type = resolveUpdateType(action);
     return applyMiddlewares(
       self,
@@ -58,6 +55,16 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     );
   };
 
+  /**
+   * A method for updating the Quark state, this method can take as it's
+   * argument the new state value, a generator function or a Promise resolving
+   * to the new value.
+   */
+  const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
+    const updater = updateController.atomicUpdate();
+    return setVia(action, updater);
+  };
+
   const bareboneSet = (action: SetStateAction<T, ET>) => {
     const updater = updateController.atomicUpdate();
 
@@ -65,6 +72,40 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
       if (updater.isCanceled) return;
       self.value = newState;
       updater.complete();
+    });
+  };
+
+  const unsafeSet = (action: T) => {
+    const updater = updateController.unsafeUpdate();
+    return applyMiddlewares(
+      self,
+      action,
+      "function",
+      updater,
+      (action2) =>
+        unpackStateSetter(self, updater, action2).then((s) => {
+          updater.update(s);
+          updater.complete();
+        }),
+    );
+  };
+
+  const initiateAction: InitiateActionFn<T, any> = (action) => {
+    const updater = updateController.atomicUpdate();
+
+    return action({
+      getState() {
+        return self.value;
+      },
+      setState(action) {
+        return setVia(action, updater);
+      },
+      unsafeSet(state) {
+        return unsafeSet(state);
+      },
+      dispatchNew(action) {
+        return initiateAction(action) as any;
+      },
     });
   };
 
@@ -115,16 +156,10 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
   };
 
   return {
-    /**
-     * Applies middlewares, unpacks the action, assigns the new state and
-     * informs the subscribers of the quark.
-     */
     set,
-    /**
-     * Same as `set` but does not apply middlewares or inform the quark
-     * subscribents of the state change.
-     */
+    unsafeSet,
     bareboneSet,
+    initiateAction,
     initiateProcedure,
     updateController: updateController,
   };

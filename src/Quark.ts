@@ -26,7 +26,7 @@ import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
  */
 export function quark<
   T,
-  A extends QuarkActions<T, GetMiddlewareTypes<M>, ActionArgs>,
+  A extends QuarkActions<T, M, ActionArgs>,
   P extends QuarkProcedures<T, ProcedureArgs>,
   S extends QuarkSelectors<T, SelectorArgs>,
   M extends QuarkMiddleware<T, any>[] = never[],
@@ -54,11 +54,17 @@ export function quark<
 
   self.middlewares.unshift(...getGlobalQuarkMiddlewares());
 
-  const { set, bareboneSet, initiateProcedure, updateController } =
-    generateSetter(self);
+  const {
+    set,
+    unsafeSet,
+    bareboneSet,
+    initiateProcedure,
+    initiateAction,
+    updateController,
+  } = generateSetter(self);
 
   const customActions = generateCustomActions(
-    set,
+    initiateAction,
     config?.actions ?? ({} as A),
   );
 
@@ -81,12 +87,19 @@ export function quark<
 
   const get = () => self.value as DeepReadonly<T>;
 
-  const use = generateUseHook(self, customActions, customProcedures, set);
+  const use = generateUseHook(
+    self,
+    customActions,
+    customProcedures,
+    set,
+    unsafeSet,
+  );
 
   const subscribe = generateSubscribeFunction(self);
 
   const quark: Quark<T, A, P, S, M> = {
     set: set as any,
+    unsafeSet,
     get,
     use,
     subscribe,

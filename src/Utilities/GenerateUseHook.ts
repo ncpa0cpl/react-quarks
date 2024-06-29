@@ -22,6 +22,7 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
   actions: ParseActions<A>,
   procedures: ParseProcedures<P>,
   set: QuarkSetterFn<T, ET>,
+  unsafeSet: (newValue: T) => void,
 ): () => QuarkHook<T, A, P, M> {
   const getSnapshot = () => self.value;
 
@@ -33,6 +34,7 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
 
     return {
       set: set as any,
+      unsafeSet,
       value,
       ...actions,
       ...procedures,

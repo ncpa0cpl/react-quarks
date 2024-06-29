@@ -1,14 +1,38 @@
 import type { SetStateAction } from "./Quark";
 import type { FinalReturnType, IsLiteral, KeysOf } from "./Utilities";
 
-export type QuarkCustomAction<T, ET, ARGS extends any[]> = (
-  quarkState: T,
-  ...args: ARGS
-) => SetStateAction<T, ET>;
+export type ActionApi<T, M = never[]> = {
+  /**
+   * Get the current state of the quark.
+   */
+  getState(): T;
+  /**
+   * Set the state of the quark. If a new action/value is dispatched after
+   * this action, this will not take an effect.
+   */
+  setState(action: SetStateAction<T, M>): void;
+  /**
+   * Create a new action, and run it immediately. This action will be treated
+   * as a completely new dispatch. (canceling any in-flight updates)
+   */
+  dispatchNew<R extends void | Promise<void>>(
+    action: (api: ActionApi<T, M>) => R,
+  ): R;
+  /**
+   * Sets the state regardless of what the current active dispatch is and will
+   * not cancel any in-flight updates.
+   */
+  unsafeSet(state: T): void;
+};
 
-export type QuarkActions<T, ET, ARGS extends any[]> = Record<
+export type QuarkCustomAction<T, M, ARGS extends any[]> = (
+  api: ActionApi<T, M>,
+  ...args: ARGS
+) => void | Promise<void>;
+
+export type QuarkActions<T, M, ARGS extends any[]> = Record<
   string,
-  QuarkCustomAction<T, ET, ARGS>
+  QuarkCustomAction<T, M, ARGS>
 >;
 export type ParseSingleAction<A> = A extends (
   arg_0: any,
@@ -26,3 +50,7 @@ export type ParseActions<A> = A extends object
     }
   : Record<never, never>
   : Record<never, never>;
+
+export type InitiateActionFn<T, M> = (
+  a: (api: ActionApi<T, M>) => void,
+) => void;

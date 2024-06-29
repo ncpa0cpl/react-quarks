@@ -1,6 +1,11 @@
 import { act, renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, vitest } from "vitest";
-import type { QuarkMiddleware, QuarkSetterFn, QuarkType } from "../src";
+import type {
+  ActionApi,
+  QuarkMiddleware,
+  QuarkSetterFn,
+  QuarkType,
+} from "../src";
 import { composeSelectors, createImmerMiddleware, quark } from "../src";
 import {
   array,
@@ -96,11 +101,11 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment(state) {
-              return { value: state.value + 1 };
+            increment(api) {
+              api.setState({ value: api.getState().value + 1 });
             },
-            multiply(state, by: number) {
-              return { value: state.value * by };
+            multiply(api, by: number) {
+              api.setState({ value: api.getState().value * by });
             },
           },
         },
@@ -121,8 +126,10 @@ describe("quark()", () => {
         { value1: 5, value2: 321 },
         {
           actions: {
-            SetVal1: (s, v: number) => ({ ...s, value1: v }),
-            SetVal2: (s, v: number) => ({ ...s, value2: v }),
+            SetVal1: (api, v: number) =>
+              void api.setState({ ...api.getState(), value1: v }),
+            SetVal2: (api, v: number) =>
+              void api.setState({ ...api.getState(), value2: v }),
           },
         },
       );
@@ -239,12 +246,15 @@ describe("quark()", () => {
         derivedValue: string;
       };
 
-      const increment = (state: Q) => {
-        return { ...state, value: state.value + 1 };
+      const increment = (api: ActionApi<Q>) => {
+        api.setState({ ...api.getState(), value: api.getState().value + 1 });
       };
 
-      const setDerivedValue = (state: Q, newDerivedValue: string) => {
-        return { ...state, derivedValue: newDerivedValue };
+      const setDerivedValue = (
+        api: ActionApi<Q>,
+        newDerivedValue: string,
+      ) => {
+        api.setState({ ...api.getState(), derivedValue: newDerivedValue });
       };
 
       const deriveValue = (
@@ -253,7 +263,10 @@ describe("quark()", () => {
         set: QuarkSetterFn<Q, never>,
       ) => {
         if (prevState.value !== newState.value) {
-          set((v) => setDerivedValue(v, `${newState.value}`));
+          setDerivedValue(
+            { getState: () => newState, setState: set } as any,
+            `${newState.value}`,
+          );
         }
       };
 
@@ -301,8 +314,8 @@ describe("quark()", () => {
           derivedValue3: string;
         };
 
-        const increment = (state: Q) => {
-          return { ...state, value: state.value + 1 };
+        const increment = (api: ActionApi<Q>) => {
+          api.setState({ ...api.getState(), value: api.getState().value + 1 });
         };
 
         const deriveValue = (
@@ -452,14 +465,160 @@ describe("quark()", () => {
         expect(onSubTwo).toHaveBeenCalledTimes(2);
       });
     });
+    describe("custom actions", () => {
+      it("prevents updates if a newer update has been dispatched", async () => {
+        let secondsSetStateWasCalled = false;
+        const q = quark({ value: 0 }, {
+          actions: {
+            async setValue(api, value1: number, value2: number) {
+              api.setState({ value: value1 });
+              await sleep(20);
+              api.setState({ value: value2 });
+              secondsSetStateWasCalled = true;
+            },
+          },
+        });
+
+        q.act.setValue(5, 20);
+
+        await sleep(0);
+
+        expect(q.get()).toMatchObject({ value: 5 });
+
+        q.set({ value: 123 });
+        expect(secondsSetStateWasCalled).toBe(false);
+
+        await sleep(50);
+
+        expect(q.get()).toMatchObject({ value: 123 });
+        expect(secondsSetStateWasCalled).toBe(true);
+      });
+      describe("dispatchNew()", () => {
+        it("behaves as if a separate action was dispatched from outside", async () => {
+          const onSetV3 = vitest.fn();
+
+          const q = quark({ value: 0 }, {
+            actions: {
+              async action(api, v1: number, v2: number, v3: number) {
+                api.setState({ value: v1 });
+                api.dispatchNew(async (subApi) => {
+                  await sleep(25);
+                  subApi.setState({ value: v2 });
+                });
+                api.setState({ value: v3 });
+                onSetV3();
+              },
+            },
+          });
+
+          expect(onSetV3).toHaveBeenCalledTimes(0);
+
+          q.act.action(5, 10, 15);
+          expect(q.get()).toMatchObject({ value: 5 });
+          expect(onSetV3).toHaveBeenCalledTimes(1);
+
+          await sleep(30);
+          expect(q.get()).toMatchObject({ value: 10 });
+
+          const p1 = controlledPromise();
+          const p2 = controlledPromise();
+
+          const q2 = quark({ value: 0 }, {
+            actions: {
+              async action(api, v1: number, v2: number) {
+                api.setState({ value: v1 });
+                await p1;
+                api.dispatchNew((subApi) => {
+                  subApi.setState({ value: v2 });
+                });
+              },
+            },
+          });
+
+          q2.act.action(5, 10);
+          expect(q2.get()).toMatchObject({ value: 5 });
+
+          q2.set(async () => {
+            await p2;
+            return { value: 999 };
+          });
+
+          p1.resolve();
+          await sleep(0);
+          expect(q2.get()).toMatchObject({ value: 10 });
+          // dispatchNew cancels the p2 update
+          p2.resolve();
+          await sleep(10);
+          expect(q2.get()).toMatchObject({ value: 10 });
+        });
+      });
+      describe("unsafeSet()", () => {
+        it("should update the state even if the current action was canceled", async () => {
+          const q = quark({ value: "0", value2: "0" }, {
+            actions: {
+              async action(api) {
+                api.setState({ value: "5", value2: "0" });
+                await sleep(20);
+                api.unsafeSet({ ...api.getState(), value: "unsafely set" }); // should take effect
+                api.setState({ ...api.getState(), value2: "10" }); // should not take effect
+              },
+            },
+          });
+
+          q.act.action();
+
+          expect(q.get()).toMatchObject({ value: "5", value2: "0" });
+
+          q.set(c => ({ ...c, value: "123" })); // cancels the action
+          expect(q.get()).toMatchObject({ value: "123", value2: "0" });
+
+          await sleep(30);
+
+          expect(q.get()).toMatchObject({ value: "unsafely set", value2: "0" });
+        });
+        it("should not cancel in-flight updates", async () => {
+          const p1 = controlledPromise();
+          const p2 = controlledPromise();
+
+          const q = quark({ value: 0 }, {
+            actions: {
+              async action(api) {
+                api.setState({ value: 5 });
+                await p1.promise;
+                api.unsafeSet({ value: 10 });
+              },
+            },
+          });
+
+          q.act.action();
+          expect(q.get()).toMatchObject({ value: 5 });
+
+          // create an in-flight update
+          q.set(async () => {
+            await p2.promise;
+            return { value: 999 };
+          });
+
+          p1.resolve();
+          await sleep(0);
+          expect(q.get()).toMatchObject({ value: 10 }); // unsafeSet should take effect
+
+          p2.resolve();
+          await sleep(0);
+          expect(q.get()).toMatchObject({ value: 999 }); // in-flight update should take effect
+        });
+      });
+    });
     describe("custom selectors", () => {
       it("returns the selected value", () => {
         const q = quark(
           { value1: 5, value2: 321 },
           {
             actions: {
-              SetVal1: (s, v: number) => ({ ...s, value1: v }),
-              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+              SetVal1: (api, v: number) =>
+                void api.setState({ ...api.getState(), value1: v }),
+              SetVal2: (api, v: number) =>
+                void api.setState({ ...api.getState(), value2: v }),
             },
             selectors: {
               value1: (s) => s.value1,
@@ -483,8 +642,10 @@ describe("quark()", () => {
           { value1: 5, value2: 321 },
           {
             actions: {
-              SetVal1: (s, v: number) => ({ ...s, value1: v }),
-              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+              SetVal1: (api, v: number) =>
+                void api.setState({ ...api.getState(), value1: v }),
+              SetVal2: (api, v: number) =>
+                void api.setState({ ...api.getState(), value2: v }),
             },
             selectors: {
               v: (s, n: 1 | 2) => s[`value${n}`],
@@ -648,9 +809,9 @@ describe("quark()", () => {
               },
             },
             actions: {
-              async fetchValue(s) {
+              async fetchValue(api) {
                 await sleep(0);
-                return { value: 100, inProgress: false };
+                api.setState({ value: 100, inProgress: false });
               },
             },
           },
@@ -708,7 +869,12 @@ describe("quark()", () => {
     it("use() correctly exposes custom actions", async () => {
       const q = quark(
         { value: 0 },
-        { actions: { increment: (s) => ({ value: s.value + 1 }) } },
+        {
+          actions: {
+            increment: (api) =>
+              void api.setState({ value: api.getState().value + 1 }),
+          },
+        },
       );
 
       const state = renderHook(() => q.use());
@@ -752,7 +918,10 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            incrementAsync: (s) => Promise.resolve({ value: s.value + 1 }),
+            incrementAsync: (api) =>
+              void api.setState(
+                Promise.resolve({ value: api.getState().value + 1 }),
+              ),
           },
         },
       );
@@ -773,7 +942,10 @@ describe("quark()", () => {
       const q = quark(
         { value: 0 },
         {
-          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          actions: {
+            increment: (api) =>
+              void api.setState({ value: api.getState().value + 1 }),
+          },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
@@ -798,7 +970,10 @@ describe("quark()", () => {
       const q = quark(
         { value: 0 },
         {
-          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          actions: {
+            increment: (api) =>
+              void api.setState({ value: api.getState().value + 1 }),
+          },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
@@ -823,7 +998,10 @@ describe("quark()", () => {
       const q = quark(
         { value: 0 },
         {
-          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          actions: {
+            increment: (api) =>
+              void api.setState({ value: api.getState().value + 1 }),
+          },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
@@ -848,7 +1026,10 @@ describe("quark()", () => {
       const q = quark(
         { value: 0 },
         {
-          actions: { increment: (s) => ({ value: s.value + 1 }) },
+          actions: {
+            increment: (api) =>
+              void api.setState({ value: api.getState().value + 1 }),
+          },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
               set({ value: curr.value + 1 });
@@ -873,7 +1054,13 @@ describe("quark()", () => {
       const q = quark(
         { value: 0, derivedValue: "0" },
         {
-          actions: { increment: (s) => ({ ...s, value: s.value + 1 }) },
+          actions: {
+            increment: (api) =>
+              void api.setState({
+                ...api.getState(),
+                value: api.getState().value + 1,
+              }),
+          },
           effect: (prev, current, set) => {
             if (prev.value !== current.value) {
               set(() =>
@@ -1010,8 +1197,10 @@ describe("quark()", () => {
           { value1: 1, value2: 321 },
           {
             actions: {
-              SetVal1: (s, v: number) => ({ ...s, value1: v }),
-              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+              SetVal1: (api, v: number) =>
+                void api.setState({ ...api.getState(), value1: v }),
+              SetVal2: (api, v: number) =>
+                void api.setState({ ...api.getState(), value2: v }),
             },
             selectors: {
               value1: (s) => s.value1,
@@ -1052,8 +1241,16 @@ describe("quark()", () => {
           { box1: { value: "hello" }, box2: { value: "world" } },
           {
             actions: {
-              SetVal1: (s, v: string) => ({ ...s, box1: { value: v } }),
-              SetVal2: (s, v: string) => ({ ...s, box2: { value: v } }),
+              SetVal1: (api, v: string) =>
+                void api.setState({
+                  ...api.getState(),
+                  box1: { value: v },
+                }),
+              SetVal2: (api, v: string) =>
+                void api.setState({
+                  ...api.getState(),
+                  box2: { value: v },
+                }),
             },
             selectors: {
               value1: (s) => s.box1,
@@ -1093,8 +1290,10 @@ describe("quark()", () => {
           { value1: 1, value2: 321 },
           {
             actions: {
-              SetVal1: (s, v: number) => ({ ...s, value1: v }),
-              SetVal2: (s, v: number) => ({ ...s, value2: v }),
+              SetVal1: (api, v: number) =>
+                void api.setState({ ...api.getState(), value1: v }),
+              SetVal2: (api, v: number) =>
+                void api.setState({ ...api.getState(), value2: v }),
             },
             selectors: {
               boxed: composeSelectors(
@@ -1541,9 +1740,9 @@ describe("quark()", () => {
               },
             },
             actions: {
-              async fetchValue(s) {
+              async fetchValue(api) {
                 await sleep(0);
-                return { value: 100, inProgress: false };
+                api.setState({ value: 100, inProgress: false });
               },
             },
           },
