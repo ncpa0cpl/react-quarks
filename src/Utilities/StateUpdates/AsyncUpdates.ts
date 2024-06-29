@@ -96,7 +96,13 @@ export function createUpdateController<T>(
         if (currentUpdate === updater) {
           currentUpdate = undefined;
         }
-        updater.update = () => {};
+        updater.update = () => {
+          console.warn(
+            new Error(
+              "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
+            ),
+          );
+        };
       },
     };
 

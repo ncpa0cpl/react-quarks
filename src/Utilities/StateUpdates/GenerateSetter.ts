@@ -1,6 +1,7 @@
 import { InitiateActionFn } from "../../Types/Actions";
 import {
   InitiateProcedureFn,
+  ProcedureApi,
   ProcedureStateSetter,
 } from "../../Types/Procedures";
 import { QuarkContext, SetStateAction } from "../../Types/Quark";
@@ -49,8 +50,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
       updater,
       (action2) =>
         unpackStateSetter(self, updater, action2).then((s) => {
-          updater.update(s);
-          updater.complete();
+          return updater.update(s);
         }),
     );
   };
@@ -62,7 +62,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
    */
   const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
     const updater = updateController.atomicUpdate();
-    return setVia(action, updater);
+    return after(() => setVia(action, updater), () => updater.complete());
   };
 
   const bareboneSet = (action: SetStateAction<T, ET>) => {
@@ -75,15 +75,15 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     });
   };
 
-  const unsafeSet = (action: T) => {
+  const unsafeSet = (action: T | ((current: T) => T)) => {
     const updater = updateController.unsafeUpdate();
     return applyMiddlewares(
       self,
       action,
-      "function",
+      resolveUpdateType(action),
       updater,
       (action2) =>
-        unpackStateSetter(self, updater, action2).then((s) => {
+        unpackStateSetterSync(self, updater, action2).then((s) => {
           updater.update(s);
           updater.complete();
         }),
@@ -93,24 +93,53 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
   const initiateAction: InitiateActionFn<T, any> = (action) => {
     const updater = updateController.atomicUpdate();
 
-    return action({
-      getState() {
-        return self.value;
-      },
-      setState(action) {
-        return setVia(action, updater);
-      },
-      unsafeSet(state) {
-        return unsafeSet(state);
-      },
-      dispatchNew(action) {
-        return initiateAction(action) as any;
-      },
-    });
+    return after(() => {
+      const pending: Promise<any>[] = [];
+
+      const result = action({
+        getState() {
+          return self.value;
+        },
+        setState(action) {
+          const r = setVia(action, updater);
+          if (r instanceof Promise) {
+            pending.push(r);
+          }
+          return r;
+        },
+        unsafeSet(state) {
+          return unsafeSet(state);
+        },
+        dispatchNew(action) {
+          return initiateAction(action) as any;
+        },
+        isCanceled() {
+          return updater.isCanceled;
+        },
+      });
+
+      if (pending.length > 0) {
+        return Promise.all(pending).then(() => result);
+      }
+
+      return result;
+    }, () => updater.complete());
   };
 
   const initiateProcedure: InitiateProcedureFn<T> = async (procedure) => {
     const updater = updateController.atomicUpdate();
+
+    const procedureApi: ProcedureApi<T> = {
+      getState() {
+        return self.value;
+      },
+      unsafeSet(state) {
+        return unsafeSet(state);
+      },
+      isCanceled() {
+        return updater.isCanceled;
+      },
+    };
 
     return applyMiddlewares(
       self,
@@ -119,7 +148,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
       updater,
       async (p) => {
         try {
-          const generator = p();
+          const generator = p(procedureApi);
           let nextUp: IteratorResult<
             ProcedureStateSetter<T>,
             ProcedureStateSetter<T>
@@ -144,12 +173,13 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
                 ),
             );
           } while (!nextUp.done);
-          updater.complete();
         } catch (err) {
           if (CancelUpdate.isCancel(err)) {
             return;
           }
           throw err;
+        } finally {
+          updater.complete();
         }
       },
     );
@@ -163,4 +193,19 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     initiateProcedure,
     updateController: updateController,
   };
+}
+
+function after<T>(fn: () => T, doAfter: () => void): T {
+  let isAsync = false;
+
+  try {
+    const result = fn();
+    if (result instanceof Promise) {
+      isAsync = true;
+      result.finally(doAfter) as any;
+    }
+    return result;
+  } finally {
+    if (!isAsync) doAfter();
+  }
 }

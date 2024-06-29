@@ -22,7 +22,8 @@ export type ActionApi<T, M = never[]> = {
    * Sets the state regardless of what the current active dispatch is and will
    * not cancel any in-flight updates.
    */
-  unsafeSet(state: T): void;
+  unsafeSet(state: T | ((current: T) => T)): void;
+  isCanceled(): boolean;
 };
 
 export type QuarkCustomAction<T, M, ARGS extends any[]> = (

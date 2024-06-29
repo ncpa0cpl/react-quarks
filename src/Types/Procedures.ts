@@ -2,8 +2,14 @@ import { IsLiteral, KeysOf } from "./Utilities";
 
 export type ProcedureStateSetter<T> = T | ((draft: T) => T);
 
+export type ProcedureApi<T> = {
+  getState(): T;
+  unsafeSet(state: T | ((current: T) => T)): void;
+  isCanceled(): boolean;
+};
+
 export type QuarkCustomProcedure<T, ARGS extends any[]> = (
-  initState: T,
+  initState: ProcedureApi<T>,
   ...args: ARGS
 ) => AsyncGenerator<ProcedureStateSetter<T>, ProcedureStateSetter<T>, T>;
 
@@ -26,5 +32,7 @@ export type ParseProcedures<A> = A extends object
   : Record<never, never>;
 
 export type InitiateProcedureFn<T> = (
-  p: () => AsyncGenerator<ProcedureStateSetter<T>, ProcedureStateSetter<T>, T>,
+  p: (
+    api: ProcedureApi<T>,
+  ) => AsyncGenerator<ProcedureStateSetter<T>, ProcedureStateSetter<T>, T>,
 ) => void;

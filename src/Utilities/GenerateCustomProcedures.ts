@@ -3,7 +3,6 @@ import {
   ParseProcedures,
   QuarkProcedures,
 } from "../Types/Procedures";
-import { QuarkContext } from "../Types/Quark";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -23,14 +22,13 @@ export function generateCustomProcedures<
   ET,
   P extends QuarkProcedures<T, ARGS>,
 >(
-  self: QuarkContext<T, ET>,
   initiateProcedure: InitiateProcedureFn<T>,
   procedures: P,
 ): ParseProcedures<P> {
   return Object.fromEntries(
     Object.entries(procedures).map(([actionName, generatorFactory]) => {
       const wrappedAction = (...args: ARGS) => {
-        return initiateProcedure(() => generatorFactory(self.value, ...args));
+        return initiateProcedure((api) => generatorFactory(api, ...args));
       };
       return [actionName, wrappedAction];
     }),

@@ -69,7 +69,6 @@ export function quark<
   );
 
   const customProcedures = generateCustomProcedures(
-    self,
     initiateProcedure,
     config?.procedures ?? ({} as P),
   );

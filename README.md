@@ -151,12 +151,12 @@ const data = quark(
   },
   {
     actions: {
-      async updateWithNewData() {
+      async updateWithNewData(api) {
         try {
           // We request new data from the server
           const result = await fetchNewData();
           // Request was successful, update the state with the result
-          return result;
+          return api.setState(result);
         } catch (e) {
           // Request failed, update is cancelled
           throw new CancelUpdate();
@@ -359,13 +359,15 @@ const siteSettings = quark(
   },
   {
     actions: {
-      setTitle(state, newTitle: string) {
-        return { ...state, title: newTitle };
+      setTitle(api, newTitle: string) {
+        const state = api.getState();
+        return api.setState({ ...state, title: newTitle });
       },
       // async actions are also possible
-      async setThemeAfter1sec(state, theme: string) {
+      async setThemeAfter1sec(api, theme: string) {
         await new Promise((r) => setTimeout(r, 1000));
-        return { ...state, theme };
+        const state = api.getState();
+        return api.setState({ ...state, theme });
       },
     },
   }
@@ -394,7 +396,9 @@ const users = quark(
   },
   {
     procedures: {
-      async *fetchUsers(initState, auth: string) {
+      async *fetchUsers(api, auth: string) {
+        const initState = api.getState();
+
         // yielding a value will set it as the new state
         yield { ...initState, loading: true, data: [] };
         try {
@@ -639,9 +643,11 @@ const state = quark(
   { value: "foo" },
   {
     actions: {
-      changeValue(currentState, setTo: string) {
-        currentState.value = setTo;
-        return currentState;
+      changeValue(api, setTo: string) {
+        api.setState((currentState) => {
+          currentState.value = setTo;
+          return currentState;
+        });
       },
     },
   }

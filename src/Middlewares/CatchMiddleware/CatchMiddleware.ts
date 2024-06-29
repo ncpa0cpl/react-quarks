@@ -9,9 +9,9 @@ export function createCatchMiddleware(params?: {
   return (params) => {
     if (params.updateType === "async-generator") {
       const { action, resume, getState } = params;
-      return resume(async function*() {
+      return resume(async function*(api) {
         try {
-          const gen = action();
+          const gen = action(api);
 
           let next: IteratorResult<unknown, unknown>;
           do {

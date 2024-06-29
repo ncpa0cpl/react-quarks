@@ -34,7 +34,7 @@ export function unpackStateSetter<T, ET>(
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
-      then(handler: (state: T) => void) {
+      then(handler: (state: T) => void): Promise<void> {
         return setter
           .then((state) => {
             const type = resolveUpdateType(state);

@@ -1,5 +1,9 @@
 import { AtomicUpdater } from "../Utilities/StateUpdates/AsyncUpdates";
-import { ProcedureStateSetter, QuarkCustomProcedure } from "./Procedures";
+import {
+  ProcedureApi,
+  ProcedureStateSetter,
+  QuarkCustomProcedure,
+} from "./Procedures";
 import type { QuarkUpdateType, SetStateAction } from "./Quark";
 
 export type BaseQuarkMiddlewareParams<T, ET> = {
@@ -32,7 +36,7 @@ export type BaseQuarkMiddlewareParams<T, ET> = {
 
 export type ProcedureQuarkMiddlewareParams<T, ET> = {
   getState: () => T;
-  action: () => AsyncGenerator<
+  action: (api: ProcedureApi<T>) => AsyncGenerator<
     ProcedureStateSetter<T>,
     ProcedureStateSetter<T>,
     T

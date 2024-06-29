@@ -505,6 +505,7 @@ describe("quark()", () => {
                   await sleep(25);
                   subApi.setState({ value: v2 });
                 });
+                await sleep(50);
                 api.setState({ value: v3 });
                 onSetV3();
               },
@@ -514,11 +515,15 @@ describe("quark()", () => {
           expect(onSetV3).toHaveBeenCalledTimes(0);
 
           q.act.action(5, 10, 15);
+          await sleep(0);
           expect(q.get()).toMatchObject({ value: 5 });
-          expect(onSetV3).toHaveBeenCalledTimes(1);
 
           await sleep(30);
           expect(q.get()).toMatchObject({ value: 10 });
+
+          await sleep(100);
+          expect(q.get()).toMatchObject({ value: 10 });
+          expect(onSetV3).toHaveBeenCalledTimes(1);
 
           const p1 = controlledPromise();
           const p2 = controlledPromise();
@@ -559,6 +564,7 @@ describe("quark()", () => {
               async action(api) {
                 api.setState({ value: "5", value2: "0" });
                 await sleep(20);
+                expect(api.isCanceled()).toBe(true);
                 api.unsafeSet({ ...api.getState(), value: "unsafely set" }); // should take effect
                 api.setState({ ...api.getState(), value2: "10" }); // should not take effect
               },
@@ -585,7 +591,15 @@ describe("quark()", () => {
               async action(api) {
                 api.setState({ value: 5 });
                 await p1.promise;
+                expect(api.isCanceled()).toBe(true);
                 api.unsafeSet({ value: 10 });
+              },
+            },
+            procedures: {
+              async *update() {
+                yield { value: 999 };
+                await p2.promise;
+                return { value: 876 };
               },
             },
           });
@@ -594,10 +608,9 @@ describe("quark()", () => {
           expect(q.get()).toMatchObject({ value: 5 });
 
           // create an in-flight update
-          q.set(async () => {
-            await p2.promise;
-            return { value: 999 };
-          });
+          q.act.update();
+          await sleep(0);
+          expect(q.get()).toMatchObject({ value: 999 });
 
           p1.resolve();
           await sleep(0);
@@ -605,7 +618,35 @@ describe("quark()", () => {
 
           p2.resolve();
           await sleep(0);
-          expect(q.get()).toMatchObject({ value: 999 }); // in-flight update should take effect
+          expect(q.get()).toMatchObject({ value: 876 }); // in-flight update should take effect
+        });
+        it("correctly handles setter functions", async () => {
+          const q = quark({ value: 0 }, {
+            middlewares: [createImmerMiddleware()],
+            actions: {
+              async action(api) {
+                api.setState({ value: 5 });
+                await sleep(20);
+                expect(api.isCanceled()).toBe(true);
+                api.unsafeSet((draft) => {
+                  draft.value = 10;
+                  return draft;
+                });
+              },
+            },
+          });
+
+          q.act.action();
+          expect(q.get()).toMatchObject({ value: 5 });
+
+          q.set(draft => {
+            draft.value = -1;
+            return draft;
+          });
+          expect(q.get()).toMatchObject({ value: -1 });
+
+          await sleep(30);
+          expect(q.get()).toMatchObject({ value: 10 });
         });
       });
     });
@@ -672,8 +713,8 @@ describe("quark()", () => {
           { inProgress: false, value: 2 },
           {
             procedures: {
-              async *runProcedure(initState) {
-                yield { ...initState, inProgress: true };
+              async *runProcedure(api) {
+                yield { ...api.getState(), inProgress: true };
                 const newValue = await p.promise;
                 return { inProgress: false, value: newValue.value };
               },
@@ -832,6 +873,67 @@ describe("quark()", () => {
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: false, value: 100 });
       });
+      it("correctly handles unsafeSet", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            procedures: {
+              async *runProcedure(api) {
+                yield { ...api.getState(), inProgress: true };
+                const newValue = await p.promise;
+                api.unsafeSet({ inProgress: false, value: newValue.value });
+                return { inProgress: false, value: -1 };
+              },
+            },
+          },
+        );
+
+        q.act.runProcedure();
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: true, value: 2 });
+
+        q.set({ inProgress: false, value: 123 });
+        expect(q.get()).toMatchObject({ inProgress: false, value: 123 });
+
+        p.resolve({ value: 5 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
+      });
+      it("correctly handles unsafeSet with setter function", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            middlewares: [createImmerMiddleware()],
+            procedures: {
+              async *runProcedure(api) {
+                yield { ...api.getState(), inProgress: true };
+                const newValue = await p.promise;
+                expect(api.isCanceled()).toBe(true);
+                api.unsafeSet((draft) => {
+                  draft.value = newValue.value;
+                  return draft;
+                });
+                return { inProgress: false, value: -1 };
+              },
+            },
+          },
+        );
+
+        q.act.runProcedure();
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: true, value: 2 });
+
+        q.set({ inProgress: false, value: 123 });
+        expect(q.get()).toMatchObject({ inProgress: false, value: 123 });
+
+        p.resolve({ value: 5 });
+        await sleep(0);
+        expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
+      });
     });
   });
 
@@ -931,12 +1033,11 @@ describe("quark()", () => {
       expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
-        await state.result.current.incrementAsync();
+        state.result.current.incrementAsync();
+        await state.waitFor(() => {
+          expect(state.result.current.value).toMatchObject({ value: 1 });
+        });
       });
-
-      await state.waitFor(() =>
-        expect(state.result.current.value).toMatchObject({ value: 1 })
-      );
     });
     it("use() correctly triggers custom effects when local set is called", async () => {
       const q = quark(
@@ -1558,8 +1659,8 @@ describe("quark()", () => {
           { inProgress: false, value: 2 },
           {
             procedures: {
-              async *runProcedure(initState) {
-                yield { ...initState, inProgress: true };
+              async *runProcedure(api) {
+                yield { ...api.getState(), inProgress: true };
                 const newValue = await p.promise;
                 return { inProgress: false, value: newValue.value };
               },
