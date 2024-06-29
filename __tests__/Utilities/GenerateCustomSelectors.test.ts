@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react-hooks";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { generateCustomSelectors } from "../../src/Utilities/GenerateCustomSelectors";
 import { getTestQuarkContext } from "../helpers";

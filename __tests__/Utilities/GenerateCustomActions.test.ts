@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { QuarkContext } from "../../src";
 import { generateCustomActions } from "../../src/Utilities/GenerateCustomActions";

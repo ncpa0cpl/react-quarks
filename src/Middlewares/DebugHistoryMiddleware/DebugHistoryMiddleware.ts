@@ -1,4 +1,4 @@
-import { cloneDeep as _cloneDeep } from "lodash";
+import _cloneDeep from "lodash.clonedeep";
 import { QuarkMiddleware } from "../../Types/Middlewares";
 import { AtomicUpdater } from "../../Utilities/StateUpdates/AsyncUpdates";
 import { DispatchSource } from "./Types/TrackedQuark";

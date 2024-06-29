@@ -36,14 +36,14 @@
   },
   "dependencies": {
     "immer": "^10.1.1",
-    "lodash": "^4.17.21",
+    "lodash.clonedeep": "^4.5.0",
     "luxon": "^3.4.4",
     "use-sync-external-store": "^1.2.2"
   },
   "devDependencies": {
     "@testing-library/react-hooks": "^8.0.1",
     "@types/axios": "^0.14.0",
-    "@types/lodash": "^4.17.5",
+    "@types/lodash.clonedeep": "^4.5.9",
     "@types/luxon": "^3.4.2",
     "@types/node": "^20.14.8",
     "@types/react": "^18.3.3",
@@ -51,7 +51,7 @@
     "@types/use-sync-external-store": "^0.0.6",
     "dprint": "^0.46.3",
     "esbuild": "^0.21.5",
-    "git-hook-tasks": "github:ncpa0cpl/git-hook-tasks",
+    "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#0.0.1",
     "happy-dom": "^14.12.3",
     "husky": "^8.0.3",
     "oxlint": "^0.4.4",
