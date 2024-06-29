@@ -1,5 +1,5 @@
-import type { GetMiddlewareTypes, QuarkCustomEffect } from ".";
-import type { QuarkMiddleware } from "./Middlewares";
+import { QuarkCustomEffect } from "./Effects";
+import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
 import type { QuarkComparatorFn } from "./Quark";
 
 export type QuarkConfig<T, A, P, S, M extends QuarkMiddleware<any, any>[]> = {

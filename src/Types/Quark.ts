@@ -1,5 +1,5 @@
-import type { QuarkCustomEffect } from ".";
 import type { ParseActions } from "./Actions";
+import { QuarkCustomEffect } from "./Effects";
 import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
 import { ParseProcedures } from "./Procedures";
 import type {
@@ -46,6 +46,7 @@ export type QuarkContext<T, ET> = {
 
   readonly sideEffect?: QuarkCustomEffect<T, ET>;
   readonly stateComparator: QuarkComparatorFn;
+  readonly syncStoreSubscribe: (callback: () => void) => () => boolean;
 };
 
 export type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> =
@@ -93,7 +94,7 @@ export type QuarkHook<T, Actions, Procedures, Middlewares extends any[]> =
   & ParseActions<Actions>
   & ParseProcedures<Procedures>;
 
-export type UsableSelectors<T, Selectors> = {
+export type HookSelectors<T, Selectors> = {
   /**
    * Use Selector Function can be used to access a part of the data
    * within the quark or to retrieve it and transform.
@@ -120,15 +121,18 @@ export type UsableSelectors<T, Selectors> = {
    *     console.log(firstWord); // > "Hello"
    *   }
    */
-  $: <ARGS extends any[], R>(
+  use: <ARGS extends any[], R>(
     selector: QuarkSelector<T, ARGS, R>,
     ...args: ARGS
   ) => DeepReadonly<R>;
 } & ParseHookSelectors<Selectors>;
 
-export type StandaloneSelectors<T, Selectors> = {
-  $: <R>(selector: (state: T) => R) => DeepReadonly<R>;
-} & ParseSelectors<Selectors>;
+export type Selects<T, Selectors> =
+  & {
+    $: <R>(selector: (state: T) => R) => DeepReadonly<R>;
+  }
+  & ParseSelectors<Selectors>
+  & HookSelectors<T, Selectors>;
 
 export type Quark<
   T,
@@ -163,11 +167,6 @@ export type Quark<
    * - `set()` - to updated the data
    */
   use(): QuarkHook<T, Actions, Procedures, Middlewares>;
-  /**
-   * Contains all the selector hooks that can be used to access a part of the
-   * data within the quark.
-   */
-  useSelector: UsableSelectors<T, Selectors>;
   /**
    * Add a listener for the state changes of the Quark. Every time the state
    * change is detected provided callback will be triggered.
@@ -212,5 +211,5 @@ export type Quark<
    *
    * console.log(q.select.reversed()); // > "olleH"
    */
-  select: StandaloneSelectors<T, Selectors>;
+  select: Selects<T, Selectors>;
 };

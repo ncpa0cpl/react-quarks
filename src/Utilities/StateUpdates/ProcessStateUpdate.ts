@@ -1,4 +1,4 @@
-import type { QuarkContext, SetStateAction } from "../../Types";
+import { QuarkContext, SetStateAction } from "../../Types/Quark";
 
 /**
  * Run all the necessary action after the state has changed, propagate the
@@ -34,7 +34,7 @@ export function processStateUpdate<T, ET>(params: {
           } catch (err) {
             console.error(
               `One of the Quark subscribers returned with an error (${subscriber.name}):`,
-              err
+              err,
             );
           }
         }

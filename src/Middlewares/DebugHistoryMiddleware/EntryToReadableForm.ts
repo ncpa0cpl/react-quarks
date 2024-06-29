@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import type { RecordValue } from "../../Types";
+import { RecordValue } from "../../Types/Utilities";
 import { hasKey } from "../../Utilities/GeneralPurposeUtilities";
 import type {
   HistoricalState,
@@ -40,8 +40,9 @@ function stringifyIfObject(v: unknown) {
 }
 
 function parseObjectValue(obj: HistoricalState) {
-  if ("type" in obj && "value" in obj)
+  if ("type" in obj && "value" in obj) {
     return `Type: ${obj.type}; Value: [${stringifyIfObject(obj.value)}]`;
+  }
 
   return `Type: Value; Value: [${stringifyIfObject(obj)}]`;
 }
@@ -51,9 +52,9 @@ export function entryToReadableForm(entry: QuarkStateChangeHistoricalEntry) {
     (propertyName: HistoryPropertiesKeys): [string, unknown] => {
       const friendlyName = PROPERTIES_FRIENDLY_NAMES_MAP[propertyName];
       const value: RecordValue<QuarkStateChangeHistoricalEntry> = hasKey(
-        entry,
-        propertyName,
-      )
+          entry,
+          propertyName,
+        )
         ? entry[propertyName]
         : undefined;
 

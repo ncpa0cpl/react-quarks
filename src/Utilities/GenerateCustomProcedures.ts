@@ -1,9 +1,9 @@
-import { QuarkContext } from "../Types";
 import {
   InitiateProcedureFn,
   ParseProcedures,
   QuarkProcedures,
 } from "../Types/Procedures";
+import { QuarkContext } from "../Types/Quark";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.

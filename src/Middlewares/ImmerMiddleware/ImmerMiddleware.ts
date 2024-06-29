@@ -1,5 +1,5 @@
 import { enableMapSet, enablePatches, Immer, isDraft } from "immer";
-import type { QuarkMiddleware } from "../../Types";
+import { QuarkMiddleware } from "../../Types/Middlewares";
 
 export const createImmerMiddleware = (options?: {
   /**
@@ -60,8 +60,9 @@ export const createImmerMiddleware = (options?: {
 
     if (typeof action === "function") {
       return resume((currentState: object) => {
-        if (typeof currentState !== "object" || currentState === null)
+        if (typeof currentState !== "object" || currentState === null) {
           return action(currentState);
+        }
 
         const draft = immer.createDraft(currentState);
 

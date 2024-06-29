@@ -1,5 +1,5 @@
 import type serializejs from "serialize-javascript";
-import type { QuarkContext } from "../Types";
+import { QuarkContext } from "../Types/Quark";
 
 function deserialize(serializedJavascript: string) {
   return eval("(" + serializedJavascript + ")");

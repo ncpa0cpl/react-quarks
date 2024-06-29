@@ -1,4 +1,4 @@
-import type { QuarkContext } from "../../Types";
+import { QuarkContext } from "../../Types/Quark";
 
 /**
  * Controller responsible for managing asynchronous updates. By default all and
@@ -40,7 +40,7 @@ function getNextUpdaterId() {
  */
 export function createUpdateController<T>(
   self: QuarkContext<T, any>,
-  setState: (action: T) => void
+  setState: (action: T) => void,
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdater<T> | undefined;
 

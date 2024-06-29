@@ -1,9 +1,9 @@
-import type {
+import { QuarkCustomProcedure } from "../../Types/Procedures";
+import {
   QuarkContext,
   QuarkUpdateType,
   SetStateAction,
-} from "../../Types";
-import { QuarkCustomProcedure } from "../../Types/Procedures";
+} from "../../Types/Quark";
 import { AtomicUpdater } from "./AsyncUpdates";
 
 /**
@@ -23,17 +23,17 @@ import { AtomicUpdater } from "./AsyncUpdates";
 export function applyMiddlewares<
   T,
   ET,
-  A extends SetStateAction<T, ET> | QuarkCustomProcedure<T, any[]>
+  A extends SetStateAction<T, ET> | QuarkCustomProcedure<T, any[]>,
 >(
   self: QuarkContext<T, ET>,
   value: A,
   type: QuarkUpdateType,
   updater: AtomicUpdater<T>,
-  setterFn: (v: A) => void | Promise<void>
+  setterFn: (v: A) => void | Promise<void>,
 ) {
   const applyMiddlewareOfIndex = (
     index: number,
-    v: A
+    v: A,
   ): void | Promise<void> => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {

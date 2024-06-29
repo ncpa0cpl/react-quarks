@@ -1,4 +1,4 @@
-import type { QuarkContext, SetStateAction } from "../../Types";
+import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { CancelUpdate } from "../CancelUpdate";
 import { isGenerator } from "../IsGenerator";
 import { applyMiddlewares } from "./ApplyMiddlewares";
@@ -30,7 +30,7 @@ const thenableNoop = { then() {} };
 export function unpackStateSetter<T, ET>(
   self: QuarkContext<T, ET>,
   updater: AtomicUpdater<T>,
-  setter: SetStateAction<T, ET>
+  setter: SetStateAction<T, ET>,
 ): UnpackStateSetterResult<T> {
   if (setter instanceof Promise) {
     return {
@@ -38,8 +38,12 @@ export function unpackStateSetter<T, ET>(
         return setter
           .then((state) => {
             const type = resolveUpdateType(state);
-            return applyMiddlewares(self, state, type, updater, (v) =>
-              unpackStateSetter(self, updater, v).then(handler)
+            return applyMiddlewares(
+              self,
+              state,
+              type,
+              updater,
+              (v) => unpackStateSetter(self, updater, v).then(handler),
             );
           })
           .catch((err) => {
@@ -60,8 +64,12 @@ export function unpackStateSetter<T, ET>(
       return {
         then(handler: (state: T) => void) {
           const type = resolveUpdateType(s);
-          return applyMiddlewares<T, ET, any>(self, s, type, updater, (v) =>
-            unpackStateSetter(self, updater, v).then(handler)
+          return applyMiddlewares<T, ET, any>(
+            self,
+            s,
+            type,
+            updater,
+            (v) => unpackStateSetter(self, updater, v).then(handler),
           );
         },
       };
@@ -84,7 +92,7 @@ export function unpackStateSetter<T, ET>(
 export function unpackStateSetterSync<T, ET>(
   self: QuarkContext<T, ET>,
   updater: AtomicUpdater<T>,
-  setter: SetStateAction<T, ET>
+  setter: SetStateAction<T, ET>,
 ): UnpackStateSetterResult<T> {
   if (isGenerator<T>(setter)) {
     const s = setter(self.value);
@@ -92,8 +100,12 @@ export function unpackStateSetterSync<T, ET>(
     return {
       then(handler: (state: T) => void) {
         const type = resolveUpdateType(s);
-        return applyMiddlewares<T, ET, any>(self, s, type, updater, (v) =>
-          unpackStateSetterSync(self, updater, v).then(handler)
+        return applyMiddlewares<T, ET, any>(
+          self,
+          s,
+          type,
+          updater,
+          (v) => unpackStateSetterSync(self, updater, v).then(handler),
         );
       },
     };

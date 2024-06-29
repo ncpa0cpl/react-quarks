@@ -1,31 +1,21 @@
-import type {
-  DeepReadonly,
-  GetMiddlewareTypes,
-  Quark,
-  QuarkActions,
-  QuarkConfig,
-  QuarkContext,
-  QuarkMiddleware,
-  QuarkSelector,
-  QuarkSelectors,
-  Widen,
-} from "./Types";
+import { QuarkActions } from "./Types/Actions";
+import { QuarkConfig } from "./Types/Config";
+import { GetMiddlewareTypes, QuarkMiddleware } from "./Types/Middlewares";
 import { QuarkProcedures } from "./Types/Procedures";
-import {
-  applyMiddlewares,
-  generateCustomActions,
-  generateCustomHookSelectors,
-  generateCustomSelectors,
-  generateSelectorHooks,
-  generateSetter,
-  generateUseHook,
-  isUpdateNecessary,
-} from "./Utilities";
+import { DeepReadonly, Quark, QuarkContext } from "./Types/Quark";
+import { QuarkSelector, QuarkSelectors } from "./Types/Selectors";
+import { Widen } from "./Types/Utilities";
 import { createCachedSelector } from "./Utilities/CreateCachedSelector";
+import { generateCustomActions } from "./Utilities/GenerateCustomActions";
 import { generateCustomProcedures } from "./Utilities/GenerateCustomProcedures";
+import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
+import { generateUseHook } from "./Utilities/GenerateUseHook";
 import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
+import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
+import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
+import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
 
 /**
  * Creates a new quark object.
@@ -42,21 +32,23 @@ export function quark<
   M extends QuarkMiddleware<T, any>[] = never[],
   SelectorArgs extends any[] = never[],
   ActionArgs extends any[] = never[],
-  ProcedureArgs extends any[] = never[]
+  ProcedureArgs extends any[] = never[],
 >(
   initValue: T,
-  config: QuarkConfig<Widen<T>, A, P, S, M> = {}
+  config: QuarkConfig<Widen<T>, A, P, S, M> = {},
 ): Quark<Widen<T>, A, P, S, M> {
   const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
     value: initValue,
     subscribers: new Set(),
     middlewares: config.middlewares ?? [],
-
     sideEffect: config.effect as any,
-    stateComparator: config.shouldUpdate ?? isUpdateNecessary,
-
     configOptions: {
       allowRaceConditions: config.allowRaceConditions ?? false,
+    },
+    stateComparator: config.shouldUpdate ?? isUpdateNecessary,
+    syncStoreSubscribe(callback: () => void) {
+      self.subscribers.add(callback);
+      return () => self.subscribers.delete(callback);
     },
   };
 
@@ -67,33 +59,29 @@ export function quark<
 
   const customActions = generateCustomActions(
     set,
-    config?.actions ?? ({} as A)
+    config?.actions ?? ({} as A),
   );
 
   const customProcedures = generateCustomProcedures(
     self,
     initiateProcedure,
-    config?.procedures ?? ({} as P)
+    config?.procedures ?? ({} as P),
   );
 
   const selectors = Object.entries(config?.selectors ?? ({} as S)).map(
     ([key, selector]) => {
       return [key, createCachedSelector(selector)] as [
         keyof S,
-        QuarkSelector<T, any>
+        QuarkSelector<T, any>,
       ];
-    }
+    },
   );
 
   const customSelectors = generateCustomSelectors(self, selectors);
 
-  const customHookSelectors = generateCustomHookSelectors(self, selectors);
-
   const get = () => self.value as DeepReadonly<T>;
 
   const use = generateUseHook(self, customActions, customProcedures, set);
-
-  const useSelector = generateSelectorHooks(self, customHookSelectors);
 
   const subscribe = generateSubscribeFunction(self);
 
@@ -101,7 +89,6 @@ export function quark<
     set: set as any,
     get,
     use,
-    useSelector,
     subscribe,
     act: { ...customActions, ...customProcedures },
     select: customSelectors,
@@ -116,7 +103,7 @@ export function quark<
     initValue,
     "sync",
     updateController.atomicUpdate(),
-    bareboneSet
+    bareboneSet,
   );
 
   return quark as any;

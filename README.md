@@ -252,14 +252,14 @@ Here both `title` and `theme` are stored in the same Quark, this means that if w
 
 Selectors can be used in two ways
 
-1. via the builtin hook `useSelector.$`
+1. via the builtin hook `select.use`
 2. or by adding custom selector to the Quark definition
 
-##### useSelector
+##### select.use
 
 ```tsx
 const PageHeader: React.FC = () => {
-  const title = siteSettings.useSelector.$((state) => state.title);
+  const title = siteSettings.select.use((state) => state.title);
 
   return <h1>{title}</h1>;
 };
@@ -285,12 +285,12 @@ const siteSettings = quark(
 );
 ```
 
-And with this the `useSelector.title()` hook will be added to the Quark.
+And with this the `select.useTitle()` hook will be added to the Quark.
 
 ```tsx
 // In react components:
 const PageHeader: React.FC = () => {
-  const title = siteSettings.useSelector.title();
+  const title = siteSettings.select.useTitle();
 
   return <h1>{title}</h1>;
 };
@@ -328,7 +328,7 @@ and then,
 ```tsx
 // In react components:
 const PageHeader: React.FC = () => {
-  const letter = siteSettings.useSelector.titleLetter(2);
+  const letter = siteSettings.select.useTitleLetter(2);
 
   return <h1>Third letter of the title is: {letter}</h1>;
 };

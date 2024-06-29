@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "use-sync-external-store/shim";
-import type {
+import { ParseActions } from "../Types/Actions";
+import { ParseProcedures } from "../Types/Procedures";
+import {
   DeepReadonly,
-  ParseActions,
   QuarkContext,
   QuarkHook,
   QuarkSetterFn,
-} from "../Types";
-import { ParseProcedures } from "../Types/Procedures";
+} from "../Types/Quark";
 
 /**
  * Generate the react hook for this specific quark.
@@ -23,16 +23,11 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
   procedures: ParseProcedures<P>,
   set: QuarkSetterFn<T, ET>,
 ): () => QuarkHook<T, A, P, M> {
-  const subscribe = (callback: () => void) => {
-    self.subscribers.add(callback);
-    return () => void self.subscribers.delete(callback);
-  };
-
   const getSnapshot = () => self.value;
 
   return () => {
     const value = useSyncExternalStore(
-      subscribe,
+      self.syncStoreSubscribe,
       getSnapshot,
     ) as DeepReadonly<T>;
 

@@ -1,4 +1,4 @@
-import type { QuarkMiddleware } from "../Types";
+import { QuarkMiddleware } from "../Types/Middlewares";
 
 const GLOBAL_MIDDLEWARES: QuarkMiddleware<any, any>[] = [];
 

@@ -1,8 +1,8 @@
-import type { QuarkContext, SetStateAction } from "../../Types";
 import {
   InitiateProcedureFn,
   ProcedureStateSetter,
 } from "../../Types/Procedures";
+import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { CancelUpdate } from "../CancelUpdate";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import { createUpdateController } from "./AsyncUpdates";
@@ -45,11 +45,16 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
     const updater = updateController.atomicUpdate();
 
     const type = resolveUpdateType(action);
-    return applyMiddlewares(self, action, type, updater, (action2) =>
-      unpackStateSetter(self, updater, action2).then((s) => {
-        updater.update(s);
-        updater.complete();
-      })
+    return applyMiddlewares(
+      self,
+      action,
+      type,
+      updater,
+      (action2) =>
+        unpackStateSetter(self, updater, action2).then((s) => {
+          updater.update(s);
+          updater.complete();
+        }),
     );
   };
 
@@ -85,10 +90,17 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
             const v = nextUp.value;
 
             const type = resolveUpdateType(v);
-            applyMiddlewares(self, v, type, updater, (action) =>
-              unpackStateSetterSync(self, updater, action).then((newState) => {
-                updater.update(newState);
-              })
+            applyMiddlewares(
+              self,
+              v,
+              type,
+              updater,
+              (action) =>
+                unpackStateSetterSync(self, updater, action).then(
+                  (newState) => {
+                    updater.update(newState);
+                  },
+                ),
             );
           } while (!nextUp.done);
           updater.complete();
@@ -98,7 +110,7 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
           }
           throw err;
         }
-      }
+      },
     );
   };
 

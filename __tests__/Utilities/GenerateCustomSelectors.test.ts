@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react-hooks";
 import { cloneDeep } from "lodash";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
-import { generateCustomSelectors } from "../../src/Utilities";
+import { generateCustomSelectors } from "../../src/Utilities/GenerateCustomSelectors";
 import { getTestQuarkContext } from "../helpers";
 
 const entries = Object.entries as <T>(o: T) => [[keyof T, T[keyof T]]];

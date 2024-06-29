@@ -1,10 +1,10 @@
-import type { QuarkMiddleware } from "../../Types";
+import { QuarkMiddleware } from "../../Types/Middlewares";
 
 const freezeDeep = (obj: any) => {
   if (
-    obj !== null &&
-    (typeof obj === "object" || typeof obj === "function") &&
-    !Object.isFrozen(obj)
+    obj !== null
+    && (typeof obj === "object" || typeof obj === "function")
+    && !Object.isFrozen(obj)
   ) {
     if (Array.isArray(obj)) {
       obj.forEach(freezeDeep);
@@ -28,9 +28,9 @@ export const createImmutableStateMiddleware = (): QuarkMiddleware<
     const { action, resume } = params;
 
     if (
-      typeof action === "object" &&
-      action !== null &&
-      !(action instanceof Promise)
+      typeof action === "object"
+      && action !== null
+      && !(action instanceof Promise)
     ) {
       if (Object.isFrozen(action)) {
         return resume(action);

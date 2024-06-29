@@ -1,7 +1,7 @@
-import { QuarkUpdateType, SetStateAction } from "../../Types";
+import { QuarkUpdateType, SetStateAction } from "../../Types/Quark";
 
 export function resolveUpdateType(
-  action: SetStateAction<any, any>
+  action: SetStateAction<any, any>,
 ): QuarkUpdateType {
   if (action instanceof Promise) return "async";
   if (typeof action === "function") return "function";

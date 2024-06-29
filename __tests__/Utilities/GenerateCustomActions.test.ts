@@ -1,7 +1,7 @@
 import { cloneDeep } from "lodash";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { QuarkContext } from "../../src";
-import { generateCustomActions } from "../../src/Utilities";
+import { generateCustomActions } from "../../src/Utilities/GenerateCustomActions";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomActions()", () => {

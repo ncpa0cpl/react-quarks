@@ -1,4 +1,5 @@
-import type { ParseActions, QuarkActions, QuarkSetterFn } from "../Types";
+import { ParseActions, QuarkActions } from "../Types/Actions";
+import { QuarkSetterFn } from "../Types/Quark";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
