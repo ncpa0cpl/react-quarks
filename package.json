@@ -54,7 +54,7 @@
     "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#0.0.1",
     "happy-dom": "^14.12.3",
     "husky": "^8.0.3",
-    "oxlint": "^0.4.4",
+    "oxlint": "^0.6.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-test-renderer": "^18.3.1",
