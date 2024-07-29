@@ -45,7 +45,7 @@
     "@types/axios": "^0.14.0",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/luxon": "^3.4.2",
-    "@types/node": "^20.14.8",
+    "@types/node": "^22.0.0",
     "@types/react": "^18.3.3",
     "@types/serialize-javascript": "^5.0.4",
     "@types/use-sync-external-store": "^0.0.6",
