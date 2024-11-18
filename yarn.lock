@@ -800,9 +800,9 @@ get-func-name@^2.0.1:
     strip-ansi "^6.0.1"
 
 happy-dom@^15.0.0:
-  version "15.11.0"
-  resolved "https://registry.yarnpkg.com/happy-dom/-/happy-dom-15.11.0.tgz#ae88f49a96d7ff156fa54cb6be2cb8e94cec6ed6"
-  integrity sha512-/zyxHbXriYJ8b9Urh43ILk/jd9tC07djURnJuAimJ3tJCOLOzOUp7dEHDwJOZyzROlrrooUhr/0INZIDBj1Bjw==
+  version "15.11.6"
+  resolved "https://registry.yarnpkg.com/happy-dom/-/happy-dom-15.11.6.tgz#b40d46060114fee5c4f0e79c6a1aec50cd42e4c8"
+  integrity sha512-elX7iUTu+5+3b2+NGQc0L3eWyq9jKhuJJ4GpOMxxT/c2pg9O3L5H3ty2VECX0XXZgRmmRqXyOK8brA2hDI6LsQ==
   dependencies:
     entities "^4.5.0"
     webidl-conversions "^7.0.0"
