@@ -49,7 +49,7 @@
     "@types/react": "^18.3.3",
     "@types/serialize-javascript": "^5.0.4",
     "@types/use-sync-external-store": "^0.0.6",
-    "dprint": "^0.47.2",
+    "dprint": "^0.48.0",
     "esbuild": "^0.24.0",
     "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#0.0.1",
     "happy-dom": "^15.0.0",

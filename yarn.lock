@@ -9,45 +9,50 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@dprint/darwin-arm64@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/darwin-arm64/-/darwin-arm64-0.47.5.tgz#74b2628d8d52c322fe2b7a00c48fe34ce3ed3f65"
-  integrity sha512-aVa3F//dkvEeNA7DCSlVcLxB0CV6zXpfbJZ/xsd+xgbayCXFuFr7qt0M6T4WP3gkQn5D7Zu8/pbXfRXQXo9qlQ==
+"@dprint/darwin-arm64@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/darwin-arm64/-/darwin-arm64-0.48.0.tgz#a0fa77edc0ab5323a6c476ac6189216730f0398d"
+  integrity sha512-LJ+02WB1PDIUqobfwxBVMz0cUByXsZ6izFTC9tHR+BDt+qWfoZpCn5r/zpAVSkVlA5LzGHKLVNJrwKwaTnAiVA==
 
-"@dprint/darwin-x64@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/darwin-x64/-/darwin-x64-0.47.5.tgz#ee6f8e5fc8e5f88e18b7566f00f11638478c089e"
-  integrity sha512-84lmSLM/idIQ4UBkBHU1chP0WTldRjzLOEN22/XbdB1JGOIVN1pJIIU0lsmVWXaNI4SvGfty+thhGn73SSlQwA==
+"@dprint/darwin-x64@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/darwin-x64/-/darwin-x64-0.48.0.tgz#9d4b15a873f2274ffd5296a7fa303a68de769775"
+  integrity sha512-OxfLbitoNvFMVucauJ2DvEaJpnxyyhXWC2M56f2AX8lkZSsHrdMHtklqxHz3cBGVPpcCXjLPRC139ynwmqtjIA==
 
-"@dprint/linux-arm64-glibc@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/linux-arm64-glibc/-/linux-arm64-glibc-0.47.5.tgz#6171dc88fd12d808e1176b065a05a336703c9fa9"
-  integrity sha512-Zk7Ut9Trgl2ssGWx0u3YegnRQFXivKaK1fPEimg/uMwdaLtWFGvNs6DACAJk34d883zmDkTQvllqY1kc78CeBg==
+"@dprint/linux-arm64-glibc@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/linux-arm64-glibc/-/linux-arm64-glibc-0.48.0.tgz#7d75906b10e5ca7ce7c603073883e2caab7a681b"
+  integrity sha512-VMeyorjMXE9NrksmyOJ0zJRGxT7r7kDBBxshCxW+U1xgW+FqR8oE25RZaeDZZPDzUHapAly4ILZqjExLzAWVpw==
 
-"@dprint/linux-arm64-musl@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/linux-arm64-musl/-/linux-arm64-musl-0.47.5.tgz#17420c69c90dd5f50b840c182b26a396449554b6"
-  integrity sha512-KmCu1yX5+/2MbT9n0iAgSK1gc6sQBcDayq8QRO7TRSs+gTDAZ/yQXHkhLdlk5fWsTR1mDQPVRG+2nAjHDhk8EA==
+"@dprint/linux-arm64-musl@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/linux-arm64-musl/-/linux-arm64-musl-0.48.0.tgz#353333c4482bd55cbc4953bc9c1ec047c56663ae"
+  integrity sha512-1BUHQKEngrZv8F6wq2SVxdokyeUoHFXjz0xbYGwctlFPzXAVNLpDy9FROXsfIKmxZ0NsRqEpatETLmubtvWtcA==
 
-"@dprint/linux-x64-glibc@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/linux-x64-glibc/-/linux-x64-glibc-0.47.5.tgz#92db42f8ae2a50c4f5adda4570eec2015a31bf15"
-  integrity sha512-oBwENMikvcM+eT6JdliMIM+TOiV4VuBJGK+AN1sTOW45VeiYvmzGPOQwCxVeFq4MnZkMfrycC/PAY3C7Vcuh6w==
+"@dprint/linux-riscv64-glibc@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/linux-riscv64-glibc/-/linux-riscv64-glibc-0.48.0.tgz#96a2e08a7ddd83c8281df62dc0e9d731837f1f5a"
+  integrity sha512-c8LktisPGbygyFf9wUg0trbAQDApawU017iPQXkZnGcV4QoCeGkFjnY8vltIKyy5DeP5gIp12KjlaT/wogMPkw==
 
-"@dprint/linux-x64-musl@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/linux-x64-musl/-/linux-x64-musl-0.47.5.tgz#a302ba7548ad09481edf10e1f0abdfb261589d4e"
-  integrity sha512-B1IGyaP0k25JDhqmR/UpvgyNtnclBoXV7ZNQbvygehBkTeC69afwzpUxjQ2pKj2F9bl1Rby//fhsAFOg60PzsA==
+"@dprint/linux-x64-glibc@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/linux-x64-glibc/-/linux-x64-glibc-0.48.0.tgz#4cc825d994e92ecaf9bd98466dff6942c4ef3483"
+  integrity sha512-Am8rp4FqmkO4aFdmwxk+82g2csxPLTPIlNq0Fa9AZReU15yta3Pq0Pg4AXFq+KSso5L4WGmt09ciCitK5gmdOg==
 
-"@dprint/win32-arm64@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/win32-arm64/-/win32-arm64-0.47.5.tgz#5616fe5143a4f632c40e945e71dca1c28cb9953c"
-  integrity sha512-tKSPwGWsKc+QAdsx6UQav9AY8WXm+B5Mx23ujliJJMRss6Dnlmg17NjbAnSBSqXSrfqaMeQx6d4gujPpOS3F9A==
+"@dprint/linux-x64-musl@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/linux-x64-musl/-/linux-x64-musl-0.48.0.tgz#ce3af879b31403630e84d05febe4dd0053a2f963"
+  integrity sha512-0nzrZXOvblM/H4GVffNJ7YZn/Y4F/i+DNDZRT1hQmKuTQurB7a2MBJ91OpooLIWJoSn4q40crwM1Po4xnNXrdg==
 
-"@dprint/win32-x64@0.47.5":
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/@dprint/win32-x64/-/win32-x64-0.47.5.tgz#56f66778e088481f0f3235a1f00ab49b045fdd3b"
-  integrity sha512-ljbrGv5rDR00ziBFY6V+qLhtLHm2dsjgiFG9OU7kr3vHEj4eN31nwxU5W2mh0eMoRk7IbcJ5ahTJDLgoYdvfgw==
+"@dprint/win32-arm64@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/win32-arm64/-/win32-arm64-0.48.0.tgz#f930a8bc2bdcf7210337a96a6ea0e8e26ea8e136"
+  integrity sha512-bRcGLbhKEXmP7iXDir/vU6DqkA3XaMqBM6P2ACCJMHd+XKWsz3VJzZMn5hFWZ+oZpxUsS3Mg2RcgH5xVjaawgA==
+
+"@dprint/win32-x64@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@dprint/win32-x64/-/win32-x64-0.48.0.tgz#30e870e8e691471237fd0e6245c6fda4e328e713"
+  integrity sha512-9JOKWWngo5vPBFxJgFogAS4rfFC2GaB9Yew6JZbRBUik7j5Num2muuw5p1tMYnl2NUBdS2W4EgsSLM3uUDyhBQ==
 
 "@esbuild/aix-ppc64@0.21.5":
   version "0.21.5"
@@ -669,19 +674,20 @@ dilswer@^1.2.0:
   resolved "https://registry.yarnpkg.com/dilswer/-/dilswer-1.2.0.tgz#5d6f2e1c9e2f68ae01f7236aaf3dea0d503da7e4"
   integrity sha512-D3lczlJDSccxU3EZCP0xwQI8xM7TDIqQzkZ0oN74dbIPHL1JIQ6rHjpGgPbCzD6jyXVMKdCijRTompku1T63mg==
 
-dprint@^0.47.2:
-  version "0.47.5"
-  resolved "https://registry.yarnpkg.com/dprint/-/dprint-0.47.5.tgz#6986cb09590e983a11b8a1a2a1f00a2671c6cece"
-  integrity sha512-EAP3OLYZXiW66HKMlhu6Gu0o7mzBVTWyMyuAAgT7dBtMX+W+pPJmIwyRUnTRQNyyFO4S7bAaa21rzIgo97Bg9A==
+dprint@^0.48.0:
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/dprint/-/dprint-0.48.0.tgz#ddea86d3fa09d4088b5363b0668fa6a82f0b4fca"
+  integrity sha512-dmCrYTiubcsQklTLUimlO+p8wWgMtZBjpPVsOGiw4kPX7Dn41vwyE1R4qA8Px4xHgQtcX7WP9mJujF4C8vISIw==
   optionalDependencies:
-    "@dprint/darwin-arm64" "0.47.5"
-    "@dprint/darwin-x64" "0.47.5"
-    "@dprint/linux-arm64-glibc" "0.47.5"
-    "@dprint/linux-arm64-musl" "0.47.5"
-    "@dprint/linux-x64-glibc" "0.47.5"
-    "@dprint/linux-x64-musl" "0.47.5"
-    "@dprint/win32-arm64" "0.47.5"
-    "@dprint/win32-x64" "0.47.5"
+    "@dprint/darwin-arm64" "0.48.0"
+    "@dprint/darwin-x64" "0.48.0"
+    "@dprint/linux-arm64-glibc" "0.48.0"
+    "@dprint/linux-arm64-musl" "0.48.0"
+    "@dprint/linux-riscv64-glibc" "0.48.0"
+    "@dprint/linux-x64-glibc" "0.48.0"
+    "@dprint/linux-x64-musl" "0.48.0"
+    "@dprint/win32-arm64" "0.48.0"
+    "@dprint/win32-x64" "0.48.0"
 
 entities@^4.5.0:
   version "4.5.0"
