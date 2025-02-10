@@ -51,7 +51,7 @@
     "@types/use-sync-external-store": "^0.0.6",
     "dprint": "^0.47.2",
     "esbuild": "^0.24.0",
-    "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#0.0.1",
+    "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#2.0.1",
     "happy-dom": "^15.0.0",
     "husky": "^8.0.3",
     "oxlint": "^0.14.0",
