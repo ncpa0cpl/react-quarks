@@ -17,11 +17,11 @@ if [ "$issemver" -eq "1" ]; then
         INIT_HEAD=$(git describe --exact-match --tags)
         git fetch origin master --depth 1
         git switch master
-        npm version "$TAG_NAME"
+        npm version --allow-same-version "$TAG_NAME"
         git push --no-verify
 
         git checkout "tags/$INIT_HEAD"
-        npm version "$TAG_NAME"
+        npm version --allow-same-version --git-tag-version=false "$TAG_NAME"
     fi
 
     echo "Publishing to npm"
