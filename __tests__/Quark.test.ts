@@ -1262,7 +1262,7 @@ describe("quark()", () => {
 
       q.set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-      await sleep(0);
+      await sleep(5);
 
       expect(result.current).toEqual([0, 2, 4, 6, 8, 10]);
     });
