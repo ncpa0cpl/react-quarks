@@ -52,7 +52,7 @@ import { quark } from "react-quarks";
 const counter = quark(0);
 ```
 
-To declare the quark type you will need to assert the desired type into the initial value (This is a limitation of TypeScript and how the generic types inference works, if you were to specify the type with the `<>` symbols you'd have to also manually define the types for all of the quark selectors, actions and middlewares as well, no inference):
+Quark type is inferred from the initial value:
 
 ```ts
 const listOfNumbers = quark([] as number[]);
@@ -137,7 +137,7 @@ const counter = quark(0);
 counter.set(() => Promise.resolve(1));
 ```
 
-All asynchronous updates are tracked by the Quark instance, and any state update will cancel all the previous non-resolved async updates. With this it's assured that no race-conditions shall occur when using Quarks async updates.
+All asynchronous updates are tracked by the Quark instance, and any state update will cancel all the previous non-resolved async updates. This assures that no race-conditions will occur when using Quarks async updates.
 
 ### Canceling pending updates
 
@@ -208,7 +208,7 @@ value.foo.bar = 1; // Error: Cannot assign to 'bar' because it is a read-only pr
 
 It's impossible to assign a Function or a Promise object as the Quark value, since any functions or promises will automatically be "unpacked" by the Quark `set()` function (even if they are nested, i.e. `() => () => void`).
 
-If you must have a promise or a function as the value of the Quark then wrap it within a object like so:
+If a promise or a function is necessary it can be achievedby wrapping it within an object like this:
 
 ### Function as state value
 
@@ -236,11 +236,11 @@ quarkWithAPromise.set({ p: somePromise });
 
 ## Dictionaries, Arrays, Selectors, Actions and Middlewares
 
-If your Quark holds arrays of data or dictionaries using just `use`, `get` and `set` can become cumbersome, to make it easier to use your Quarks you can define actions, selectors and middlewares that will help minimize the boilerplate and ease the development.
+If s Quark holds arrays of data or dictionaries using just `use`, `get` and `set` can become cumbersome, to make it easier to use Quarks can define actions, selectors and middlewares that will help minimize the boilerplate and make development easier.
 
 ### Selectors
 
-Often subscribing to the whole dictionary or array may not be something you want, take for example this Quark:
+Often subscribing to the whole dictionary or array may not be desirable, for example:
 
 ```ts
 const siteSettings = quark({
@@ -249,7 +249,7 @@ const siteSettings = quark({
 });
 ```
 
-Here both `title` and `theme` are stored in the same Quark, this means that if we change the value of the `title` all component that "use" this Quark will update, even if all they actually use is the `theme` property (in which case the update is unnecessary). To solve this issue we can use selectors.
+Both `title` and `theme` are stored in the same Quark, this means that if we change the value of the `title` all component that "use" this Quark will update, even if all they actually use is the `theme` property (in which case the update is unnecessary). Selectors can solve this issue.
 
 Selectors can be used in two ways
 
@@ -268,7 +268,7 @@ const PageHeader: React.FC = () => {
 
 ##### custom selector
 
-First we will need to change how the Quark is defined:
+To add a selector to a Quark:
 
 ```ts
 const siteSettings = quark(
@@ -286,7 +286,7 @@ const siteSettings = quark(
 );
 ```
 
-And with this the `select.useTitle()` hook will be added to the Quark.
+This will add a `select.useTitle()` hook to the Quark.
 
 ```tsx
 // In react components:
@@ -348,10 +348,10 @@ const letter = siteSettings.select.titleLetter(2);
 
 ### Composing Selectors
 
-Sometimes you might want to create a selector that uses more than one of the sub-properties of the quark state,
+Sometimes it might be necessart to create a selector that uses more than one of the sub-properties of the quark state,
 or create a completely new object that will never equal the previous value even when nothing actually changed.
 
-For this purpose you should use the `composeSelectors` function. This function takes any number of pure selectors and one combiner function. Combiner can create objects with new references and will not cause unnecessary re-renders as long as the pure selectors return the same values.
+For this purpose `composeSelectors` function can be used. This function takes any number of pure selectors and one combiner function. Combiner can create objects with new references and will not cause unnecessary re-renders as long as the preceding pure selectors return the same values.
 
 #### Example
 
@@ -403,17 +403,15 @@ q.select.fooAtBoxed(1); // {value: 2}
 
 ### Actions
 
-When the Quark holds an array or a dictionary updating the state with the `set` method may create a boilerplate, for this reason you might want to create a helper functions that will contain all of the repeatable logic in one place. With Actions you can more tightly integrate those helpers with the Quark.
+When the Quark holds an array or a dictionary updating the state with the `set` method may be overly verbose, to avoid this "action" methods can be predefined and added to the quark.
 
-Let's again consider the above `siteSettings` example. If you'd want to update the `title` you'd need to do something like this:
+Without an action, changing a single property would have to look like this:
 
 ```ts
 siteSettings.set((state) => ({ ...state, title: "My new website title" }));
 ```
 
-All of this for changing one property, and it would only get worse if that property was deeply nested within the `siteSettings`.
-
-To avoid this unnecessary boilerplate you can add actions to the Quark object:
+A similar action can be baked into the quark itself instead:
 
 ```ts
 const siteSettings = quark(
@@ -542,9 +540,9 @@ In the above example, the procedure is interrupted by the `q.set(-1)` call, then
 
 ### Side Effects
 
-Sometimes you may want something to happen when the Quark state changes. Quark effects allow for just that.
+Side effect allows to run a given function after any change to the quark.
 
-For example let's say we have a Quark that holds some information that we expect will often change throughout the life of our app and we want to have a timestamp of every change to that information. Instead of adding a new 'Date.now()' on every `set` call we can add an effect like so:
+Below is an example of a side effect that sets the lastUpdated timestamp after a quark update if the myData filed changes.
 
 ```ts
 const data = quark(
@@ -562,7 +560,8 @@ const data = quark(
 );
 ```
 
-Now whenever we change the `myData` property to a different value `myDataEffect` will fire and set the `lastUpdated` property to the current time.
+Side effect always runs before the subscribers are notified, thanks to that, updating the quark state with the `set()`
+function will not cause addittional re-renders.
 
 Effect methods take three argument:
 
@@ -592,7 +591,7 @@ subscribe() method takes a callback as it's argument that's invoked whenever the
 
 ### Middlewares
 
-Middlewares give you the ability to intercept any state updates and modify or prevent them from occurring as well as observe actions sent to the Quarks.
+Middlewares give the ability to intercept any state updates and modify or prevent them from occurring as well as observe actions sent to the Quarks.
 
 A middleware is given one object as it's argument with the following properties:
 
@@ -640,7 +639,7 @@ One of the uses of middleware can be to extend the functionality of a Quark.
 
 As an example, imagine you have a Quark storing a number, but you'd want to be able to set() it's state with a string. The goal is to have the Quark contain always a numeric value, but the set() function to accept both numbers and strings, and not only that, but the action passed to the set() could also be a Promise resolving any of the two, or a callback that returns either.
 
-This can be easily achieved with a right middleware.
+This can be easily achieved with the right middleware.
 
 ##### Example
 
@@ -676,13 +675,13 @@ counter.set(() => Promise.resolve("777")); // OK
 counter.get(); // 777 as a number type
 ```
 
-If you want the middleware to play nicely with TypeScript don't forget to add the `QuarkMiddleware` type to your middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the Quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual Quark type).
+For middleware to play nicely with TypeScript, add the `QuarkMiddleware` type to the middleware (as shown in the example). `QuarkMiddleware` is a type that takes in two generics, first is the type of the Quark (as in the type that the get() method should return), and the other is a type that is extending the Quark action (ie. the type that can be now additionally accepted in the set() method aside from the actual Quark type).
 
 #### Global Middleware
 
-It is also possible to add a global middleware. Global middlewares will be automatically added to all quarks.
+It is also possible to add a global middleware. Global middlewares will be automatically added to all quarks, when those quarks are created (global middlewares will not apply to quarks that were created before adding the middleware).
 
-To add a global middleware use the `addGlobalQuarkMiddleware` function, or to overwrite all the global middlewares `setGlobalQuarkMiddlewares`. You can also lookup all the current global middlewares with `getGlobalQuarkMiddlewares`.
+To add a global middleware use the `addGlobalQuarkMiddleware` function, or to overwrite all the global middlewares `setGlobalQuarkMiddlewares`. It's also possible to lookup all the current global middlewares with `getGlobalQuarkMiddlewares`.
 
 #### Included Middlewares
 
@@ -775,7 +774,7 @@ When this middleware is used a method in the global scope will be created that w
 
 To show the history, open the console and invoke the method: `printQuarkHistory()`
 
-By default a history of all quarks with this middleware will be logged to the console. You can filter out which Quark is to be shown and how many history entries are to be displayed by specifying the options argument:
+By default a history of all quarks with this middleware will be logged to the console. It's possible to filter out which Quark are to be shown and how many history entries are to be displayed by specifying the options argument:
 
 ```ts
 printQuarkHistory({
@@ -789,7 +788,7 @@ printQuarkHistory({
 
 To support Server Side Rendering, Quarks provide a way to serialize them (on the server) and then hydrate (on the client). Each quark that is going to be serialized must have a unique name.
 
-Fist you will need to install `serialize-javascript` on the backend. This package is required for the `serializeQuarks()` function to work.
+`serialize-javascript` needs to be installed on the backend. This package is required for the `serializeQuarks()` function to work.
 
 > npm i serialize-javascript
 
