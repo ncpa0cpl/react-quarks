@@ -17,10 +17,11 @@
 6. [Dictionaries, Arrays, Selectors, Actions and Middlewares](#dictionaries-arrays-selectors-actions-and-middlewares)
    1. [Selectors](#selectors)
    2. [Selectors with arguments](#selectors-with-arguments)
-   3. [Actions](#actions)
-   4. [Side Effects](#side-effects)
-   5. [Subscription](#subscription)
-   6. [Middlewares](#middlewares)
+   3. [Composing Selectors](#composing-selectors)
+   4. [Actions](#actions)
+   5. [Side Effects](#side-effects)
+   6. [Subscription](#subscription)
+   7. [Middlewares](#middlewares)
       1. [Creating a Middleware](#creating-a-middleware)
       2. [Global Middleware](#global-middleware)
       3. [Included Middlewares](#included-middlewares)
@@ -303,6 +304,14 @@ Both of the above solution achieve the same thing - the `PageHeader` component w
 
 It's worth mentioning that selectors can be used to do much more than that, the returned value from the selector doesn't have to be a property of the Quark state, it can be anything, and the selector will cause the component to update only when that returned value is different from the previous one.
 
+##### select.$
+
+`$()` can do selections outside of React compoents.
+
+```tsx
+const title = siteSettings.select.$((state) => state.title);
+```
+
 ### Selectors with arguments
 
 Selectors can take custom arguments too. It can be done by simply adding arguments to the selector function after the Quark State, like so
@@ -335,6 +344,61 @@ const PageHeader: React.FC = () => {
 
 // Outside react:
 const letter = siteSettings.select.titleLetter(2);
+```
+
+### Composing Selectors
+
+Sometimes you might want to create a selector that uses more than one of the sub-properties of the quark state,
+or create a completely new object that will never equal the previous value even when nothing actually changed.
+
+For this purpose you should use the `composeSelectors` function. This function takes any number of pure selectors and one combiner function. Combiner can create objects with new references and will not cause unnecessary re-renders as long as the pure selectors return the same values.
+
+#### Example
+
+```ts
+const q = quark(
+  {
+    foo: [1,2,3,4],
+    bar: ["a", "b", "c"],
+    baz: "hello",
+  },
+  {
+    selectors: {
+      fooAndBar: composeSelectors(
+        state => state.foo,
+        state => state.bar,
+        (foo, bar) => {
+          return [...foo, ...bar];
+        },
+      ),
+    },
+  },
+);
+```
+
+#### Example - composeSelector with parameters
+
+```ts
+const q = quark(
+  {
+    foo: [1,2,3,4],
+    bar: ["a", "b", "c"]
+  },
+  {
+    selectors: {
+      fooAtBoxed: composeSelectors(
+        (state, idx: number) => state.foo[idx],
+        (elem, idx) => ({ value: elem }),
+      ),
+    },
+  },
+);
+
+// selector hook to use in React components
+q.select.useFooAtBoxed(1); // {value: 2}
+
+// selector to use outside React components
+q.select.fooAtBoxed(1); // {value: 2}
 ```
 
 ### Actions
@@ -370,7 +434,7 @@ const siteSettings = quark(
         return api.setState({ ...state, theme });
       },
     },
-  }
+  },
 );
 ```
 
