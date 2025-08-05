@@ -1569,7 +1569,12 @@ describe("quark()", () => {
           await sleep(0);
         });
 
-        expect(reRenderCounter).toHaveBeenCalledTimes(3);
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
+        expect(state1.result.current).toEqual({
+          idx0: { value: 10 },
+          idx1: { value: 2 },
+        });
+
         await state1.waitFor(() =>
           expect(state1.result.current).toEqual({
             idx0: { value: 10 },
@@ -1634,7 +1639,7 @@ describe("quark()", () => {
           await sleep(0);
         });
 
-        expect(reRenderCounter).toHaveBeenCalledTimes(3);
+        expect(reRenderCounter).toHaveBeenCalledTimes(2);
         expect(state1.result.current).toEqual({
           idx0: { value: 1 },
           idx1: { value: 2 },
