@@ -9,8 +9,8 @@ import { QuarkContext } from "../../Types/Quark";
  * @internal
  */
 export type UpdateController<T> = {
-  atomicUpdate(): AtomicUpdater<T>;
-  unsafeUpdate(): AtomicUpdater<T>;
+  atomicUpdate<R>(update: (updater: AtomicUpdater<T>) => R): R;
+  unsafeUpdate<R>(update: (updater: AtomicUpdater<T>) => R): R;
   currentUpdate(): AtomicUpdater<T> | undefined;
 };
 
@@ -46,7 +46,7 @@ export function createUpdateController<T>(
   let currentUpdate: AtomicUpdater<T> | undefined;
 
   if (self.configOptions.allowRaceConditions) {
-    const unsafeUpdate = (): AtomicUpdater<T> => {
+    const unsafeUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
       const updater = (currentUpdate = {
         id: getNextUpdaterId(),
         isCanceled: false,
@@ -60,7 +60,7 @@ export function createUpdateController<T>(
           return setState(action);
         },
       });
-      return updater;
+      return update(updater);
     };
 
     return {
@@ -72,7 +72,7 @@ export function createUpdateController<T>(
     };
   }
 
-  const atomicUpdate = (): AtomicUpdater<T> => {
+  const atomicUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
     let prevUpdate = currentUpdate;
 
     const updater: AtomicUpdater<T> = {
@@ -108,10 +108,10 @@ export function createUpdateController<T>(
 
     currentUpdate = updater;
 
-    return updater;
+    return update(updater);
   };
 
-  const unsafeUpdate = (): AtomicUpdater<T> => {
+  const unsafeUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
     const updater: AtomicUpdater<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
@@ -124,7 +124,7 @@ export function createUpdateController<T>(
       },
     };
 
-    return updater;
+    return update(updater);
   };
 
   return {

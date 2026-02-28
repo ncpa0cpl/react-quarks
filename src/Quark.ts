@@ -110,13 +110,15 @@ export function quark<
     registerQuark(config.name, self);
   }
 
-  applyMiddlewares(
-    self,
-    initValue,
-    "sync",
-    updateController.atomicUpdate(),
-    bareboneSet,
-  );
+  updateController.atomicUpdate((updater) => {
+    applyMiddlewares(
+      self,
+      initValue,
+      "sync",
+      updater,
+      bareboneSet,
+    );
+  });
 
   return quark as any;
 }

@@ -16,12 +16,13 @@ describe("Async Updates", () => {
 
       const myPromise = Promise.resolve("foo");
 
-      const p1Updater = controller.atomicUpdate();
-      myPromise.then((v) => {
-        p1Updater.update(v);
-      });
+      controller.atomicUpdate(updater => {
+        myPromise.then((v) => {
+          updater.update(v);
+        });
 
-      p1Updater.cancel();
+        updater.cancel();
+      });
 
       await sleep(0);
 
@@ -41,12 +42,13 @@ describe("Async Updates", () => {
 
       const myPromise = Promise.resolve("foo");
 
-      const p1Updater = controller.atomicUpdate();
-      myPromise.then((v) => {
-        p1Updater.update(v);
-      });
+      controller.atomicUpdate(updater => {
+        myPromise.then((v) => {
+          updater.update(v);
+        });
 
-      p1Updater.cancel();
+        updater.cancel();
+      });
 
       await sleep(0);
 
@@ -68,19 +70,22 @@ describe("Async Updates", () => {
       const myPromise2 = sleep(20).then(() => "bar");
       const myPromise3 = sleep(10).then(() => "baz");
 
-      const p1Updater = controller.atomicUpdate();
-      myPromise1.then((v) => {
-        p1Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise1.then((v) => {
+          updater.update(v);
+        });
       });
 
-      const p2Updater = controller.atomicUpdate();
-      myPromise2.then((v) => {
-        p2Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise2.then((v) => {
+          updater.update(v);
+        });
       });
 
-      const p3Updater = controller.atomicUpdate();
-      myPromise3.then((v) => {
-        p3Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise3.then((v) => {
+          updater.update(v);
+        });
       });
 
       await sleep(50);
@@ -104,19 +109,22 @@ describe("Async Updates", () => {
       const myPromise2 = Promise.resolve("bar");
       const myPromise3 = Promise.resolve("baz");
 
-      const p1Updater = controller.atomicUpdate();
-      myPromise1.then((v) => {
-        p1Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise1.then((v) => {
+          updater.update(v);
+        });
       });
 
-      const p2Updater = controller.atomicUpdate();
-      myPromise2.then((v) => {
-        p2Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise2.then((v) => {
+          updater.update(v);
+        });
       });
 
-      const p3Updater = controller.atomicUpdate();
-      myPromise3.then((v) => {
-        p3Updater.update(v);
+      controller.atomicUpdate(updater => {
+        myPromise3.then((v) => {
+          updater.update(v);
+        });
       });
 
       await sleep(0);
