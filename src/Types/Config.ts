@@ -1,25 +1,16 @@
 import { QuarkCustomEffect } from "./Effects";
-import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
-import type { QuarkComparatorFn } from "./Quark";
+import { QuarkComparatorFn } from "./Quark";
 
-export type QuarkConfig<T, A, P, S, M extends QuarkMiddleware<any, any>[]> = {
+export type Config<T, A, S, M> = {
   /**
-   * This method defines when the subscribed component should update. It
-   * receives as it's arguments the old quark state and the new state and
-   * returns a boolean.
+   * Default: `cancel`
    *
-   * If the returned value is false the subscribed components won't be updated.
-   *
-   * Default logic is as follows:
-   *
-   * - If the value held in quark is a primitive updates are dispatched whenever
-   *   the value changes (ie. when changing the state to the same value it's
-   *   already at, nothing will happen).
-   * - If the value held in quark is a reference (objects, arrays, etc.) updates
-   *   are dispatched after every `set()` method call or after any custom action
-   *   takes place.
+   * Modes:
+   * - `cancel` - subsequent updates cancel any previous pending updates
+   * - `queue` - subsequent updates will all apply in the same order they are dispatched
+   * - `none` - all updates are always applied, in the order they resolve
    */
-  shouldUpdate?: QuarkComparatorFn;
+  mode?: "cancel" | "queue" | "none";
   /**
    * A dictionary of custom actions to be added to this quark.
    *
@@ -49,7 +40,6 @@ export type QuarkConfig<T, A, P, S, M extends QuarkMiddleware<any, any>[]> = {
    *   counter.add(123); // add 123 to the counter
    */
   actions?: A;
-  procedures?: P;
   /**
    * Custom selectors allow for creating shortcuts for the `useSelector()` hook.
    *
@@ -118,16 +108,27 @@ export type QuarkConfig<T, A, P, S, M extends QuarkMiddleware<any, any>[]> = {
    * you are not careful. `set()` should only be called within an effect under
    * specific conditions.
    */
-  effect?: QuarkCustomEffect<T, GetMiddlewareTypes<M>>;
-  /**
-   * By default asynchronous state updates are canceled if another update is
-   * dispatched later on, this allows for avoiding race conditions. You can
-   * opt-out of this behavior by setting this option to `true`.
-   */
-  allowRaceConditions?: boolean;
+  effect?: QuarkCustomEffect<T>;
   /**
    * Name is used for identifying the quark when used with server side
    * rendering. Name should be unique.
    */
   name?: string;
+  /**
+   * This method defines when the subscribed component should update. It
+   * receives as it's arguments the old quark state and the new state and
+   * returns a boolean.
+   *
+   * If the returned value is false the subscribed components won't be updated.
+   *
+   * Default logic is as follows:
+   *
+   * - If the value held in quark is a primitive updates are dispatched whenever
+   *   the value changes (ie. when changing the state to the same value it's
+   *   already at, nothing will happen).
+   * - If the value held in quark is a reference (objects, arrays, etc.) updates
+   *   are dispatched after every `set()` method call or after any custom action
+   *   takes place.
+   */
+  shouldUpdate?: QuarkComparatorFn;
 };

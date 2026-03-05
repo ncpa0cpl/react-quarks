@@ -1,14 +1,14 @@
 import type { DeepReadonly } from "./Quark";
 import type { IsLiteral, KeysOf } from "./Utilities";
 
-export type QuarkSelector<T, ARGS extends any[], R = unknown> = (
+export type QuarkSelector<T, R = unknown> = (
   value: T,
-  ...args: ARGS
+  ...args: any
 ) => R;
 
-export type QuarkSelectors<T, ARGS extends any[]> = Record<
+export type QuarkSelectors<T> = Record<
   string,
-  QuarkSelector<T, ARGS>
+  QuarkSelector<T>
 >;
 
 export type ParseSingleSelector<S> = S extends (

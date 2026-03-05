@@ -28,7 +28,7 @@ export const createImmerMiddleware = (options?: {
    * This option does not change the global immer settings.
    */
   autoFreeze?: boolean;
-}): QuarkMiddleware<any, undefined> => {
+}): QuarkMiddleware<any> => {
   const immer = new Immer();
 
   if (options?.mapAndSetSupport) {

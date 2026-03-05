@@ -1,0 +1,146 @@
+declare global {
+  interface PromiseLike<T> {
+    finally(cb: () => void): PromiseLike<T>;
+    catch<T2>(cb: (e: unknown) => T2): PromiseLike<T | T2>;
+  }
+}
+
+type ImmediateType<T> = T extends PromiseLike<infer U> ? U : T;
+
+type MapImmediates<T extends PromiseLike<any>[]> = T extends
+  [infer First, ...infer Rest extends PromiseLike<any>[]]
+  ? [ImmediateType<First>, ...MapImmediates<Rest>]
+  : [];
+
+export class Immediate<T = void> implements PromiseLike<T> {
+  static all<const T extends PromiseLike<any>[]>(
+    ...resolvables: T
+  ): PromiseLike<MapImmediates<T>> {
+    const promises: Promise<[idx: number, value: unknown]>[] = [];
+    const results = [] as MapImmediates<T>;
+
+    for (let i = 0; i < resolvables.length; i++) {
+      const imm = resolvables[i];
+      if (imm instanceof Immediate) {
+        if (imm.error) {
+          return Immediate.reject(imm.error);
+        } else {
+          results[i] = imm.value;
+        }
+      } else {
+        const placeholder = Symbol("promise_placeholder");
+        results[i] = placeholder;
+
+        const promise = imm as Promise<unknown>;
+        promises.push(promise.then((v) => [i, v]));
+      }
+    }
+
+    if (promises.length > 0) {
+      return Promise.all(promises).then(presults => {
+        for (const [idx, value] of presults) {
+          results[idx] = value;
+        }
+        return results;
+      });
+    }
+
+    return Immediate.resolve(results);
+  }
+
+  static from<T>(
+    cb: () => Promise<T> | Immediate<T> | PromiseLike<T> | T,
+  ): PromiseLike<T> {
+    try {
+      const v = cb();
+      if (v instanceof Promise || v instanceof Immediate) {
+        return v;
+      }
+      return Immediate.resolve(v as T);
+    } catch (e) {
+      return Immediate.reject(e);
+    }
+  }
+
+  static unpack<T>(v: T | Immediate<T>): T {
+    if (v instanceof Immediate) {
+      if (!v.success) {
+        throw v.error;
+      }
+      return Immediate.unpack(v.value!);
+    }
+    return v;
+  }
+  static resolve(): Immediate<void>;
+  static resolve<T = void>(v: T): Immediate<T>;
+  static resolve(v?: any): Immediate<any> {
+    if (v instanceof Immediate) {
+      return v;
+    }
+
+    const r = Object.create(Immediate.prototype);
+    r.value = v;
+    r.success = true;
+    return r;
+  }
+
+  static reject(e: any): Immediate<any> {
+    const r = Object.create(Immediate.prototype);
+    r.error = e;
+    r.success = false;
+    return r;
+  }
+
+  private value?: T;
+  private error?: Error;
+  private success?: boolean;
+
+  public constructor(cb: () => Immediate<T> | T = () => void 0 as any) {
+    try {
+      this.value = Immediate.unpack(cb());
+      this.success = true;
+    } catch (e) {
+      this.error = e as Error;
+      this.success = false;
+    }
+  }
+  public then<U = T, U2 = never>(
+    onfulfilled?:
+      | ((value: T) => U | PromiseLike<U>)
+      | undefined
+      | null,
+    onrejected?:
+      | ((reason: any) => U2 | PromiseLike<U2>)
+      | undefined
+      | null,
+  ): PromiseLike<U | U2> {
+    if (this.success) {
+      return new Immediate<U>(() => {
+        const r = onfulfilled?.(this.value!) ?? this.value;
+        return r as any;
+      });
+    } else if (onrejected) {
+      // @ts-expect-error
+      return this.catch(onrejected);
+    }
+    return this as any as Immediate<U>;
+  }
+
+  public catch<U>(cb: (err: Error) => U): Immediate<T | U> {
+    if (!this.success) {
+      return new Immediate<U>(() => {
+        return cb(this.error!);
+      });
+    }
+    return this;
+  }
+
+  public finally<U>(cb: () => U): Immediate<T> {
+    try {
+      cb();
+    } catch (e) {
+      return Immediate.reject(e);
+    }
+    return this;
+  }
+}

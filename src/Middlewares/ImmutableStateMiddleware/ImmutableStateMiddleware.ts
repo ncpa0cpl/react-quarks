@@ -20,10 +20,7 @@ const freezeDeep = (obj: any) => {
   return obj;
 };
 
-export const createImmutableStateMiddleware = (): QuarkMiddleware<
-  any,
-  undefined
-> => {
+export const createImmutableStateMiddleware = (): QuarkMiddleware<any> => {
   return (params) => {
     const { action, resume } = params;
 

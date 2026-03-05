@@ -1,20 +1,30 @@
 import cloneDeep from "lodash.clonedeep";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
-import { QuarkContext } from "../../src";
+import { QuarkActions, QuarkContext } from "../../src";
 import { generateCustomActions } from "../../src/Utilities/GenerateCustomActions";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomActions()", () => {
   let context: QuarkContext<any, any>;
   const setStateMock = vitest.fn();
-  const setState = (v: any) => {
-    let s: any;
-    if (typeof v === "function") {
-      s = v(context.value);
+  const initiateAction = (action: any, args?: any[]) => {
+    if (typeof action === "function") {
+      const api = {
+        getState() {
+          return context.value;
+        },
+        setState(s: any) {
+          setStateMock(s);
+        },
+      };
+      if (args) {
+        action(api, ...args);
+      } else {
+        action(api);
+      }
     } else {
-      s = v;
+      setStateMock(action);
     }
-    return setStateMock(s);
   };
 
   beforeEach(() => {
@@ -26,16 +36,14 @@ describe("generateCustomActions()", () => {
 
     const originalContext = cloneDeep(context);
 
-    const actions = {
-      append(state: string, ...args: string[]) {
-        return state + args.toString();
+    const actions: QuarkActions<any, never[], any[]> = {
+      append(state, ...args: string[]) {
       },
-      trim(state: string) {
-        return state.trim();
+      trim(state) {
       },
     };
 
-    const bindedActions = generateCustomActions(setState, actions);
+    const bindedActions = generateCustomActions(initiateAction, actions);
 
     expect(bindedActions).toMatchObject({
       append: expect.any(Function),
@@ -58,12 +66,13 @@ describe("generateCustomActions()", () => {
     );
 
     const actions = {
-      add(state: typeof initValue, newValue: string) {
-        return appendMock(state, newValue);
+      add(api, newValue: string) {
+        const s = appendMock(api.getState(), newValue);
+        api.setState(s);
       },
-    };
+    } satisfies QuarkActions<any, never[], any[]>;
 
-    const bindedActions = generateCustomActions(setState, actions);
+    const bindedActions = generateCustomActions(initiateAction, actions);
 
     bindedActions.add("bar");
 
@@ -85,15 +94,17 @@ describe("generateCustomActions()", () => {
     context = getTestQuarkContext({ value: initValue });
 
     const actions = {
-      append(state: string, ...args: string[]) {
-        return state + args.toString();
+      append(api, ...args: string[]) {
+        const s = api.getState() + args.toString();
+        api.setState(s);
       },
-      trim(state: string) {
-        return state.trim();
+      trim(api) {
+        const s = api.getState().trim();
+        api.setState(s);
       },
-    };
+    } satisfies QuarkActions<any, never[], any[]>;
 
-    const bindedActions = generateCustomActions(setState, actions);
+    const bindedActions = generateCustomActions(initiateAction, actions);
 
     bindedActions.append("-baz");
 

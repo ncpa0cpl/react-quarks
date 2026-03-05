@@ -6,10 +6,10 @@ import { QuarkContext, SetStateAction } from "../../Types/Quark";
  *
  * @internal
  */
-export function processStateUpdate<T, ET>(params: {
-  self: QuarkContext<T, ET>;
+export function processStateUpdate<T>(params: {
+  self: QuarkContext<T>;
   previousState: T;
-  applyMiddlewaresAndUpdateState: (v: SetStateAction<T, ET>) => void;
+  applyMiddlewaresAndUpdateState: (v: SetStateAction<T>) => void;
   debounceEvent: (eventAction: () => void) => void;
 }) {
   const { previousState, self, applyMiddlewaresAndUpdateState, debounceEvent } =

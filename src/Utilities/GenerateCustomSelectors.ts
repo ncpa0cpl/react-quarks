@@ -20,10 +20,9 @@ import {
  */
 export function generateCustomSelectors<
   T,
-  ET,
-  S extends QuarkSelectors<T, any>,
+  S extends QuarkSelectors<T>,
 >(
-  self: QuarkContext<T, ET>,
+  self: QuarkContext<T>,
   selectors: Array<[k: keyof S, select: QuarkSelector<T, any>]>,
 ): Selects<T, S> {
   const base = selectors
@@ -49,9 +48,9 @@ export function generateCustomSelectors<
   ) as unknown as Selects<T, S>;
 }
 
-function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
+function createStandaloneSelectorHook<T>(self: QuarkContext<T>) {
   return <ARGS extends any[], R>(
-    selector: QuarkSelector<T, ARGS, R>,
+    selector: QuarkSelector<T, R>,
     ...args: ARGS
   ) => {
     const [cachedSelector] = React.useState(() =>
@@ -65,8 +64,8 @@ function createStandaloneSelectorHook<T, ET>(self: QuarkContext<T, ET>) {
   };
 }
 
-function hookifySelector<T, ET, R>(
-  self: QuarkContext<T, ET>,
+function hookifySelector<T, R>(
+  self: QuarkContext<T>,
   selector: (state: T, ...args: any[]) => R,
 ) {
   const initCachedSelector = () => createBasicCachedSelector(selector);
