@@ -1,3 +1,5 @@
+import { UpdateController } from "../Utilities/StateUpdates/AsyncUpdates";
+import { Resolvable } from "../Utilities/StateUpdates/Immediate";
 import type { ParseActions } from "./Actions";
 import { QuarkCustomEffect } from "./Effects";
 import type { QuarkMiddleware } from "./Middlewares";
@@ -57,6 +59,9 @@ export type QuarkContext<T> = {
   readonly sideEffect?: QuarkCustomEffect<T>;
   readonly stateComparator: QuarkComparatorFn;
   readonly syncStoreSubscribe: (callback: () => void) => () => boolean;
+  updateController: UpdateController<T>;
+  /** A map of OriginalActionImplementation -> ActionWithInjectedApiArgument */
+  readonly actions: Map<Function, Function>;
 };
 
 export type DispatchFunc<T> =
@@ -68,6 +73,10 @@ export type SetStateAction<T> =
   | DispatchFunc<T>
   | Promise<T>
   | Promise<SetStateAction<T>>;
+
+export type UnsafeSet<T> = (
+  action: T | ((current: T) => T),
+) => Resolvable<unknown>;
 
 /**
  * @internal

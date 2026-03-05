@@ -1,6 +1,6 @@
 import _cloneDeep from "lodash.clonedeep";
 import { QuarkMiddleware } from "../../Types/Middlewares";
-import { AtomicUpdater } from "../../Utilities/StateUpdates/AsyncUpdates";
+import { AtomicUpdate } from "../../Utilities/StateUpdates/AsyncUpdates";
 import { DispatchSource } from "./Types/TrackedQuark";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
@@ -21,7 +21,7 @@ export function createDebugHistoryMiddleware(options: {
   realTimeLogging?: boolean;
   useTablePrint?: boolean;
 }): QuarkMiddleware<any> {
-  const updaterSources = new WeakMap<AtomicUpdater<any>, DispatchSource>();
+  const updaterSources = new WeakMap<AtomicUpdate<any>, DispatchSource>();
 
   const {
     name,

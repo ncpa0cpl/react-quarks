@@ -2,62 +2,46 @@ import cloneDeep from "lodash.clonedeep";
 import { beforeEach, describe, expect, it, vitest } from "vitest";
 import { QuarkActions, QuarkContext } from "../../src";
 import { generateCustomActions } from "../../src/Utilities/GenerateCustomActions";
+import { Immediate } from "../../src/Utilities/StateUpdates/Immediate";
 import { getTestQuarkContext } from "../helpers";
 
 describe("generateCustomActions()", () => {
-  let context: QuarkContext<any, any>;
+  let context: QuarkContext<any>;
   const setStateMock = vitest.fn();
-  const initiateAction = (action: any, args?: any[]) => {
-    if (typeof action === "function") {
-      const api = {
-        getState() {
-          return context.value;
-        },
-        setState(s: any) {
-          setStateMock(s);
-        },
-      };
-      if (args) {
-        action(api, ...args);
-      } else {
-        action(api);
-      }
-    } else {
-      setStateMock(action);
-    }
-  };
 
   beforeEach(() => {
     vitest.resetAllMocks();
   });
 
   it("should generate a new object with the same methods as it was provided", () => {
-    context = getTestQuarkContext();
+    context = getTestQuarkContext({ setter: setStateMock });
 
-    const originalContext = cloneDeep(context);
-
-    const actions: QuarkActions<any, never[], any[]> = {
+    const actions = {
       append(state, ...args: string[]) {
       },
       trim(state) {
       },
-    };
+    } satisfies QuarkActions<any>;
 
-    const bindedActions = generateCustomActions(initiateAction, actions);
+    const bindedActions = generateCustomActions(
+      context,
+      () => Immediate.resolve(),
+      actions,
+    );
 
     expect(bindedActions).toMatchObject({
       append: expect.any(Function),
       trim: expect.any(Function),
     });
 
-    // Assert nothing in the context changed
-    expect(context).toMatchObject(originalContext);
+    expect(context.actions.get(actions.append)).toEqual(bindedActions.append);
+    expect(context.actions.get(actions.trim)).toEqual(bindedActions.trim);
   });
 
   it("should generate new methods that are provided with the context value automatically when called", () => {
     const initValue = { value: "foo", prev: "" };
 
-    context = getTestQuarkContext({ value: initValue });
+    context = getTestQuarkContext({ value: initValue, setter: setStateMock });
 
     const appendMock = vitest.fn(
       (state: typeof initValue, newValue: string) => {
@@ -67,12 +51,16 @@ describe("generateCustomActions()", () => {
 
     const actions = {
       add(api, newValue: string) {
-        const s = appendMock(api.getState(), newValue);
-        api.setState(s);
+        const s = appendMock(api.get(), newValue);
+        api.set(s);
       },
-    } satisfies QuarkActions<any, never[], any[]>;
+    } satisfies QuarkActions<any>;
 
-    const bindedActions = generateCustomActions(initiateAction, actions);
+    const bindedActions = generateCustomActions(
+      context,
+      () => Immediate.resolve(),
+      actions,
+    );
 
     bindedActions.add("bar");
 
@@ -84,6 +72,7 @@ describe("generateCustomActions()", () => {
 
     expect(setStateMock).toHaveBeenCalledTimes(1);
     expect(setStateMock).toHaveBeenCalledWith(
+      expect.any(Object),
       expect.objectContaining({ value: "bar", prev: "foo" }),
     );
   });
@@ -91,31 +80,41 @@ describe("generateCustomActions()", () => {
   it("should generate new methods that call the setState method", () => {
     const initValue = " foo-bar";
 
-    context = getTestQuarkContext({ value: initValue });
+    context = getTestQuarkContext({ value: initValue, setter: setStateMock });
 
     const actions = {
       append(api, ...args: string[]) {
-        const s = api.getState() + args.toString();
-        api.setState(s);
+        const s = api.get() + args.toString();
+        api.set(s);
       },
       trim(api) {
-        const s = api.getState().trim();
-        api.setState(s);
+        const s = api.get().trim();
+        api.set(s);
       },
-    } satisfies QuarkActions<any, never[], any[]>;
+    } satisfies QuarkActions<any>;
 
-    const bindedActions = generateCustomActions(initiateAction, actions);
+    const bindedActions = generateCustomActions(
+      context,
+      () => Immediate.resolve(),
+      actions,
+    );
 
     bindedActions.append("-baz");
 
     expect(setStateMock).toHaveBeenCalledTimes(1);
-    expect(setStateMock).toHaveBeenCalledWith(`${context.value}-baz`);
+    expect(setStateMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      `${context.value}-baz`,
+    );
 
     setStateMock.mockReset();
 
     bindedActions.trim();
 
     expect(setStateMock).toHaveBeenCalledTimes(1);
-    expect(setStateMock).toHaveBeenCalledWith(`foo-bar`);
+    expect(setStateMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      `foo-bar`,
+    );
   });
 });

@@ -6,6 +6,10 @@ import {
   QuarkMiddleware,
   QuarkSubscriber,
 } from "../src";
+import {
+  AtomicUpdate,
+  createUpdateController,
+} from "../src/Utilities/StateUpdates/AsyncUpdates";
 
 export function array(length: number) {
   return Array.from({ length });
@@ -33,29 +37,33 @@ export function getTestQuarkContext<T = string>(params?: {
   stateComparator?: QuarkComparatorFn;
   configOptions?: QuarkConfigOptions;
   sideEffect?: QuarkCustomEffect<T>;
-  middlewares?: QuarkMiddleware<T>[];
   subscribers?: Set<QuarkSubscriber<T>>;
+  setter?: (update: AtomicUpdate<T>, action: T) => any;
 }): QuarkContext<T> {
   const {
     configOptions = { mode: params?.configOptions?.mode ?? "cancel" },
-    middlewares = [],
     stateComparator = () => true,
     subscribers = new Set<QuarkSubscriber<T>>(),
     value = "" as any as T,
     sideEffect,
+    setter,
   } = params ?? {};
 
-  return {
+  const c: QuarkContext<T> = {
     value,
     stateComparator,
     configOptions,
-    middlewares,
+    middlewares: [],
     subscribers,
     sideEffect,
+    actions: new Map(),
+    updateController: null as any,
     syncStoreSubscribe() {
       return () => false;
     },
   };
+  c.updateController = createUpdateController(c, setter);
+  return c;
 }
 
 export function rndBool() {
@@ -120,7 +128,7 @@ export function forAwait<T>(
   return stack.waitForAll();
 }
 
-export function controlledPromise<T = void>() {
+function Semaphore<T>() {
   let resolve: (value: T) => void;
   let reject: (reason?: any) => void;
 
@@ -131,7 +139,44 @@ export function controlledPromise<T = void>() {
 
   return {
     promise,
-    resolve: resolve!,
-    reject: reject!,
+    resolve: (v: T) => {
+      return resolve(v);
+    },
+    reject: (err: any) => {
+      return reject(err);
+    },
+  };
+}
+
+export function controlledPromise<T = void>() {
+  let resolve: (value: T) => void;
+  let reject: (reason?: any) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  const awaiting = Semaphore<Promise<any>>();
+
+  return {
+    promise: <PromiseLike<T>> {
+      then(onfulfilled, onrejected) {
+        const r = promise.then(onfulfilled, onrejected);
+        awaiting.resolve(r.then(() => {}, () => {}));
+        return r as any;
+      },
+    },
+    resolve: (v: T) => {
+      resolve!(v);
+      return awaiting.promise;
+    },
+    reject: (v: T) => {
+      reject!(v);
+      return awaiting.promise;
+    },
+    get dependenciesResolved() {
+      return awaiting.promise;
+    },
   };
 }

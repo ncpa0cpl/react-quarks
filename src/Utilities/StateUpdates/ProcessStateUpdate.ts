@@ -1,6 +1,6 @@
 import { QuarkContext } from "../../Types/Quark";
 import { applyMiddlewares } from "./ApplyMiddlewares";
-import { AtomicUpdater } from "./AsyncUpdates";
+import { AtomicUpdate } from "./AsyncUpdates";
 import { resolveUpdateType } from "./ResolveUpdateType";
 import { unpackAction } from "./UnpackAction";
 
@@ -30,7 +30,7 @@ function notifySubscribers<T>(
 export function processStateUpdate<T>(params: {
   self: QuarkContext<T>;
   previousState: T;
-  update: AtomicUpdater<T>;
+  update: AtomicUpdate<T>;
   debounceEvent: (eventAction: () => void) => void;
 }) {
   const { previousState, self, update, debounceEvent } = params;

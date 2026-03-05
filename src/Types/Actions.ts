@@ -1,4 +1,4 @@
-import { ProcedureGenerator } from "./Procedures";
+import { GeneratorAction, ProcedureGenerator } from "./Procedures";
 import type { SetStateAction } from "./Quark";
 import type {
   FinalReturnType as ResolvedAction,
@@ -39,10 +39,13 @@ export interface ActionApi<T> {
    *    }
    * })
    */
-  dispatchNew<R extends void | Promise<void>>(
+  dispatchNew<R extends void | Promise<void> | ProcedureGenerator<T>>(
     action: (api: ActionApi<T>) => R,
   ): R;
-  dispatchNew<R extends void | Promise<void>, A extends any[]>(
+  dispatchNew<
+    R extends void | Promise<void> | ProcedureGenerator<T>,
+    A extends any[],
+  >(
     action: (api: ActionApi<T>, ...args: A) => R,
     ...args: A
   ): R;
@@ -79,15 +82,16 @@ export interface ActionApi<T> {
   assign(patch: T extends object ? Partial<T> : never): any | Promise<any>;
 }
 
-export interface QAction<T> {
-  (
-    api: ActionApi<T>,
-    ...args: any[]
-  ):
-    | void
-    | Promise<void>
-    | ProcedureGenerator<T>;
-}
+export type FunctionAction<T> = (
+  api: ActionApi<T>,
+  ...args: any[]
+) =>
+  | void
+  | Promise<void>;
+
+export type QAction<T> =
+  | FunctionAction<T>
+  | GeneratorAction<T>;
 
 export type QuarkActions<T> = Record<string, QAction<T>>;
 

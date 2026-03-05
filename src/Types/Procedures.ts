@@ -1,3 +1,4 @@
+import { ActionApi } from "..";
 import { SetStateAction } from "./Quark";
 import { IsLiteral, KeysOf } from "./Utilities";
 
@@ -9,14 +10,8 @@ export type ProcedureGenerator<T> = AsyncGenerator<
   T
 >;
 
-export type ProcedureApi<T> = {
-  getState(): T;
-  unsafeSet(state: T | ((current: T) => T)): void;
-  isCanceled(): boolean;
-};
-
-export type QProcedure<T> = (
-  initState: ProcedureApi<T>,
+export type GeneratorAction<T> = (
+  api: ActionApi<T>,
   ...args: any[]
 ) => ProcedureGenerator<T>;
 
@@ -34,7 +29,5 @@ export type ParseProcedures<A> = A extends object
   : Record<never, never>;
 
 export type InitiateProcedureFn<T> = (
-  p: (
-    api: ProcedureApi<T>,
-  ) => AsyncGenerator<SetStateAction<T>, SetStateAction<T>, T>,
+  p: GeneratorAction<T>,
 ) => void;

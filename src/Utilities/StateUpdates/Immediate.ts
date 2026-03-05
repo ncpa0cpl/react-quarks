@@ -1,21 +1,19 @@
-declare global {
-  interface PromiseLike<T> {
-    finally(cb: () => void): PromiseLike<T>;
-    catch<T2>(cb: (e: unknown) => T2): PromiseLike<T | T2>;
-  }
+export interface Resolvable<T> extends PromiseLike<T> {
+  finally(cb: () => void): Resolvable<T>;
+  catch<T2>(cb: (e: unknown) => T2): Resolvable<T | T2>;
 }
 
-type ImmediateType<T> = T extends PromiseLike<infer U> ? U : T;
+type ImmediateType<T> = T extends Resolvable<infer U> ? U : T;
 
-type MapImmediates<T extends PromiseLike<any>[]> = T extends
-  [infer First, ...infer Rest extends PromiseLike<any>[]]
+type MapImmediates<T extends Resolvable<any>[]> = T extends
+  [infer First, ...infer Rest extends Resolvable<any>[]]
   ? [ImmediateType<First>, ...MapImmediates<Rest>]
   : [];
 
-export class Immediate<T = void> implements PromiseLike<T> {
-  static all<const T extends PromiseLike<any>[]>(
+export class Immediate<T = void> implements Resolvable<T> {
+  static all<const T extends Resolvable<any>[]>(
     ...resolvables: T
-  ): PromiseLike<MapImmediates<T>> {
+  ): Resolvable<MapImmediates<T>> {
     const promises: Promise<[idx: number, value: unknown]>[] = [];
     const results = [] as MapImmediates<T>;
 
@@ -49,8 +47,8 @@ export class Immediate<T = void> implements PromiseLike<T> {
   }
 
   static from<T>(
-    cb: () => Promise<T> | Immediate<T> | PromiseLike<T> | T,
-  ): PromiseLike<T> {
+    cb: () => Promise<T> | Immediate<T> | Resolvable<T> | T,
+  ): Resolvable<T> {
     try {
       const v = cb();
       if (v instanceof Promise || v instanceof Immediate) {
@@ -106,14 +104,14 @@ export class Immediate<T = void> implements PromiseLike<T> {
   }
   public then<U = T, U2 = never>(
     onfulfilled?:
-      | ((value: T) => U | PromiseLike<U>)
+      | ((value: T) => U | Resolvable<U>)
       | undefined
       | null,
     onrejected?:
-      | ((reason: any) => U2 | PromiseLike<U2>)
+      | ((reason: any) => U2 | Resolvable<U2>)
       | undefined
       | null,
-  ): PromiseLike<U | U2> {
+  ): Resolvable<U | U2> {
     if (this.success) {
       return new Immediate<U>(() => {
         const r = onfulfilled?.(this.value!) ?? this.value;
