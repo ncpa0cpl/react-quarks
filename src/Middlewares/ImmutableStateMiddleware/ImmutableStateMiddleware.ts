@@ -22,7 +22,7 @@ const freezeDeep = (obj: any) => {
 
 export const createImmutableStateMiddleware = (): QuarkMiddleware<any> => {
   return (params) => {
-    const { action, resume } = params;
+    const { action } = params;
 
     if (
       typeof action === "object"
@@ -30,12 +30,12 @@ export const createImmutableStateMiddleware = (): QuarkMiddleware<any> => {
       && !(action instanceof Promise)
     ) {
       if (Object.isFrozen(action)) {
-        return resume(action);
+        return action;
       }
 
-      return resume(freezeDeep(action));
+      return freezeDeep(action);
     }
 
-    return resume(action);
+    return action;
   };
 };

@@ -10,7 +10,7 @@ describe("Async Updates", () => {
       const context = getTestQuarkContext({
         configOptions: { mode: "none" },
       });
-      const setStateMock = vitest.fn((v: string) => {
+      const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
 
@@ -36,7 +36,7 @@ describe("Async Updates", () => {
       const context = getTestQuarkContext({
         configOptions: { mode: "cancel" },
       });
-      const setStateMock = vitest.fn((v: string) => {
+      const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
 
@@ -62,7 +62,7 @@ describe("Async Updates", () => {
       const context = getTestQuarkContext({
         configOptions: { mode: "cancel" },
       });
-      const setStateMock = vitest.fn((v: string) => {
+      const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
 
@@ -93,7 +93,7 @@ describe("Async Updates", () => {
       await sleep(50);
 
       expect(setStateMock).toHaveBeenCalledTimes(1);
-      expect(setStateMock).toHaveBeenLastCalledWith("baz");
+      expect(setStateMock).toHaveBeenLastCalledWith(expect.any(Object), "baz");
       expect(context.value).toEqual("baz");
     });
 
@@ -101,7 +101,7 @@ describe("Async Updates", () => {
       const context = getTestQuarkContext({
         configOptions: { mode: "cancel" },
       });
-      const setStateMock = vitest.fn((v: string) => {
+      const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
 
@@ -132,9 +132,21 @@ describe("Async Updates", () => {
       await sleep(0);
 
       expect(setStateMock).toHaveBeenCalledTimes(3);
-      expect(setStateMock).toHaveBeenNthCalledWith(1, "foo");
-      expect(setStateMock).toHaveBeenNthCalledWith(2, "bar");
-      expect(setStateMock).toHaveBeenNthCalledWith(3, "baz");
+      expect(setStateMock).toHaveBeenNthCalledWith(
+        1,
+        expect.any(Object),
+        "foo",
+      );
+      expect(setStateMock).toHaveBeenNthCalledWith(
+        2,
+        expect.any(Object),
+        "bar",
+      );
+      expect(setStateMock).toHaveBeenNthCalledWith(
+        3,
+        expect.any(Object),
+        "baz",
+      );
       expect(context.value).toEqual("baz");
     });
   });

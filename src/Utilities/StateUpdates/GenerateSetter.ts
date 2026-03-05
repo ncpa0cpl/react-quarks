@@ -31,14 +31,14 @@ export function generateSetter<T>(self: QuarkContext<T>) {
   const { debounceEvent } = createEventDebouncer();
   const updateController = createUpdateController<T>(
     self.configOptions.mode,
-    (action: T) => {
+    (update, action: T) => {
       const previousState = self.value;
       self.value = action;
 
       return processStateUpdate({
         self,
         previousState,
-        applyMiddlewaresAndUpdateState: set,
+        update,
         debounceEvent,
       });
     },
@@ -112,7 +112,7 @@ export function generateSetter<T>(self: QuarkContext<T>) {
 
     const [patch] = args;
     return set((state) => {
-      return Object.assign(state as object, patch) as T;
+      return Object.assign({ ...state as object }, patch) as T;
     });
   };
 
@@ -165,7 +165,7 @@ export function generateSetter<T>(self: QuarkContext<T>) {
 
         const [patch] = args as [object];
         return (state: T & object) => {
-          return Object.assign(state, patch);
+          return Object.assign({ ...state as object }, patch);
         };
       },
       unsafeSet(state) {
@@ -269,9 +269,9 @@ export function generateSetter<T>(self: QuarkContext<T>) {
               }
 
               const [patch] = args as [object];
-              return actionSet((current) => {
-                const newValue = Object.assign(current as any, patch);
-                return newValue;
+              return actionSet((state) => {
+                const newValue = Object.assign({ ...state as object }, patch);
+                return newValue as T;
               });
             },
             unsafeSet(state) {
