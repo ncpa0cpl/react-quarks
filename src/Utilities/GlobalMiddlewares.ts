@@ -23,10 +23,14 @@ export class GlobalMiddlewareController {
       if (q) {
         switch (at) {
           case "end":
-            q.middlewares.push({ m: middleware, source: "global" });
+            if (!q.middlewares.some(({ m }) => m === middleware)) {
+              q.middlewares.push({ m: middleware, source: "global" });
+            }
             break;
           case "start":
-            q.middlewares.unshift({ m: middleware, source: "global" });
+            if (!q.middlewares.some(({ m }) => m === middleware)) {
+              q.middlewares.unshift({ m: middleware, source: "global" });
+            }
             break;
         }
       }

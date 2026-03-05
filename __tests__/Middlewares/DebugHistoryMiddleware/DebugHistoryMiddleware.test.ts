@@ -30,6 +30,7 @@ vitest
 
 describe("DebugHistoryMiddleware", () => {
   let q = quark("FOO", {
+    mode: "cancel",
     middlewares: [createDebugHistoryMiddleware({ name: "q1", trace: false })],
   });
 

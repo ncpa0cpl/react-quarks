@@ -53,9 +53,7 @@ export function processStateUpdate<T>(params: {
               update,
               (action2) =>
                 unpackAction(self, update, action2, (s) => {
-                  return update.queue(() => {
-                    self.value = s;
-                  });
+                  self.value = s;
                 }),
             );
 

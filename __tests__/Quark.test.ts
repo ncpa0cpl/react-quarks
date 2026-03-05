@@ -51,7 +51,7 @@ describe("quark()", () => {
       expect(q.get()).toMatchObject({ value: 999 });
     });
     it("set() correctly handles asynchronous updates", async () => {
-      const q = quark("A");
+      const q = quark("A", { mode: "cancel" });
 
       const promiseA = new Promise<string>((resolve) => {
         setTimeout(() => {
@@ -472,6 +472,7 @@ describe("quark()", () => {
       it("prevents updates if a newer update has been dispatched", async () => {
         let secondsSetStateWasCalled = false;
         const q = quark({ value: 0 }, {
+          mode: "cancel",
           actions: {
             async setValue(api, value1: number, value2: number) {
               api.set({ value: value1 });
@@ -501,6 +502,7 @@ describe("quark()", () => {
           const onSetV3 = vitest.fn();
 
           const q = quark({ value: 0 }, {
+            mode: "cancel",
             actions: {
               async action(api, v1: number, v2: number, v3: number) {
                 api.set({ value: v1 });
@@ -532,6 +534,7 @@ describe("quark()", () => {
           const p2 = controlledPromise();
 
           const q2 = quark({ value: 0 }, {
+            mode: "cancel",
             actions: {
               async action(api, v1: number, v2: number) {
                 api.set({ value: v1 });
@@ -585,6 +588,7 @@ describe("quark()", () => {
       describe("unsafeSet()", () => {
         it("should update the state even if the current action was canceled", async () => {
           const q = quark({ value: "0", value2: "0" }, {
+            mode: "cancel",
             actions: {
               async action(api) {
                 api.set({ value: "5", value2: "0" });
@@ -612,6 +616,7 @@ describe("quark()", () => {
           const p2 = controlledPromise();
 
           const q = quark({ value: 0 }, {
+            mode: "cancel",
             actions: {
               async action(api) {
                 api.set({ value: 5 });
@@ -645,6 +650,7 @@ describe("quark()", () => {
         });
         it("correctly handles setter functions", async () => {
           const q = quark({ value: 0 }, {
+            mode: "cancel",
             middlewares: [createImmerMiddleware()],
             actions: {
               async action(api) {
@@ -735,6 +741,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async *runProcedure(api) {
                 yield { ...api.get(), inProgress: true };
@@ -763,6 +770,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               foo(api, value: number): void {
                 return;
@@ -833,6 +841,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
@@ -868,6 +877,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async fetchValue(api) {
                 await sleep(0);
@@ -905,6 +915,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async *runProcedure(api) {
                 yield { ...api.get(), inProgress: true };
@@ -933,6 +944,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             middlewares: [createImmerMiddleware()],
             actions: {
               async *runProcedure(api) {
@@ -2031,6 +2043,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
@@ -2087,6 +2100,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
+            mode: "cancel",
             actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
@@ -2360,7 +2374,9 @@ describe("quark()", () => {
     describe("for raw Promises", () => {
       describe("for a async final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2462,7 +2478,9 @@ describe("quark()", () => {
       });
       describe("for a sync final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2524,7 +2542,9 @@ describe("quark()", () => {
       });
       describe("for a async generator final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2630,7 +2650,9 @@ describe("quark()", () => {
       });
       describe("for a sync generator final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2697,7 +2719,9 @@ describe("quark()", () => {
     describe("for Promise generators", () => {
       describe("for a async final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2803,7 +2827,9 @@ describe("quark()", () => {
       });
       describe("for a sync final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2867,7 +2893,9 @@ describe("quark()", () => {
       });
       describe("for a async generator final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -2973,7 +3001,9 @@ describe("quark()", () => {
       });
       describe("for a sync generator final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -3040,7 +3070,9 @@ describe("quark()", () => {
     describe("for raw Promises and Promise generators together", () => {
       describe("for a async final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 
@@ -3164,7 +3196,9 @@ describe("quark()", () => {
       });
       describe("for a sync generator final update", () => {
         async function runTestWithRandomPromiseResolveTime(batchSize: number) {
-          const q = quark({ value: "foo" });
+          const q = quark({ value: "foo" }, {
+            mode: "cancel",
+          });
 
           const setSpy = vitest.spyOn(q, "set");
 

@@ -4,7 +4,6 @@ import {
   enablePatches,
   Immer,
   isDraft,
-  setUseStrictIteration,
 } from "immer";
 import { QuarkMiddleware } from "../../Types/Middlewares";
 

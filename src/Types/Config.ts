@@ -3,7 +3,7 @@ import { QuarkComparatorFn } from "./Quark";
 
 export type Config<T, A, S, M> = {
   /**
-   * Default: `cancel`
+   * Default: `queue`
    *
    * Modes:
    * - `cancel` - subsequent updates cancel any previous pending updates
