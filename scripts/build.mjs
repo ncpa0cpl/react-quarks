@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import pkgJson from "../package.json" assert { type: "json" };
+import pkgJson from "../package.json" with { type: "json" };
 
 async function main() {
   await esbuild.build({
