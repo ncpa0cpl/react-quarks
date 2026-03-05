@@ -9,7 +9,10 @@ import { generateCustomActions } from "./Utilities/GenerateCustomActions";
 import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { generateUseHook } from "./Utilities/GenerateUseHook";
-import { getGlobalQuarkMiddlewares } from "./Utilities/GlobalMiddlewares";
+import {
+  getGlobalQuarkMiddlewares,
+  GlobalMiddlewareController,
+} from "./Utilities/GlobalMiddlewares";
 import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
 import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
@@ -36,7 +39,7 @@ export function quark<
   const self: QuarkContext<T> = {
     value: initValue,
     subscribers: new Set(),
-    middlewares: config.middlewares ?? [],
+    middlewares: (config.middlewares ?? []).map(m => ({ m, source: "own" })),
     sideEffect: config.effect as any,
     configOptions: {
       mode: config.mode ?? "cancel",
@@ -48,7 +51,7 @@ export function quark<
     },
   };
 
-  self.middlewares.unshift(...getGlobalQuarkMiddlewares());
+  GlobalMiddlewareController.registerQuark(self);
 
   const {
     set,
@@ -96,6 +99,9 @@ export function quark<
     act: customActions,
     select: customSelectors,
   };
+
+  // @ts-expect-error
+  quark.__context = self;
 
   if (config.name !== undefined) {
     registerQuark(config.name, self);

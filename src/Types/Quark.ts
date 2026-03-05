@@ -48,7 +48,10 @@ export type QuarkContext<T> = {
   value: T;
 
   readonly subscribers: Set<QuarkSubscriber<T>>;
-  readonly middlewares: QuarkMiddleware<T>[];
+  readonly middlewares: {
+    source: "own" | "global";
+    m: QuarkMiddleware<T>;
+  }[];
   readonly configOptions: QuarkConfigOptions;
 
   readonly sideEffect?: QuarkCustomEffect<T>;

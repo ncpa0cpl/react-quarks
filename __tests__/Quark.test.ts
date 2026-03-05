@@ -8,6 +8,7 @@ import type {
   QuarkType,
 } from "../src";
 import {
+  addGlobalQuarkMiddleware,
   composeSelectors,
   createImmerMiddleware,
   middleware,
@@ -223,6 +224,25 @@ describe("quark()", () => {
         q.set(2);
 
         expect(q.get()).toEqual((2 * 2 - 1) ** 2);
+      });
+      it("global middlewares added after quark was created take effect", () => {
+        const interceptedActions: any[] = [];
+        const logMd = middleware(ctx => {
+          interceptedActions.push(ctx.action);
+          return ctx.action;
+        });
+
+        const q = quark({ foo: 1 });
+        q.set({ foo: 2 });
+
+        expect(interceptedActions.length).toEqual(0);
+
+        addGlobalQuarkMiddleware(logMd);
+
+        q.set({ foo: 3 });
+
+        expect(interceptedActions.length).toEqual(1);
+        expect(interceptedActions[0]).toEqual({ foo: 3 });
       });
     });
     describe("correctly executes side effect", () => {
