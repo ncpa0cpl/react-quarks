@@ -25,6 +25,9 @@ import {
   testPromiseGenerator,
 } from "./helpers";
 
+// @ts-expect-error
+global.IS_REACT_ACT_ENVIRONMENT = true;
+
 describe("quark()", () => {
   describe("correctly works outside react", () => {
     it("set() correctly updates the state", async () => {
@@ -307,12 +310,10 @@ describe("quark()", () => {
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));
-          } else if (prevState.derivedValue1 !== newState.derivedValue1) {
             set((v) => ({
               ...v,
               derivedValue2: `${v.derivedValue1}-${v.derivedValue1}`,
             }));
-          } else if (prevState.derivedValue2 !== newState.derivedValue2) {
             set((v) => ({
               ...v,
               derivedValue3: `${v.derivedValue2}-${v.derivedValue2}`,
@@ -940,7 +941,7 @@ describe("quark()", () => {
         expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
       });
     });
-    describe("assign()", () => {
+    describe("assign helper", () => {
       it("applies a patch correctly", () => {
         const q = quark({
           foo: { bar: { baz: { value: "a", x: 3 }, x: 2 }, x: 1 },
@@ -1067,6 +1068,108 @@ describe("quark()", () => {
             ],
           },
         });
+      });
+      it("with empty object does nothing", () => {
+        const q = quark({
+          value: "original",
+          nested: { foo: "bar" },
+        });
+
+        const beforeAssign = q.get();
+        q.assign({});
+
+        expect(q.get()).toEqual(beforeAssign);
+      });
+      it("with arrays", () => {
+        const q = quark({
+          arr: [1, 2, 3],
+          other: "value",
+        });
+
+        q.assign({ arr: [4, 5] });
+
+        expect(q.get()).toEqual({
+          arr: [4, 5],
+          other: "value",
+        });
+      });
+      it("multiple times in sequence", () => {
+        const q = quark({
+          a: 1,
+          b: 2,
+          c: 3,
+        });
+
+        q.assign({ a: 10 });
+        q.assign({ b: 20 });
+        q.assign({ c: 30 });
+
+        expect(q.get()).toEqual({
+          a: 10,
+          b: 20,
+          c: 30,
+        });
+      });
+      it("with deeply nested selector", () => {
+        const q = quark({
+          level1: {
+            level2: {
+              level3: {
+                level4: {
+                  value: "deep",
+                  other: "untouched",
+                },
+              },
+            },
+          },
+        });
+
+        q.assign(
+          s => s.level1.level2.level3.level4,
+          { value: "changed" },
+        );
+
+        expect(q.get()).toEqual({
+          level1: {
+            level2: {
+              level3: {
+                level4: {
+                  value: "changed",
+                  other: "untouched",
+                },
+              },
+            },
+          },
+        });
+      });
+      it("with array index selector", () => {
+        const q = quark({
+          items: [{ id: 1, name: "first" }, { id: 2, name: "second" }],
+        });
+
+        q.assign(s => s.items[0], { name: "modified" });
+
+        expect(q.get()).toEqual({
+          items: [{ id: 1, name: "modified" }, { id: 2, name: "second" }],
+        });
+      });
+      it("notifies subscribers", async () => {
+        const q = quark({
+          value: "original",
+        });
+
+        const subscriber = vitest.fn();
+        q.subscribe(subscriber);
+
+        q.assign({ value: "new" });
+
+        await sleep(0);
+
+        expect(subscriber).toHaveBeenCalledTimes(1);
+        expect(subscriber).toHaveBeenCalledWith(
+          { value: "new" },
+          expect.any(Function),
+        );
       });
     });
   });
@@ -1286,8 +1389,7 @@ describe("quark()", () => {
         {
           actions: {
             increment: (api) =>
-              void api.set({
-                ...api.get(),
+              void api.assign({
                 value: api.get().value + 1,
               }),
           },
@@ -2017,6 +2119,219 @@ describe("quark()", () => {
           inProgress: false,
           value: 100,
         });
+      });
+    });
+    describe("assign helper", () => {
+      it("use() with assign() triggers re-renders correctly", async () => {
+        const q = quark({
+          value: 0,
+          name: "counter",
+        });
+
+        const state = renderHook(() => q.use());
+
+        expect(state.result.current.value).toMatchObject({
+          value: 0,
+          name: "counter",
+        });
+
+        act(() => {
+          state.result.current.assign({ value: 5 });
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toMatchObject({
+            value: 5,
+            name: "counter",
+          })
+        );
+      });
+
+      it("use() with assign() and selector triggers re-renders correctly", async () => {
+        const q = quark({
+          nested: {
+            value: 0,
+            other: "untouched",
+          },
+        });
+
+        const state = renderHook(() => q.use());
+
+        expect(state.result.current.value).toEqual({
+          nested: {
+            value: 0,
+            other: "untouched",
+          },
+        });
+
+        act(() => {
+          state.result.current.assign(s => s.nested, { value: 10 });
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toEqual({
+            nested: {
+              value: 10,
+              other: "untouched",
+            },
+          })
+        );
+      });
+
+      it("use() with assign() in custom actions", async () => {
+        const q = quark(
+          { value: 0, name: "counter" },
+          {
+            actions: {
+              increment(api) {
+                api.assign({ value: api.get().value + 1 });
+              },
+              setName(api) {
+                api.assign({ name: "modified" });
+              },
+            },
+          },
+        );
+
+        const state = renderHook(() => q.use());
+
+        expect(state.result.current.value).toMatchObject({
+          value: 0,
+          name: "counter",
+        });
+
+        act(() => {
+          state.result.current.increment();
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toMatchObject({
+            value: 1,
+            name: "counter",
+          })
+        );
+
+        act(() => {
+          state.result.current.setName();
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toMatchObject({
+            value: 1,
+            name: "modified",
+          })
+        );
+      });
+
+      it("useSelector() correctly avoids unnecessary re-renders with assign()", async () => {
+        const q = quark(
+          {
+            value1: "a",
+            value2: "b",
+          },
+          {
+            selectors: {
+              value1: (s) => s.value1,
+            },
+          },
+        );
+
+        let renderCount = 0;
+        const state = renderHook(() => {
+          renderCount++;
+          return q.select.useValue1();
+        });
+
+        expect(state.result.current).toBe("a");
+        const initialRenderCount = renderCount;
+
+        // Assign to value1 - should trigger re-render
+        act(() => {
+          q.assign({ value1: "c" });
+        });
+
+        await state.waitFor(() => {
+          console.log({ quark: q.get(), hook: state.result.current });
+          expect(state.result.current).toBe("c");
+        });
+        expect(renderCount).toBe(initialRenderCount + 1);
+
+        // Assign to value2 - should NOT trigger re-render
+        act(() => {
+          q.assign({ value2: "d" });
+        });
+
+        await sleep(0);
+        expect(state.result.current).toBe("c");
+        expect(renderCount).toBe(initialRenderCount + 1);
+      });
+
+      it("assign() with async procedure", async () => {
+        const q = quark(
+          { value: 0, loading: false },
+          {
+            actions: {
+              async *fetchValue(api) {
+                yield api.assign({ loading: true });
+                return api.assign({ value: 42, loading: false });
+              },
+            },
+          },
+        );
+
+        const state = renderHook(() => q.use());
+
+        expect(state.result.current.value).toEqual({
+          value: 0,
+          loading: false,
+        });
+
+        await act(async () => {
+          await state.result.current.fetchValue();
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toEqual({
+            value: 42,
+            loading: false,
+          })
+        );
+      });
+
+      it("assign() with deeply nested state", async () => {
+        const q = quark({
+          level1: {
+            level2: {
+              level3: {
+                items: [{ id: 1, name: "item1" }, { id: 2, name: "item2" }],
+              },
+            },
+          },
+        });
+
+        const state = renderHook(() => q.use());
+
+        act(() => {
+          state.result.current.assign(
+            s => s.level1.level2.level3.items[0],
+            { name: "modified" },
+          );
+        });
+
+        await state.waitFor(() =>
+          expect(state.result.current.value).toEqual({
+            level1: {
+              level2: {
+                level3: {
+                  items: [{ id: 1, name: "modified" }, {
+                    id: 2,
+                    name: "item2",
+                  }],
+                },
+              },
+            },
+          })
+        );
       });
     });
   });

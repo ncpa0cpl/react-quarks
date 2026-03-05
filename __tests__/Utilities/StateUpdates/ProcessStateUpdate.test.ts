@@ -1,4 +1,5 @@
 import { describe, expect, it, vitest } from "vitest";
+import { AtomicUpdater } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
 import { createEventsDebouncer } from "../../../src/Utilities/StateUpdates/EventsDispatcher";
 import { processStateUpdate } from "../../../src/Utilities/StateUpdates/ProcessStateUpdate";
 import { getTestQuarkContext, sleep } from "../../helpers";
@@ -16,11 +17,19 @@ describe("processStateUpdate", () => {
     processStateUpdate({
       self,
       previousState: "bar",
-      applyMiddlewaresAndUpdateState: setFnMock,
+      update: {
+        queue(action) {
+          return action();
+        },
+      } as AtomicUpdater<any>,
       debounceEvent: vitest.fn(),
     });
 
-    expect(self.sideEffect).toHaveBeenCalledWith("bar", "foo", setFnMock);
+    expect(self.sideEffect).toHaveBeenCalledWith(
+      "bar",
+      "foo",
+      expect.any(Function),
+    );
   });
 
   it("should not run the side effects if the state did not changed", () => {
@@ -30,12 +39,14 @@ describe("processStateUpdate", () => {
       sideEffect: vitest.fn(),
     });
 
-    const setFnMock = vitest.fn();
-
     processStateUpdate({
       self,
       previousState: "bar",
-      applyMiddlewaresAndUpdateState: setFnMock,
+      update: {
+        queue(action) {
+          return action();
+        },
+      } as AtomicUpdater<any>,
       debounceEvent: vitest.fn(),
     });
 
@@ -54,13 +65,16 @@ describe("processStateUpdate", () => {
       subscribers: new Set([subOne, subTwo]),
     });
 
-    const setFnMock = vitest.fn();
     const dispatchEventMock = vitest.fn(debounceEvent);
 
     processStateUpdate({
       self,
       previousState: "bar",
-      applyMiddlewaresAndUpdateState: setFnMock,
+      update: {
+        queue(action) {
+          return action();
+        },
+      } as AtomicUpdater<any>,
       debounceEvent: dispatchEventMock,
     });
 
@@ -93,14 +107,16 @@ describe("processStateUpdate", () => {
       subscribers: new Set([subOne, subTwo, subThree]),
     });
 
-    const setFnMock = vitest.fn();
-
     const { debounceEvent } = createEventsDebouncer();
 
     processStateUpdate({
       self,
       previousState: "bar",
-      applyMiddlewaresAndUpdateState: setFnMock,
+      update: {
+        queue(action) {
+          return action();
+        },
+      } as AtomicUpdater<any>,
       debounceEvent: debounceEvent,
     });
 

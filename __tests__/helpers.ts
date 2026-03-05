@@ -28,14 +28,14 @@ export function rndTResolve<T>(value: T) {
   return sleep(t).then(() => value);
 }
 
-export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
+export function getTestQuarkContext<T = string>(params?: {
   value?: T;
   stateComparator?: QuarkComparatorFn;
   configOptions?: QuarkConfigOptions;
-  sideEffect?: QuarkCustomEffect<T, ET>;
-  middlewares?: QuarkMiddleware<T, ET>[];
+  sideEffect?: QuarkCustomEffect<T>;
+  middlewares?: QuarkMiddleware<T>[];
   subscribers?: Set<QuarkSubscriber<T>>;
-}): QuarkContext<T, ET> {
+}): QuarkContext<T> {
   const {
     configOptions = { mode: params?.configOptions?.mode ?? "cancel" },
     middlewares = [],

@@ -30,7 +30,7 @@ export function unpackAction<T>(
   self: QuarkContext<T>,
   updater: AtomicUpdater<T>,
   action: SetStateAction<T>,
-  onUnpack: (action: T | void) => T | void,
+  onUnpack: (action: T) => T | void,
 ): PromiseLike<T | void> {
   if (action instanceof Promise) {
     return action
