@@ -56,7 +56,7 @@ export function applyMiddlewares<
       let semaphore: undefined | Semaphore<SetStateAction<any>>;
 
       try {
-        const action = nextMiddleware({
+        const action = nextMiddleware.m({
           getState: () => self.value,
           action: v as any,
           resume: (rv: any) => {
