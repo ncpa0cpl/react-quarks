@@ -2,15 +2,22 @@ import { act, renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, vitest } from "vitest";
 import type {
   ActionApi,
+  QuarkCustomEffect,
   QuarkMiddleware,
   QuarkSetterFn,
   QuarkType,
 } from "../src";
-import { composeSelectors, createImmerMiddleware, quark } from "../src";
+import {
+  composeSelectors,
+  createImmerMiddleware,
+  middleware,
+  quark,
+} from "../src";
 import {
   array,
   controlledPromise,
   forAwait,
+  opTracker,
   rndBool,
   rndString,
   rndTResolve,
@@ -102,10 +109,10 @@ describe("quark()", () => {
         {
           actions: {
             increment(api) {
-              api.setState({ value: api.getState().value + 1 });
+              api.set({ value: api.get().value + 1 });
             },
             multiply(api, by: number) {
-              api.setState({ value: api.getState().value * by });
+              api.set({ value: api.get().value * by });
             },
           },
         },
@@ -127,9 +134,9 @@ describe("quark()", () => {
         {
           actions: {
             SetVal1: (api, v: number) =>
-              void api.setState({ ...api.getState(), value1: v }),
+              void api.set({ ...api.get(), value1: v }),
             SetVal2: (api, v: number) =>
-              void api.setState({ ...api.getState(), value2: v }),
+              void api.set({ ...api.get(), value2: v }),
           },
         },
       );
@@ -149,7 +156,7 @@ describe("quark()", () => {
     });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
-        const mapMiddleware: QuarkMiddleware<any, 1 | 2> = ({
+        const mapMiddleware: QuarkMiddleware<any> = ({
           resume,
           action,
           updateType,
@@ -163,6 +170,7 @@ describe("quark()", () => {
 
         const q = quark("FOO", { middlewares: [mapMiddleware] });
 
+        // @ts-expect-error
         q.set(1);
 
         expect(q.get()).toEqual("BAR");
@@ -172,7 +180,7 @@ describe("quark()", () => {
         expect(q.get()).toEqual("QUX");
       });
       it("resume() correctly pipes results from one middleware to the next", () => {
-        const multiplyMiddleware: QuarkMiddleware<any, number> = ({
+        const multiplyMiddleware: QuarkMiddleware<any> = ({
           action,
           resume,
           updateType,
@@ -182,7 +190,7 @@ describe("quark()", () => {
           }
           resume(action);
         };
-        const subtractMiddleware: QuarkMiddleware<any, number> = ({
+        const subtractMiddleware: QuarkMiddleware<any> = ({
           action,
           resume,
           updateType,
@@ -191,7 +199,7 @@ describe("quark()", () => {
             resume(action - 1);
           } else resume(action);
         };
-        const squareMiddleware: QuarkMiddleware<any, number> = ({
+        const squareMiddleware: QuarkMiddleware<any> = ({
           action,
           resume,
           updateType,
@@ -213,32 +221,6 @@ describe("quark()", () => {
 
         expect(q.get()).toEqual((2 * 2 - 1) ** 2);
       });
-
-      it("set() correctly omits following middlewares", () => {
-        const firstMiddleware = vitest.fn(({ action, set, resume }) => {
-          if (typeof action === "number") return set(`${action}`);
-          return resume(action);
-        }) satisfies QuarkMiddleware<any, number>;
-
-        const secondMiddleware = vitest.fn(({ resume, action }) => {
-          resume(action);
-        }) satisfies QuarkMiddleware<any, undefined>;
-
-        const q = quark("FOO", {
-          middlewares: [firstMiddleware, secondMiddleware],
-        });
-
-        expect(firstMiddleware).toBeCalledTimes(1);
-        expect(secondMiddleware).toBeCalledTimes(1);
-        secondMiddleware.mockClear();
-        firstMiddleware.mockClear();
-
-        q.set(2);
-
-        expect(q.get()).toEqual("2");
-        expect(firstMiddleware).toBeCalledTimes(1);
-        expect(secondMiddleware).toBeCalledTimes(0);
-      });
     });
     describe("correctly executes side effect", () => {
       type Q = {
@@ -247,24 +229,24 @@ describe("quark()", () => {
       };
 
       const increment = (api: ActionApi<Q>) => {
-        api.setState({ ...api.getState(), value: api.getState().value + 1 });
+        api.set({ ...api.get(), value: api.get().value + 1 });
       };
 
       const setDerivedValue = (
         api: ActionApi<Q>,
         newDerivedValue: string,
       ) => {
-        api.setState({ ...api.getState(), derivedValue: newDerivedValue });
+        api.set({ ...api.get(), derivedValue: newDerivedValue });
       };
 
       const deriveValue = (
         prevState: Q,
         newState: Q,
-        set: QuarkSetterFn<Q, never>,
+        set: QuarkSetterFn<Q>,
       ) => {
         if (prevState.value !== newState.value) {
           setDerivedValue(
-            { getState: () => newState, setState: set } as any,
+            { get: () => newState, set: set } as any,
             `${newState.value}`,
           );
         }
@@ -315,13 +297,13 @@ describe("quark()", () => {
         };
 
         const increment = (api: ActionApi<Q>) => {
-          api.setState({ ...api.getState(), value: api.getState().value + 1 });
+          api.set({ ...api.get(), value: api.get().value + 1 });
         };
 
         const deriveValue = (
           prevState: Q,
           newState: Q,
-          set: QuarkSetterFn<Q, never>,
+          set: QuarkSetterFn<Q>,
         ) => {
           if (prevState.value !== newState.value) {
             set((v) => ({ ...v, derivedValue1: `${v.value}` }));
@@ -471,9 +453,9 @@ describe("quark()", () => {
         const q = quark({ value: 0 }, {
           actions: {
             async setValue(api, value1: number, value2: number) {
-              api.setState({ value: value1 });
+              api.set({ value: value1 });
               await sleep(20);
-              api.setState({ value: value2 });
+              api.set({ value: value2 });
               secondsSetStateWasCalled = true;
             },
           },
@@ -500,13 +482,13 @@ describe("quark()", () => {
           const q = quark({ value: 0 }, {
             actions: {
               async action(api, v1: number, v2: number, v3: number) {
-                api.setState({ value: v1 });
+                api.set({ value: v1 });
                 api.dispatchNew(async (subApi) => {
                   await sleep(25);
-                  subApi.setState({ value: v2 });
+                  subApi.set({ value: v2 });
                 });
                 await sleep(50);
-                api.setState({ value: v3 });
+                api.set({ value: v3 });
                 onSetV3();
               },
             },
@@ -531,10 +513,10 @@ describe("quark()", () => {
           const q2 = quark({ value: 0 }, {
             actions: {
               async action(api, v1: number, v2: number) {
-                api.setState({ value: v1 });
+                api.set({ value: v1 });
                 await p1;
                 api.dispatchNew((subApi) => {
-                  subApi.setState({ value: v2 });
+                  subApi.set({ value: v2 });
                 });
               },
             },
@@ -556,17 +538,39 @@ describe("quark()", () => {
           await sleep(10);
           expect(q2.get()).toMatchObject({ value: 10 });
         });
+
+        it("can be given other action from `this`", async () => {
+          const q = quark({ value: 0 }, {
+            actions: {
+              double(api) {
+                api.set(s => ({ value: s.value * 2 }));
+              },
+              add(api, amount: number) {
+                api.set({ value: api.get().value + amount });
+              },
+              action(api) {
+                api.set({ value: 4 });
+                api.dispatchNew(this.add, 3);
+                api.dispatchNew(this.double);
+              },
+            },
+          });
+
+          q.act.action();
+
+          expect(q.get()).toEqual({ value: 14 });
+        });
       });
       describe("unsafeSet()", () => {
         it("should update the state even if the current action was canceled", async () => {
           const q = quark({ value: "0", value2: "0" }, {
             actions: {
               async action(api) {
-                api.setState({ value: "5", value2: "0" });
+                api.set({ value: "5", value2: "0" });
                 await sleep(20);
                 expect(api.isCanceled()).toBe(true);
-                api.unsafeSet({ ...api.getState(), value: "unsafely set" }); // should take effect
-                api.setState({ ...api.getState(), value2: "10" }); // should not take effect
+                api.unsafeSet({ ...api.get(), value: "unsafely set" }); // should take effect
+                api.set({ ...api.get(), value2: "10" }); // should not take effect
               },
             },
           });
@@ -589,13 +593,11 @@ describe("quark()", () => {
           const q = quark({ value: 0 }, {
             actions: {
               async action(api) {
-                api.setState({ value: 5 });
+                api.set({ value: 5 });
                 await p1.promise;
                 expect(api.isCanceled()).toBe(true);
                 api.unsafeSet({ value: 10 });
               },
-            },
-            procedures: {
               async *update() {
                 yield { value: 999 };
                 await p2.promise;
@@ -625,7 +627,7 @@ describe("quark()", () => {
             middlewares: [createImmerMiddleware()],
             actions: {
               async action(api) {
-                api.setState({ value: 5 });
+                api.set({ value: 5 });
                 await sleep(20);
                 expect(api.isCanceled()).toBe(true);
                 api.unsafeSet((draft) => {
@@ -657,9 +659,9 @@ describe("quark()", () => {
           {
             actions: {
               SetVal1: (api, v: number) =>
-                void api.setState({ ...api.getState(), value1: v }),
+                void api.set({ ...api.get(), value1: v }),
               SetVal2: (api, v: number) =>
-                void api.setState({ ...api.getState(), value2: v }),
+                void api.set({ ...api.get(), value2: v }),
             },
             selectors: {
               value1: (s) => s.value1,
@@ -684,9 +686,9 @@ describe("quark()", () => {
           {
             actions: {
               SetVal1: (api, v: number) =>
-                void api.setState({ ...api.getState(), value1: v }),
+                void api.set({ ...api.get(), value1: v }),
               SetVal2: (api, v: number) =>
-                void api.setState({ ...api.getState(), value2: v }),
+                void api.set({ ...api.get(), value2: v }),
             },
             selectors: {
               v: (s, n: 1 | 2) => s[`value${n}`],
@@ -712,9 +714,9 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure(api) {
-                yield { ...api.getState(), inProgress: true };
+                yield { ...api.get(), inProgress: true };
                 const newValue = await p.promise;
                 return { inProgress: false, value: newValue.value };
               },
@@ -740,8 +742,13 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
-              async *runProcedure() {
+            actions: {
+              foo(api, value: number): void {
+                return;
+              },
+              bar(api, value: number) {},
+              async *runProcedure(api) {
+                this.foo(api, 1);
                 yield (current) => ({ ...current, inProgress: true });
                 const newValue = await p.promise;
                 return () => ({ inProgress: false, value: newValue.value });
@@ -769,7 +776,7 @@ describe("quark()", () => {
           { inProgress: false, value: 20 },
           {
             middlewares: [createImmerMiddleware()],
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield (draft) => {
                   draft.inProgress = true;
@@ -805,7 +812,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
                 const newValue = await p1.promise;
@@ -840,19 +847,17 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
+              async fetchValue(api) {
+                await sleep(0);
+                api.set({ value: 100, inProgress: false });
+              },
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
                 const newValue = await p1.promise;
                 yield { inProgress: true, value: newValue.value };
                 const newValue2 = await p2.promise;
                 return { inProgress: false, value: newValue2.value };
-              },
-            },
-            actions: {
-              async fetchValue(api) {
-                await sleep(0);
-                api.setState({ value: 100, inProgress: false });
               },
             },
           },
@@ -879,9 +884,9 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure(api) {
-                yield { ...api.getState(), inProgress: true };
+                yield { ...api.get(), inProgress: true };
                 const newValue = await p.promise;
                 api.unsafeSet({ inProgress: false, value: newValue.value });
                 return { inProgress: false, value: -1 };
@@ -908,9 +913,9 @@ describe("quark()", () => {
           { inProgress: false, value: 2 },
           {
             middlewares: [createImmerMiddleware()],
-            procedures: {
+            actions: {
               async *runProcedure(api) {
-                yield { ...api.getState(), inProgress: true };
+                yield { ...api.get(), inProgress: true };
                 const newValue = await p.promise;
                 expect(api.isCanceled()).toBe(true);
                 api.unsafeSet((draft) => {
@@ -933,6 +938,135 @@ describe("quark()", () => {
         p.resolve({ value: 5 });
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
+      });
+    });
+    describe("assign()", () => {
+      it("applies a patch correctly", () => {
+        const q = quark({
+          foo: { bar: { baz: { value: "a", x: 3 }, x: 2 }, x: 1 },
+          topVal: "TOP",
+        });
+
+        expect(q.get()).toEqual({
+          foo: { bar: { baz: { value: "a", x: 3 }, x: 2 }, x: 1 },
+          topVal: "TOP",
+        });
+
+        q.assign({ topVal: "BOTTOM" });
+
+        expect(q.get()).toEqual({
+          foo: { bar: { baz: { value: "a", x: 3 }, x: 2 }, x: 1 },
+          topVal: "BOTTOM",
+        });
+
+        q.assign(
+          s => s.foo.bar.baz,
+          { value: "VALUE" },
+        );
+
+        expect(q.get()).toEqual({
+          foo: { bar: { baz: { value: "VALUE", x: 3 }, x: 2 }, x: 1 },
+          topVal: "BOTTOM",
+        });
+      });
+      it("in actions and procedures", async () => {
+        const p = controlledPromise<number[]>();
+
+        const q = quark({
+          v1: "v1",
+          v2: "v2",
+          v3: [1, 2, 3],
+        }, {
+          actions: {
+            action(api) {
+              api.assign({ v1: "new v1" });
+            },
+            async *proc(api) {
+              yield api.assign({ v2: "new v2" });
+              const arr = await p.promise;
+              yield api.assign({ v3: arr });
+              return api.get();
+            },
+          },
+        });
+
+        expect(q.get()).toEqual({ v1: "v1", v2: "v2", v3: [1, 2, 3] });
+
+        q.act.action();
+
+        expect(q.get()).toEqual({ v1: "new v1", v2: "v2", v3: [1, 2, 3] });
+
+        q.act.proc();
+        await sleep(0);
+
+        expect(q.get()).toEqual({ v1: "new v1", v2: "new v2", v3: [1, 2, 3] });
+
+        p.resolve([0]);
+        await sleep(0);
+
+        expect(q.get()).toEqual({ v1: "new v1", v2: "new v2", v3: [0] });
+      });
+      it("with selector in actions and procedures", async () => {
+        const p = controlledPromise<number[]>();
+
+        const q = quark({
+          v1: "v1",
+          v2: {
+            v3: "v3",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+            ],
+          },
+        }, {
+          actions: {
+            setV3(api) {
+              api.assign(s => s.v2, { v3: "foobar" });
+            },
+            async *proc(api) {
+              yield api.assign(s => s.v2.v4, [{ v5: "up" }]);
+              return api.get();
+            },
+          },
+        });
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "v3",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+            ],
+          },
+        });
+
+        q.act.setV3();
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "foobar",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+            ],
+          },
+        });
+
+        q.act.proc();
+        await sleep(0);
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "foobar",
+            v4: [
+              { v5: "up" },
+              { v5: "v5.2" },
+            ],
+          },
+        });
       });
     });
   });
@@ -973,8 +1107,7 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment: (api) =>
-              void api.setState({ value: api.getState().value + 1 }),
+            increment: (api) => void api.set({ value: api.get().value + 1 }),
           },
         },
       );
@@ -1021,8 +1154,8 @@ describe("quark()", () => {
         {
           actions: {
             incrementAsync: (api) =>
-              void api.setState(
-                Promise.resolve({ value: api.getState().value + 1 }),
+              void api.set(
+                Promise.resolve({ value: api.get().value + 1 }),
               ),
           },
         },
@@ -1044,8 +1177,7 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment: (api) =>
-              void api.setState({ value: api.getState().value + 1 }),
+            increment: (api) => void api.set({ value: api.get().value + 1 }),
           },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
@@ -1072,8 +1204,7 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment: (api) =>
-              void api.setState({ value: api.getState().value + 1 }),
+            increment: (api) => void api.set({ value: api.get().value + 1 }),
           },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
@@ -1100,8 +1231,7 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment: (api) =>
-              void api.setState({ value: api.getState().value + 1 }),
+            increment: (api) => void api.set({ value: api.get().value + 1 }),
           },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
@@ -1128,8 +1258,7 @@ describe("quark()", () => {
         { value: 0 },
         {
           actions: {
-            increment: (api) =>
-              void api.setState({ value: api.getState().value + 1 }),
+            increment: (api) => void api.set({ value: api.get().value + 1 }),
           },
           effect: (_, curr, set) => {
             if (curr.value % 2 !== 0) {
@@ -1157,9 +1286,9 @@ describe("quark()", () => {
         {
           actions: {
             increment: (api) =>
-              void api.setState({
-                ...api.getState(),
-                value: api.getState().value + 1,
+              void api.set({
+                ...api.get(),
+                value: api.get().value + 1,
               }),
           },
           effect: (prev, current, set) => {
@@ -1299,9 +1428,9 @@ describe("quark()", () => {
           {
             actions: {
               SetVal1: (api, v: number) =>
-                void api.setState({ ...api.getState(), value1: v }),
+                void api.set({ ...api.get(), value1: v }),
               SetVal2: (api, v: number) =>
-                void api.setState({ ...api.getState(), value2: v }),
+                void api.set({ ...api.get(), value2: v }),
             },
             selectors: {
               value1: (s) => s.value1,
@@ -1343,13 +1472,13 @@ describe("quark()", () => {
           {
             actions: {
               SetVal1: (api, v: string) =>
-                void api.setState({
-                  ...api.getState(),
+                void api.set({
+                  ...api.get(),
                   box1: { value: v },
                 }),
               SetVal2: (api, v: string) =>
-                void api.setState({
-                  ...api.getState(),
+                void api.set({
+                  ...api.get(),
                   box2: { value: v },
                 }),
             },
@@ -1392,9 +1521,9 @@ describe("quark()", () => {
           {
             actions: {
               SetVal1: (api, v: number) =>
-                void api.setState({ ...api.getState(), value1: v }),
+                void api.set({ ...api.get(), value1: v }),
               SetVal2: (api, v: number) =>
-                void api.setState({ ...api.getState(), value2: v }),
+                void api.set({ ...api.get(), value2: v }),
             },
             selectors: {
               boxed: composeSelectors(
@@ -1663,9 +1792,9 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure(api) {
-                yield { ...api.getState(), inProgress: true };
+                yield { ...api.get(), inProgress: true };
                 const newValue = await p.promise;
                 return { inProgress: false, value: newValue.value };
               },
@@ -1699,7 +1828,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield (current) => ({ ...current, inProgress: true });
                 const newValue = await p.promise;
@@ -1736,7 +1865,7 @@ describe("quark()", () => {
           { inProgress: false, value: 20 },
           {
             middlewares: [createImmerMiddleware()],
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield (draft) => {
                   draft.inProgress = true;
@@ -1780,7 +1909,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
                 const newValue = await p1.promise;
@@ -1836,7 +1965,7 @@ describe("quark()", () => {
         const q = quark(
           { inProgress: false, value: 2 },
           {
-            procedures: {
+            actions: {
               async *runProcedure() {
                 yield { inProgress: true, value: 0 };
                 const newValue = await p1.promise;
@@ -1844,11 +1973,9 @@ describe("quark()", () => {
                 const newValue2 = await p2.promise;
                 return { inProgress: false, value: newValue2.value };
               },
-            },
-            actions: {
               async fetchValue(api) {
                 await sleep(0);
-                api.setState({ value: 100, inProgress: false });
+                api.set({ value: 100, inProgress: false });
               },
             },
           },
@@ -1904,15 +2031,15 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+            promises.add(q.set(rndTResolve({ value: rndString() })));
           }
 
-          q.set(promises.generate(() => rndTResolve(expectedResult)));
+          promises.add(q.set(rndTResolve(expectedResult)));
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2068,15 +2195,19 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+            promises.add(
+              q.set(rndTResolve({ value: rndString() })),
+            );
           }
 
-          q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+          promises.add(
+            q.set(rndTResolve(expectedResult)),
+          );
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2170,15 +2301,17 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(promises.generate(() => rndTResolve({ value: rndString() })));
+            promises.add(
+              q.set(rndTResolve({ value: rndString() })),
+            );
           }
 
           q.set(() => expectedResult);
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2235,17 +2368,19 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+            promises.add(
+              q.set(() => rndTResolve({ value: rndString() })),
             );
           }
 
-          q.set(promises.generate(() => rndTResolve(expectedResult)));
+          promises.add(
+            q.set(rndTResolve(expectedResult)),
+          );
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2339,17 +2474,17 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+            promises.add(
+              q.set(() => rndTResolve({ value: rndString() })),
             );
           }
 
           q.set(expectedResult);
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2403,17 +2538,19 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+            promises.add(
+              q.set(() => rndTResolve({ value: rndString() })),
             );
           }
 
-          q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+          promises.add(
+            q.set(() => rndTResolve(expectedResult)),
+          );
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2507,17 +2644,17 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
-            q.set(() =>
-              promises.generate(() => rndTResolve({ value: rndString() }))
+            promises.add(
+              q.set(() => rndTResolve({ value: rndString() })),
             );
           }
 
           q.set(() => expectedResult);
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2574,27 +2711,37 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
             if (rndBool()) {
-              q.set(
-                promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.add(
+                q.set(
+                  rndTResolve({ value: rndString() }),
+                ),
               );
             } else {
-              q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.add(
+                q.set(
+                  rndTResolve(() => ({ value: rndString() })),
+                ),
               );
             }
           }
 
           if (rndBool()) {
-            q.set(promises.generate(() => rndTResolve(expectedResult)));
+            promises.add(
+              q.set(
+                rndTResolve(expectedResult),
+              ),
+            );
           } else {
-            q.set(() => promises.generate(() => rndTResolve(expectedResult)));
+            promises.add(
+              q.set(rndTResolve(() => expectedResult)),
+            );
           }
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2688,16 +2835,18 @@ describe("quark()", () => {
 
           const expectedResult = { value: "bar" };
 
-          const promises = testPromiseGenerator();
+          const promises = opTracker();
 
           for (const _ in array(batchSize)) {
             if (rndBool()) {
-              q.set(
-                promises.generate(() => rndTResolve({ value: rndString() })),
+              promises.add(
+                q.set(
+                  rndTResolve({ value: rndString() }),
+                ),
               );
             } else {
-              q.set(() =>
-                promises.generate(() => rndTResolve({ value: rndString() }))
+              promises.add(
+                q.set(() => rndTResolve({ value: rndString() })),
               );
             }
           }
@@ -2705,7 +2854,7 @@ describe("quark()", () => {
           if (rndBool()) q.set(expectedResult);
           else q.set(() => expectedResult);
 
-          await promises.waitForAll();
+          await promises.flush();
 
           expect(setSpy).toBeCalledTimes(batchSize + 1);
           expect(q.get()).toMatchObject(expectedResult);
@@ -2750,6 +2899,895 @@ describe("quark()", () => {
             () => runTestWithRandomPromiseResolveTime(16),
           );
         });
+      });
+    });
+  });
+
+  describe("queue mode", () => {
+    it("async updates are applied in the order the were dispatched", async () => {
+      const initState = {
+        order: [] as string[],
+      };
+      const q = quark(initState, {
+        mode: "queue",
+      });
+
+      const p1 = sleep(100).then(() => (state: typeof initState) => {
+        return ({
+          order: [...state.order, "first"],
+        });
+      });
+      const dispatch1 = q.set(p1);
+
+      const p2 = sleep(25).then(() => (state: typeof initState) => {
+        return ({
+          order: [...state.order, "second"],
+        });
+      });
+      const dispatch2 = q.set(p2);
+
+      const p3 = (state: typeof initState) => {
+        return ({
+          order: [...state.order, "third"],
+        });
+      };
+      const dispatch3 = q.set(p3);
+
+      const p4 = sleep(50).then(() => (state: typeof initState) => {
+        return ({
+          order: [...state.order, "fourth"],
+        });
+      });
+      const dispatch4 = q.set(p4);
+
+      await Promise.all([
+        dispatch1,
+        dispatch2,
+        dispatch3,
+        dispatch4,
+      ]);
+
+      expect(q.get().order).toEqual([
+        "first",
+        "second",
+        "third",
+        "fourth",
+      ]);
+    });
+
+    it("async actions are correctly queued", async () => {
+      const initState = {
+        order: [] as string[],
+      };
+
+      const q = quark(initState, {
+        mode: "queue",
+        actions: {
+          add(api, value: string) {
+            const newState = { order: [...api.get().order] };
+            newState.order.push(value);
+            api.set(newState);
+          },
+          async addAfter(api, after: number, value: string) {
+            const newState = { order: [...api.get().order] };
+            newState.order.push(value);
+            await sleep(after);
+            api.set(newState);
+          },
+        },
+      });
+
+      await Promise.all([
+        q.act.addAfter(120, "first"),
+        q.act.addAfter(80, "second"),
+        q.act.addAfter(40, "third"),
+        q.act.add("fourth"),
+        q.act.addAfter(100, "fifth"),
+        q.act.add("sixth"),
+        q.act.addAfter(20, "seventh"),
+      ]);
+
+      expect(q.get()).toEqual({
+        order: [
+          "first",
+          "second",
+          "third",
+          "fourth",
+          "fifth",
+          "sixth",
+          "seventh",
+        ],
+      });
+    });
+
+    it("async procedures are correctly queued", async () => {
+      const initState = {
+        order: [] as string[],
+      };
+
+      const q = quark(initState, {
+        mode: "queue",
+        actions: {
+          async *action1(api) {
+            yield s => ({
+              order: [...s.order, "action1:yield1"],
+            });
+
+            await sleep(20);
+
+            yield s => ({
+              order: [...s.order, "action1:yield2"],
+            });
+
+            await sleep(40);
+
+            yield s => ({
+              order: [...s.order, "action1:yield3"],
+            });
+
+            await sleep(60);
+
+            return s => ({
+              order: [...s.order, "action1:return"],
+            });
+          },
+          async *action2(api) {
+            await sleep(10);
+
+            yield s => ({
+              order: [...s.order, "action2:yield1"],
+            });
+
+            await sleep(30);
+
+            yield s => ({
+              order: [...s.order, "action2:yield2"],
+            });
+
+            await sleep(50);
+
+            yield s => ({
+              order: [...s.order, "action2:yield3"],
+            });
+
+            await sleep(70);
+
+            return s => ({
+              order: [...s.order, "action2:return"],
+            });
+          },
+        },
+      });
+
+      await Promise.all([
+        q.act.action1(),
+        q.act.action2(),
+      ]);
+
+      expect(q.get()).toEqual({
+        order: [
+          "action1:yield1",
+          "action1:yield2",
+          "action1:yield3",
+          "action1:return",
+          "action2:yield1",
+          "action2:yield2",
+          "action2:yield3",
+          "action2:return",
+        ],
+      });
+    });
+
+    it("set() correctly updates the state in queue mode", async () => {
+      const q = quark({ value: 0 }, { mode: "queue" });
+
+      expect(q.get().value).toBe(0);
+
+      await act(async () => {
+        q.set({ value: 5 });
+      });
+
+      expect(q.get().value).toBe(5);
+    });
+
+    it("set() correctly handles asynchronous updates in queue mode", async () => {
+      const q = quark({ value: 0 }, { mode: "queue" });
+
+      const promiseA = q.set(Promise.resolve({ value: 1 }));
+      const promiseB = q.set(Promise.resolve({ value: 2 }));
+
+      const setterBPromise = q.set(async () => {
+        await sleep(10);
+        return { value: 3 };
+      });
+
+      const setterAPromise = q.set(async () => {
+        await sleep(5);
+        return { value: 4 };
+      });
+
+      const promiseC = q.set(Promise.resolve({ value: 5 }));
+      const promiseD = q.set(Promise.resolve({ value: 6 }));
+
+      const setterCPromise = q.set(async () => {
+        await sleep(15);
+        return { value: 7 };
+      });
+
+      const setterDPromise = q.set(async () => {
+        await sleep(1);
+        return { value: 8 };
+      });
+
+      await Promise.all([
+        promiseA,
+        promiseB,
+        setterBPromise,
+        setterAPromise,
+        promiseC,
+        promiseD,
+        setterCPromise,
+        setterDPromise,
+      ]);
+
+      expect(q.get().value).toBe(8);
+    });
+
+    it("correctly executes custom actions in queue mode", async () => {
+      const q = quark(
+        { value: 0 },
+        {
+          mode: "queue",
+          actions: {
+            increment: (api) => {
+              const newValue = api.get().value + 1;
+              api.set({ value: newValue });
+            },
+            double: (api) => {
+              const newValue = api.get().value * 2;
+              api.set({ value: newValue });
+            },
+          },
+        },
+      );
+
+      expect(q.get().value).toBe(0);
+
+      await act(async () => {
+        q.act.increment();
+      });
+
+      expect(q.get().value).toBe(1);
+
+      await act(async () => {
+        q.act.double();
+      });
+
+      expect(q.get().value).toBe(2);
+    });
+
+    it("correctly handles selectors in queue mode", async () => {
+      type Q = { value1: number; value2: number };
+
+      const q = quark(
+        { value1: 0, value2: 10 } satisfies Q,
+        {
+          mode: "queue",
+          actions: {
+            SetVal1: (api, v: number) =>
+              void api.set({ ...api.get(), value1: v }),
+            SetVal2: (api, v: number) =>
+              void api.set({ ...api.get(), value2: v }),
+          },
+          selectors: {
+            selectV1: (s) => s.value1,
+            selectV2: (s) => s.value2,
+            selectSum: (s) => s.value1 + s.value2,
+          },
+        },
+      );
+
+      expect(q.select.selectV1()).toBe(0);
+      expect(q.select.selectV2()).toBe(10);
+      expect(q.select.selectSum()).toBe(10);
+    });
+
+    it("middleware correctly intercepts the values set in queue mode", async () => {
+      const mapMiddleware = middleware<{ value: number }>((ctx) => {
+        const { action, resume } = ctx;
+        if (typeof action === "object") {
+          // @ts-ignore
+          resume({ ...action, value: action.value * 2 });
+        }
+
+        return action;
+      });
+
+      const q = quark({ value: 1 }, {
+        mode: "queue",
+        middlewares: [mapMiddleware],
+      });
+
+      expect(q.get().value).toBe(2);
+
+      await act(async () => {
+        q.set({ value: 5 });
+      });
+
+      expect(q.get().value).toBe(10);
+
+      await act(async () => {
+        q.set((state) => ({ value: state.value + 3 }));
+      });
+
+      expect(q.get().value).toBe(26);
+    });
+
+    describe("correctly executes side effect in queue mode", () => {
+      type Q = { value: number; derivedValue: string };
+
+      const increment = (api: ActionApi<Q>) => {
+        api.set({ value: api.get().value + 1, derivedValue: "" });
+      };
+
+      const deriveValue: QuarkCustomEffect<Q> = (prevState, current, set) => {
+        set({ value: current.value, derivedValue: `${current.value}` });
+      };
+
+      it("when set() is called in queue mode", async () => {
+        const q = quark(
+          { value: 0, derivedValue: "0" } satisfies Q,
+          {
+            mode: "queue",
+            actions: {
+              increment,
+            },
+            effect: deriveValue,
+          },
+        );
+
+        expect(q.get()).toEqual({ value: 0, derivedValue: "0" });
+
+        await act(async () => {
+          q.set({ value: 1, derivedValue: "0" });
+        });
+
+        expect(q.get()).toEqual({ value: 1, derivedValue: "1" });
+      });
+
+      it("when custom action is called in queue mode", async () => {
+        const q = quark(
+          { value: 0, derivedValue: "0" } satisfies Q,
+          {
+            mode: "queue",
+            actions: {
+              increment,
+            },
+            effect: deriveValue,
+          },
+        );
+
+        expect(q.get()).toEqual({ value: 0, derivedValue: "0" });
+
+        await act(async () => {
+          q.act.increment();
+        });
+
+        expect(q.get()).toEqual({ value: 1, derivedValue: "1" });
+      });
+
+      it("with nested effects in queue mode", async () => {
+        type Q2 = {
+          value: number;
+          derivedValue1: string;
+          derivedValue2: string;
+          derivedValue3: string;
+        };
+
+        const increment = (api: ActionApi<Q2>) => {
+          api.set({
+            value: api.get().value + 1,
+            derivedValue1: "",
+            derivedValue2: "",
+            derivedValue3: "",
+          });
+        };
+
+        const deriveValue: QuarkCustomEffect<Q2> = (
+          prevState,
+          current,
+          set,
+        ) => {
+          set({
+            value: current.value,
+            derivedValue1: `${current.value}`,
+            derivedValue2: `${2 * current.value}`,
+            derivedValue3: `${3 * current.value}`,
+          });
+        };
+
+        const q = quark(
+          {
+            value: 0,
+            derivedValue1: "0",
+            derivedValue2: "0",
+            derivedValue3: "0",
+          } satisfies Q2,
+          {
+            mode: "queue",
+            actions: {
+              increment,
+            },
+            effect: deriveValue,
+          },
+        );
+
+        expect(q.get()).toEqual({
+          value: 0,
+          derivedValue1: "0",
+          derivedValue2: "0",
+          derivedValue3: "0",
+        });
+
+        await act(async () => {
+          q.set({
+            value: 1,
+            derivedValue1: "0",
+            derivedValue2: "0",
+            derivedValue3: "0",
+          });
+        });
+
+        expect(q.get().value).toBe(1);
+        expect(q.get().derivedValue1).toBe("1");
+        expect(q.get().derivedValue2).toBe("2");
+        expect(q.get().derivedValue3).toBe("3");
+
+        await act(async () => {
+          q.set({
+            value: 3,
+            derivedValue1: "",
+            derivedValue2: "",
+            derivedValue3: "",
+          });
+        });
+
+        expect(q.get().value).toBe(3);
+        expect(q.get().derivedValue1).toBe("3");
+        expect(q.get().derivedValue2).toBe("6");
+        expect(q.get().derivedValue3).toBe("9");
+      });
+    });
+
+    describe("correctly handles manual subscriptions in queue mode", () => {
+      it("correctly calls the callback with the current state in queue mode", async () => {
+        const q = quark({ value: 0 }, { mode: "queue" });
+
+        const onSubOne = vitest.fn();
+        const onSubTwo = vitest.fn();
+
+        const subOne = q.subscribe(s => onSubOne(s));
+        const subTwo = q.subscribe(s => onSubTwo(s));
+
+        q.set({ value: 1 });
+
+        await sleep(0);
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubOne).toHaveBeenLastCalledWith({ value: 1 });
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenLastCalledWith({ value: 1 });
+
+        subOne.cancel();
+        subTwo.cancel();
+      });
+
+      it("correctly cancels the subscription in queue mode", async () => {
+        const q = quark({ value: 0 }, { mode: "queue" });
+
+        const onSubOne = vitest.fn();
+        const onSubTwo = vitest.fn();
+
+        const subOne = q.subscribe(s => onSubOne(s));
+        const subTwo = q.subscribe(s => onSubTwo(s));
+
+        await act(async () => {
+          q.set({ value: 1 });
+        });
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenCalledTimes(1);
+
+        subOne.cancel();
+
+        await act(async () => {
+          q.set({ value: 2 });
+        });
+
+        expect(onSubOne).toHaveBeenCalledTimes(1);
+        expect(onSubTwo).toHaveBeenCalledTimes(2);
+
+        subTwo.cancel();
+      });
+    });
+
+    describe("custom actions in queue mode", () => {
+      it("applies updates in order even if a newer update has been dispatched in queue mode", async () => {
+        const q = quark(
+          { value: 0 },
+          {
+            mode: "queue",
+            actions: {
+              increment: (api) => void api.set({ value: api.get().value + 1 }),
+              increment2: (api) => void api.set({ value: api.get().value + 2 }),
+            },
+          },
+        );
+
+        expect(q.get().value).toBe(0);
+
+        await act(async () => {
+          q.act.increment();
+        });
+
+        expect(q.get().value).toBe(1);
+
+        await act(async () => {
+          q.act.increment2();
+        });
+
+        expect(q.get().value).toBe(3);
+      });
+
+      describe("dispatchNew() in queue mode", () => {
+        it("behaves as if a separate action was dispatched from outside in queue mode", async () => {
+          const q = quark(
+            { value: 0 },
+            {
+              mode: "queue",
+              actions: {
+                increment: (api) => {
+                  const newValue = api.get().value + 1;
+                  api.set({ value: newValue });
+                },
+                increment2: (api) => {
+                  const newValue = api.get().value + 2;
+                  api.set({ value: newValue });
+                },
+                increment3: (api) => {
+                  const newValue = api.get().value + 3;
+                  api.dispatchNew((api2) => void api2.set({ value: newValue }));
+                },
+              },
+            },
+          );
+
+          expect(q.get().value).toBe(0);
+
+          await act(async () => {
+            q.act.increment();
+          });
+
+          expect(q.get().value).toBe(1);
+
+          await act(async () => {
+            q.act.increment2();
+          });
+
+          expect(q.get().value).toBe(3);
+
+          q.act.increment3();
+          q.set({ value: q.get().value + 10 });
+
+          expect(q.get().value).toBe(16);
+        });
+
+        it("can be given other action from `this` in queue mode", async () => {
+          const q = quark(
+            { value: 0 },
+            {
+              mode: "queue",
+              actions: {
+                increment(api) {
+                  void api.set({ value: api.get().value + 1 });
+                },
+                increment2(api) {
+                  void api.set({ value: api.get().value + 2 });
+                },
+                dispatchIncrement(api) {
+                  api.dispatchNew(this.increment);
+                },
+              },
+            },
+          );
+
+          expect(q.get().value).toBe(0);
+
+          await act(async () => {
+            q.act.dispatchIncrement();
+          });
+
+          expect(q.get().value).toBe(1);
+        });
+      });
+
+      describe("unsafeSet() in queue mode", () => {
+        it("should update the state even if the current action was cancelled in queue mode", async () => {
+          const p = controlledPromise();
+
+          const q = quark(
+            { value: 2 },
+            {
+              mode: "queue",
+              actions: {
+                increment: async (api) => {
+                  await p.promise;
+                  api.set({
+                    value: api.get().value + 1,
+                  });
+                },
+              },
+            },
+          );
+
+          q.act.increment();
+
+          expect(q.get()).toEqual({ value: 2 });
+
+          q.unsafeSet({ value: 10 });
+
+          expect(q.get()).toEqual({ value: 10 });
+
+          p.resolve();
+          await sleep(0);
+
+          expect(q.get()).toEqual({ value: 11 });
+        });
+      });
+    });
+
+    describe("custom selectors in queue mode", () => {
+      it("correctly handle arguments in queue mode", async () => {
+        const q = quark(
+          { value1: 3, value2: 10 },
+          {
+            mode: "queue",
+            actions: {
+              SetVal1: (api, v: number) =>
+                void api.set({ ...api.get(), value1: v }),
+              SetVal2: (api, v: number) =>
+                void api.set({ ...api.get(), value2: v }),
+            },
+            selectors: {
+              v: (s) => s,
+              multipliedBy: (s, m: number) => s.value1 * m,
+            },
+          },
+        );
+
+        const v = q.select.v();
+        expect(v).toEqual({ value1: 3, value2: 10 });
+
+        const multipliedBy = q.select.multipliedBy(5);
+        expect(multipliedBy).toBe(15);
+      });
+    });
+
+    describe("procedures in queue mode", () => {
+      it("correctly update the state with yielded values in queue mode", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            mode: "queue",
+            actions: {
+              async *runProcedure(api) {
+                yield { ...api.get(), inProgress: true };
+                const newValue = await p.promise;
+                return { inProgress: false, value: newValue.value };
+              },
+            },
+          },
+        );
+
+        expect(q.get()).toEqual({ inProgress: false, value: 2 });
+
+        await act(async () => {
+          q.act.runProcedure();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 2 });
+
+        await act(async () => {
+          p.resolve({ value: 5 });
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: false, value: 5 });
+      });
+
+      it("correctly update the state with yielded fn setters in queue mode", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            mode: "queue",
+            actions: {
+              async *runProcedure() {
+                yield (current) => ({ ...current, inProgress: true });
+                const newValue = await p.promise;
+                return () => ({ inProgress: false, value: newValue.value });
+              },
+            },
+          },
+        );
+
+        expect(q.get()).toEqual({ inProgress: false, value: 2 });
+
+        await act(async () => {
+          q.act.runProcedure();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 2 });
+
+        await act(async () => {
+          p.resolve({ value: 5 });
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: false, value: 5 });
+      });
+
+      it("correctly update the state with yielded fn setters and immer in queue mode", async () => {
+        const p = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 20 },
+          {
+            mode: "queue",
+            middlewares: [createImmerMiddleware()],
+            actions: {
+              async *runProcedure() {
+                yield (draft) => {
+                  draft.inProgress = true;
+                  return draft;
+                };
+                const newValue = await p.promise;
+                return (draft) => {
+                  draft.inProgress = false;
+                  draft.value = newValue.value;
+                  return draft;
+                };
+              },
+            },
+          },
+        );
+
+        expect(q.get()).toEqual({ inProgress: false, value: 20 });
+
+        await act(async () => {
+          q.act.runProcedure();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 20 });
+
+        await act(async () => {
+          p.resolve({ value: 1234 });
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: false, value: 1234 });
+      });
+
+      it("applies all yielded values in order in queue mode when another state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            mode: "queue",
+            actions: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+            },
+          },
+        );
+
+        expect(q.get()).toEqual({ inProgress: false, value: 2 });
+
+        await act(async () => {
+          q.act.runProcedure();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 0 });
+
+        await act(async () => {
+          p1.resolve({ value: 10 });
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 10 });
+
+        await act(async () => {
+          q.set({ inProgress: false, value: 15 });
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 10 });
+
+        await act(async () => {
+          p2.resolve({ value: 20 });
+          await sleep(0);
+        });
+
+        expect(q.get().value).toBe(15);
+      });
+
+      it("applies all yielded values in order in queue mode when an async state update happens", async () => {
+        const p1 = controlledPromise<{ value: number }>();
+        const p2 = controlledPromise<{ value: number }>();
+
+        const q = quark(
+          { inProgress: false, value: 2 },
+          {
+            mode: "queue",
+            actions: {
+              async *runProcedure() {
+                yield { inProgress: true, value: 0 };
+                const newValue = await p1.promise;
+                yield { inProgress: true, value: newValue.value };
+                const newValue2 = await p2.promise;
+                return { inProgress: false, value: newValue2.value };
+              },
+              async fetchValue(api) {
+                await sleep(0);
+                api.set({ value: 100, inProgress: false });
+              },
+            },
+          },
+        );
+
+        expect(q.get()).toEqual({ inProgress: false, value: 2 });
+
+        await act(async () => {
+          q.act.runProcedure();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 0 });
+
+        await act(async () => {
+          q.act.fetchValue();
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 0 });
+
+        await act(async () => {
+          p1.resolve({ value: 10 });
+          await sleep(0);
+        });
+
+        expect(q.get()).toEqual({ inProgress: true, value: 10 });
+
+        await act(async () => {
+          p2.resolve({ value: 20 });
+          await sleep(0);
+        });
+
+        // In queue mode, all updates are applied in order
+        expect(q.get()).toEqual({ inProgress: false, value: 100 });
       });
     });
   });

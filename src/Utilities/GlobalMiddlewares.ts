@@ -1,9 +1,9 @@
 import { QuarkMiddleware } from "../Types/Middlewares";
 
-const GLOBAL_MIDDLEWARES: QuarkMiddleware<any, any>[] = [];
+const GLOBAL_MIDDLEWARES: QuarkMiddleware<any>[] = [];
 
 export const addGlobalQuarkMiddleware = (
-  middleware: QuarkMiddleware<any, any>,
+  middleware: QuarkMiddleware<any>,
   at: "start" | "end" = "end",
 ) => {
   switch (at) {
@@ -17,7 +17,7 @@ export const addGlobalQuarkMiddleware = (
 };
 
 export const setGlobalQuarkMiddlewares = (
-  middlewares: QuarkMiddleware<any, any>[],
+  middlewares: QuarkMiddleware<any>[],
 ) => {
   GLOBAL_MIDDLEWARES.splice(0, GLOBAL_MIDDLEWARES.length, ...middlewares);
 };

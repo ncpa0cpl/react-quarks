@@ -16,7 +16,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "source": "Async-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000100,
-      "updateID": "6",
+      "updateID": "5",
     },
     {
       "dispatchedUpdate": {
@@ -31,7 +31,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "source": "Function-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000200,
-      "updateID": "7",
+      "updateID": "6",
     },
     {
       "dispatchedUpdate": {
@@ -46,7 +46,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "source": "Function-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000300,
-      "updateID": "7",
+      "updateID": "6",
     },
     {
       "dispatchedUpdate": {
@@ -61,7 +61,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "source": "Async-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000400,
-      "updateID": "6",
+      "updateID": "5",
     },
     {
       "dispatchedUpdate": {
@@ -76,7 +76,7 @@ exports[`DebugHistoryMiddleware > correctly handles async updates 1`] = `
       "source": "Function-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000500,
-      "updateID": "7",
+      "updateID": "6",
     },
   ],
 }
@@ -105,7 +105,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000100,
-      "updateID": "9",
+      "updateID": "8",
     },
     {
       "dispatchedUpdate": {
@@ -123,7 +123,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000200,
-      "updateID": "11",
+      "updateID": "9",
     },
     {
       "dispatchedUpdate": {
@@ -141,7 +141,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000300,
-      "updateID": "11",
+      "updateID": "9",
     },
     {
       "dispatchedUpdate": {
@@ -162,7 +162,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000400,
-      "updateID": "11",
+      "updateID": "9",
     },
     {
       "dispatchedUpdate": {
@@ -180,7 +180,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000500,
-      "updateID": "11",
+      "updateID": "9",
     },
     {
       "dispatchedUpdate": {
@@ -201,7 +201,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000600,
-      "updateID": "11",
+      "updateID": "9",
     },
     {
       "dispatchedUpdate": {
@@ -222,7 +222,7 @@ exports[`DebugHistoryMiddleware > correctly handles procedures 1`] = `
       "source": "Async-Generator-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000700,
-      "updateID": "11",
+      "updateID": "9",
     },
   ],
 }
@@ -244,7 +244,7 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
       "source": "Sync-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000100,
-      "updateID": "3",
+      "updateID": "2",
     },
     {
       "dispatchedUpdate": {
@@ -259,7 +259,7 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
       "source": "Function-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000200,
-      "updateID": "4",
+      "updateID": "3",
     },
     {
       "dispatchedUpdate": {
@@ -274,7 +274,7 @@ exports[`DebugHistoryMiddleware > correctly saves updates to the history tracker
       "source": "Function-Dispatch",
       "stackTrace": undefined,
       "time": 1600000000300,
-      "updateID": "4",
+      "updateID": "3",
     },
   ],
 }

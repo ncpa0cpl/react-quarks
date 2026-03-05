@@ -1,6 +1,6 @@
 import type { QuarkContext } from "..";
 
-export function generateSubscribeFunction<T, ET>(self: QuarkContext<T, ET>) {
+export function generateSubscribeFunction<T>(self: QuarkContext<T>) {
   const subscribe = (
     onStateChange: (state: T, cancelSubscription: () => void) => void,
   ) => {

@@ -24,7 +24,8 @@ export function sleep(ms: number) {
  * resolves the provided value.
  */
 export function rndTResolve<T>(value: T) {
-  return sleep(Math.round(Math.random() * 50)).then(() => value);
+  const t = Math.round(Math.random() * 50);
+  return sleep(t).then(() => value);
 }
 
 export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
@@ -36,7 +37,7 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
   subscribers?: Set<QuarkSubscriber<T>>;
 }): QuarkContext<T, ET> {
   const {
-    configOptions = { allowRaceConditions: false },
+    configOptions = { mode: params?.configOptions?.mode ?? "cancel" },
     middlewares = [],
     stateComparator = () => true,
     subscribers = new Set<QuarkSubscriber<T>>(),
@@ -51,6 +52,9 @@ export function getTestQuarkContext<A extends any[], ET, T = string>(params?: {
     middlewares,
     subscribers,
     sideEffect,
+    syncStoreSubscribe() {
+      return () => false;
+    },
   };
 }
 
@@ -67,6 +71,18 @@ export function rndString(length = 10) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
+}
+
+export function opTracker() {
+  const promises: Array<Promise<unknown>> = [];
+  return {
+    add(p: Promise<any>) {
+      promises.push(p);
+    },
+    flush() {
+      return Promise.all(promises);
+    },
+  };
 }
 
 export const testPromiseGenerator = () => {

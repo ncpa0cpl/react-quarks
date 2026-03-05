@@ -8,8 +8,8 @@ import type { SetStateAction } from "..";
  *
  * @internal
  */
-export function isGenerator<T>(
+export function isDispatchFn<T>(
   v: any,
-): v is (currentState: T) => SetStateAction<T, never> {
+): v is (currentState: T) => SetStateAction<T> {
   return typeof v === "function";
 }

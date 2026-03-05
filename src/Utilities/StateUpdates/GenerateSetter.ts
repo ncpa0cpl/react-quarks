@@ -1,17 +1,20 @@
-import { InitiateActionFn } from "../../Types/Actions";
-import {
-  InitiateProcedureFn,
-  ProcedureApi,
-  ProcedureStateSetter,
-} from "../../Types/Procedures";
+import { isDraft, produce } from "immer";
+import { ActionApi, InitiateActionFn, QAction } from "../../Types/Actions";
+import { ProcedureGenerator } from "../../Types/Procedures";
 import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { CancelUpdate } from "../CancelUpdate";
 import { applyMiddlewares } from "./ApplyMiddlewares";
 import { AtomicUpdater, createUpdateController } from "./AsyncUpdates";
 import { createEventsDebouncer as createEventDebouncer } from "./EventsDispatcher";
+import { Immediate } from "./Immediate";
 import { processStateUpdate } from "./ProcessStateUpdate";
 import { resolveUpdateType } from "./ResolveUpdateType";
-import { unpackStateSetter, unpackStateSetterSync } from "./UnpackStateSetter";
+import { unpackAction, unpackStateSetterSync } from "./UnpackAction";
+
+const isGeneratorFunction = <A extends any[]>(
+  v: (...args: A) => unknown,
+): v is (...args: A) => AsyncGenerator =>
+  Object.prototype.toString.call(v) === "[object AsyncGeneratorFunction]";
 
 /**
  * Generates a function that allows for updating the state of the Quark.
@@ -24,24 +27,34 @@ import { unpackStateSetter, unpackStateSetterSync } from "./UnpackStateSetter";
  *   to the new value.
  * @internal
  */
-export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
+export function generateSetter<T>(self: QuarkContext<T>) {
   const { debounceEvent } = createEventDebouncer();
-  const updateController = createUpdateController(self, (action) => {
-    const previousState = self.value;
-    self.value = action;
+  const updateController = createUpdateController<T>(
+    self.configOptions.mode,
+    (action: T) => {
+      const previousState = self.value;
+      self.value = action;
 
-    return processStateUpdate({
-      self,
-      previousState,
-      applyMiddlewaresAndUpdateState: set,
-      debounceEvent,
-    });
-  });
+      return processStateUpdate({
+        self,
+        previousState,
+        applyMiddlewaresAndUpdateState: set,
+        debounceEvent,
+      });
+    },
+  );
+
+  const onErr = (e: unknown) => {
+    if (CancelUpdate.isCancel(e)) {
+      return;
+    }
+    throw e;
+  };
 
   const setVia = (
-    action: SetStateAction<T, ET>,
+    action: SetStateAction<T>,
     updater: AtomicUpdater<T>,
-  ): void | Promise<void> => {
+  ) => {
     const type = resolveUpdateType(action);
     return applyMiddlewares(
       self,
@@ -49,8 +62,8 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
       type,
       updater,
       (action2) =>
-        unpackStateSetter(self, updater, action2).then((s) => {
-          return updater.update(s);
+        unpackAction(self, updater, action2, (s) => {
+          return updater.update(s!);
         }),
     );
   };
@@ -60,19 +73,46 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
    * argument the new state value, a generator function or a Promise resolving
    * to the new value.
    */
-  const set = (action: SetStateAction<T, ET>): void | Promise<void> => {
+  const set = (action: SetStateAction<T>) => {
     return updateController.atomicUpdate(updater => {
-      return after(() => setVia(action, updater), () => updater.complete());
+      const result = setVia(action, updater)
+        .catch(onErr)
+        .finally(() => {
+          updater.complete();
+        });
+
+      if (result instanceof Immediate) {
+        return Immediate.unpack(result);
+      }
+
+      return result;
     });
   };
 
-  const bareboneSet = (action: SetStateAction<T, ET>) => {
-    return updateController.atomicUpdate(updater => {
-      return unpackStateSetter(self, updater, action).then((newState) => {
-        if (updater.isCanceled) return;
-        self.value = newState;
-        updater.complete();
+  /**
+   * A method for updating the Quark state, this method can take as it's
+   * argument the new state value, a generator function or a Promise resolving
+   * to the new value.
+   */
+  const assign = (...args: [Partial<T>] | [(v: T) => any, any]) => {
+    if (args.length === 2) {
+      const [selector, patch] = args;
+      return set((state) => {
+        if (isDraft(state)) {
+          const s = selector(state);
+          return Object.assign(s, patch);
+        }
+        const newValue = produce(state, draft => {
+          const s = selector(draft as T);
+          Object.assign(s, patch);
+        });
+        return newValue;
       });
+    }
+
+    const [patch] = args;
+    return set((state) => {
+      return Object.assign(state as object, patch) as T;
     });
   };
 
@@ -83,117 +123,191 @@ export function generateSetter<T, ET>(self: QuarkContext<T, ET>) {
         action,
         resolveUpdateType(action),
         updater,
-        (action2) =>
-          unpackStateSetterSync(self, updater, action2).then((s) => {
-            updater.update(s);
+        (action2) => {
+          const result = unpackStateSetterSync(self, updater, action2, (s) => {
+            updater.update(s!);
+          }).finally(() => {
             updater.complete();
-          }),
+          });
+
+          if (result instanceof Immediate) {
+            return Immediate.unpack(result);
+          }
+
+          return result;
+        },
       );
     });
   };
 
-  const initiateAction: InitiateActionFn<T, any> = (action) => {
+  const initiateProcedure = async (
+    updater: AtomicUpdater<T>,
+    action: QAction<T>,
+    args?: any[],
+  ) => {
+    const api: ActionApi<T> = {
+      get() {
+        return self.value;
+      },
+      set(t) {
+        return () => t;
+      },
+      assign(...args: any[]) {
+        if (args.length === 2) {
+          const [selector, patch] = args as [(s: any) => any, object];
+          return (state: T & object) => {
+            return produce(state, draft => {
+              const s = selector(draft);
+              Object.assign(s, patch);
+            });
+          };
+        }
+
+        const [patch] = args as [object];
+        return (state: T & object) => {
+          return Object.assign(state, patch);
+        };
+      },
+      unsafeSet(state) {
+        return unsafeSet(state);
+      },
+      dispatchNew(
+        action: (api: ActionApi<T>, ...args: any[]) => any,
+        ...args: any[]
+      ) {
+        return initiateAction(action, args) as any;
+      },
+      isCanceled() {
+        return updater.isCanceled;
+      },
+    };
+
+    return applyMiddlewares(
+      self,
+      action,
+      "async-generator",
+      updater,
+      async (action) => {
+        try {
+          const generator =
+            (args ? action(api, ...args) : action(api)) as ProcedureGenerator<
+              T
+            >;
+          let nextUp: IteratorResult<
+            SetStateAction<T>,
+            SetStateAction<T>
+          >;
+          do {
+            if (updater.isCanceled) break;
+
+            nextUp = await generator.next(self.value);
+            const v = nextUp.value;
+
+            const type = resolveUpdateType(v);
+            applyMiddlewares(
+              self,
+              v,
+              type,
+              updater,
+              (action) =>
+                unpackStateSetterSync(self, updater, action, (newState) => {
+                  updater.update(newState!);
+                }),
+            );
+          } while (!nextUp.done);
+        } catch (err) {
+          if (CancelUpdate.isCancel(err)) {
+            return;
+          }
+          throw err;
+        } finally {
+          updater.complete();
+        }
+      },
+    );
+  };
+
+  const initiateAction: InitiateActionFn<T> = (action, args?: any[]) => {
     return updateController.atomicUpdate(updater => {
       return after(() => {
-        const pending: Promise<any>[] = [];
+        if (isGeneratorFunction(action)) {
+          return initiateProcedure(updater, action, args);
+        } else {
+          const pending: Promise<any>[] = [];
 
-        const result = action({
-          getState() {
-            return self.value;
-          },
-          setState(action) {
+          const actionSet = (action: SetStateAction<T>) => {
             const r = setVia(action, updater);
             if (r instanceof Promise) {
               pending.push(r);
+            } else if (r instanceof Immediate) {
+              return Immediate.unpack(r);
             }
             return r;
-          },
-          unsafeSet(state) {
-            return unsafeSet(state);
-          },
-          dispatchNew(action) {
-            return initiateAction(action) as any;
-          },
-          isCanceled() {
-            return updater.isCanceled;
-          },
-        });
+          };
 
-        if (pending.length > 0) {
-          return Promise.all(pending).then(() => result);
-        }
+          const api: ActionApi<T> = {
+            get() {
+              return self.value;
+            },
+            set: actionSet,
+            assign(...args: any) {
+              if (args.length === 2) {
+                const [selector, patch] = args as [(s: any) => any, object];
 
-        return result;
-      }, () => updater.complete());
-    });
-  };
+                return actionSet(current => {
+                  if (isDraft(current)) {
+                    const s = selector(current);
+                    return Object.assign(s, patch);
+                  }
 
-  const initiateProcedure: InitiateProcedureFn<T> = async (procedure) => {
-    return updateController.atomicUpdate(updater => {
-      const procedureApi: ProcedureApi<T> = {
-        getState() {
-          return self.value;
-        },
-        unsafeSet(state) {
-          return unsafeSet(state);
-        },
-        isCanceled() {
-          return updater.isCanceled;
-        },
-      };
+                  const newValue = produce(current, draft => {
+                    const s = selector(draft);
+                    Object.assign(s, patch);
+                  });
+                  return newValue;
+                });
+              }
 
-      return applyMiddlewares(
-        self,
-        procedure,
-        "async-generator",
-        updater,
-        async (p) => {
-          try {
-            const generator = p(procedureApi);
-            let nextUp: IteratorResult<
-              ProcedureStateSetter<T>,
-              ProcedureStateSetter<T>
-            >;
-            do {
-              if (updater.isCanceled) break;
+              const [patch] = args as [object];
+              return actionSet((current) => {
+                const newValue = Object.assign(current as any, patch);
+                return newValue;
+              });
+            },
+            unsafeSet(state) {
+              return unsafeSet(state);
+            },
+            dispatchNew(
+              action: (api: ActionApi<T>, ...args: any[]) => any,
+              ...args: any[]
+            ) {
+              return initiateAction(action, args) as any;
+            },
+            isCanceled() {
+              return updater.isCanceled;
+            },
+          };
 
-              nextUp = await generator.next(self.value);
-              const v = nextUp.value;
+          const result = (args ? action(api, ...args) : action(api)) as
+            | T
+            | Promise<T>;
 
-              const type = resolveUpdateType(v);
-              applyMiddlewares(
-                self,
-                v,
-                type,
-                updater,
-                (action) =>
-                  unpackStateSetterSync(self, updater, action).then(
-                    (newState) => {
-                      updater.update(newState);
-                    },
-                  ),
-              );
-            } while (!nextUp.done);
-          } catch (err) {
-            if (CancelUpdate.isCancel(err)) {
-              return;
-            }
-            throw err;
-          } finally {
-            updater.complete();
+          if (pending.length > 0) {
+            return Promise.all(pending).then(() => result);
           }
-        },
-      );
+
+          return result;
+        }
+      }, () => updater.complete());
     });
   };
 
   return {
     set,
+    assign,
     unsafeSet,
-    bareboneSet,
     initiateAction,
-    initiateProcedure,
-    updateController: updateController,
+    updateController,
   };
 }
 
@@ -204,7 +318,9 @@ function after<T>(fn: () => T, doAfter: () => void): T {
     const result = fn();
     if (result instanceof Promise) {
       isAsync = true;
-      result.finally(doAfter) as any;
+      result
+        .finally(doAfter)
+        .catch(() => {});
     }
     return result;
   } finally {

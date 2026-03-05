@@ -1,6 +1,13 @@
+import { SetStateAction } from "./Quark";
 import { IsLiteral, KeysOf } from "./Utilities";
 
 export type ProcedureStateSetter<T> = T | ((draft: T) => T);
+
+export type ProcedureGenerator<T> = AsyncGenerator<
+  SetStateAction<T>,
+  SetStateAction<T>,
+  T
+>;
 
 export type ProcedureApi<T> = {
   getState(): T;
@@ -8,15 +15,10 @@ export type ProcedureApi<T> = {
   isCanceled(): boolean;
 };
 
-export type QuarkCustomProcedure<T, ARGS extends any[]> = (
+export type QProcedure<T> = (
   initState: ProcedureApi<T>,
-  ...args: ARGS
-) => AsyncGenerator<ProcedureStateSetter<T>, ProcedureStateSetter<T>, T>;
-
-export type QuarkProcedures<T, ARGS extends any[]> = Record<
-  string,
-  QuarkCustomProcedure<T, ARGS>
->;
+  ...args: any[]
+) => ProcedureGenerator<T>;
 
 export type ParseSingleProcedure<A> = A extends (
   arg_0: any,
@@ -34,5 +36,5 @@ export type ParseProcedures<A> = A extends object
 export type InitiateProcedureFn<T> = (
   p: (
     api: ProcedureApi<T>,
-  ) => AsyncGenerator<ProcedureStateSetter<T>, ProcedureStateSetter<T>, T>,
+  ) => AsyncGenerator<SetStateAction<T>, SetStateAction<T>, T>,
 ) => void;

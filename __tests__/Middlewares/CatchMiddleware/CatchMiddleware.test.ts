@@ -124,7 +124,7 @@ describe("CatchMiddleware", () => {
 
         const q = quark("A", {
           middlewares: [catchMiddleware],
-          procedures: {
+          actions: {
             async *procedureA(initState) {
               yield "B";
               await p1.promise;
@@ -233,24 +233,26 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
+        const err = new Error("foo");
+
         expect(() =>
           q.set(() => {
-            throw "foo";
+            throw err;
           })
-        ).toThrow("foo");
+        ).toThrow(err);
 
         expect(onCatchMock).toBeCalledTimes(0);
       });
       it("for procedures", async () => {
         const q = quark("", {
-          procedures: {
+          actions: {
             async *procedureA() {
-              throw "bar";
+              throw new Error("bar");
             },
           },
         });
 
-        await expect(q.act.procedureA()).rejects.toEqual("bar");
+        await expect(q.act.procedureA()).rejects.toEqual(new Error("bar"));
 
         expect(q.get()).toEqual("");
       });
@@ -313,7 +315,7 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(0);
 
         await expect(
-          q.set(() => Promise.reject("bar"))
+          q.set(() => Promise.reject("bar")),
         ).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
@@ -323,7 +325,7 @@ describe("CatchMiddleware", () => {
       it("for async procedures", async () => {
         const q = quark("", {
           middlewares: [catchMiddleware],
-          procedures: {
+          actions: {
             async *procedureA() {
               throw "baz";
             },
@@ -343,7 +345,7 @@ describe("CatchMiddleware", () => {
 
         const q2 = quark("", {
           middlewares: [catchMiddleware],
-          procedures: {
+          actions: {
             async *procedureB() {
               yield "A";
               await p1.promise;
@@ -408,7 +410,7 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(0);
 
         await expect(
-          q.set(() => Promise.reject("bar"))
+          q.set(() => Promise.reject("bar")),
         ).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);

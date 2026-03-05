@@ -1,7 +1,6 @@
 import type { ParseActions } from "./Actions";
 import { QuarkCustomEffect } from "./Effects";
-import type { GetMiddlewareTypes, QuarkMiddleware } from "./Middlewares";
-import { ParseProcedures } from "./Procedures";
+import type { QuarkMiddleware } from "./Middlewares";
 import type {
   ParseHookSelectors,
   ParseSelectors,
@@ -32,29 +31,40 @@ export type WithMiddlewareType<T, Middlewares> = [Middlewares] extends [never]
   ? T
   : T | Middlewares;
 
-export type QuarkConfigOptions = { allowRaceConditions: boolean };
+export type QuarkConfigOptions = {
+  /**
+   * Modes:
+   * - `cancel` - subsequent updates cancel any previous pending updates
+   * - `queue` - subsequent updates will all apply in the same order they are dispatched
+   * - `none` - all updates are always applied, in the order they resolve
+   */
+  mode: "cancel" | "queue" | "none";
+};
 
 /**
  * @internal
  */
-export type QuarkContext<T, ET> = {
+export type QuarkContext<T> = {
   value: T;
 
   readonly subscribers: Set<QuarkSubscriber<T>>;
-  readonly middlewares: QuarkMiddleware<T, ET>[];
+  readonly middlewares: QuarkMiddleware<T>[];
   readonly configOptions: QuarkConfigOptions;
 
-  readonly sideEffect?: QuarkCustomEffect<T, ET>;
+  readonly sideEffect?: QuarkCustomEffect<T>;
   readonly stateComparator: QuarkComparatorFn;
   readonly syncStoreSubscribe: (callback: () => void) => () => boolean;
 };
 
-export type SetStateAction<T, M, TF = WithMiddlewareType<T, M>> =
-  | TF
-  | ((currentState: T) => TF)
-  | Promise<TF>
-  | ((currentState: T) => SetStateAction<T, M>)
-  | Promise<SetStateAction<T, M>>;
+export type DispatchFunc<T> =
+  | ((currentState: T) => T)
+  | ((currentState: T) => SetStateAction<T>);
+
+export type SetStateAction<T> =
+  | T
+  | DispatchFunc<T>
+  | Promise<T>
+  | Promise<SetStateAction<T>>;
 
 /**
  * @internal
@@ -63,9 +73,16 @@ export type QuarkSubscriber<T> = (currentState: T) => void;
 
 export type QuarkComparatorFn = (a: unknown, b: unknown) => boolean;
 
-export type QuarkSetterFn<QuarkType, MiddlewareTypes> = (
-  newValue: SetStateAction<QuarkType, MiddlewareTypes>,
+export type QuarkSetterFn<QuarkType> = (
+  newValue: SetStateAction<QuarkType>,
 ) => void;
+
+export type QuarkAssignFn<T> =
+  | ((
+    select: (state: T) => any,
+    patch: Partial<any>,
+  ) => QuarkSetResult<T>)
+  | ((patch: T extends object ? Partial<T> : never) => QuarkSetResult<T>);
 
 export type QuarkGetterFn<T> = () => T;
 
@@ -79,12 +96,12 @@ export type QuarkGetterFn<T> = () => T;
  */
 export type QuarkUpdateType = "sync" | "async" | "async-generator" | "function";
 
-export type QuarkSetResult<V extends SetStateAction<any, any>> =
+export type QuarkSetResult<V extends SetStateAction<any>> =
   FinalReturnType<V> extends Promise<any> ? Promise<void>
     : Promise<any> extends FinalReturnType<V> ? Promise<void> | void
     : void;
 
-export type QuarkHook<T, Actions, Procedures, Middlewares extends any[]> =
+export type QuarkHook<T, Actions> =
   & {
     value: DeepReadonly<T>;
     /**
@@ -93,17 +110,33 @@ export type QuarkHook<T, Actions, Procedures, Middlewares extends any[]> =
      * @param newVal A new data or a function that takes the previous state of the
      *   quark and returns a new one.
      */
-    set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
+    set<V extends SetStateAction<T>>(
       newValue: V,
     ): QuarkSetResult<V>;
+    /**
+     * Shorthand for `quark.set(Object.assign(quark.get(), patch)).
+     *
+     * Can take a selector as it's first argument to update a nested object.
+     *
+     * @example
+     *
+     * const q = quark({foo:1, bar:2, baz: {v:""}})
+     *
+     * q.assign({ foo: 6 });
+     * q.assign(s => s.baz, { v: "hi" });
+     */
+    assign<S extends object>(
+      select: (state: T) => S,
+      patch: Partial<S>,
+    ): QuarkSetResult<T>;
+    assign(patch: T extends object ? Partial<T> : never): QuarkSetResult<T>;
     /**
      * Sets the state regardless of what the current active dispatch is and will
      * not cancel any in-flight updates.
      */
     unsafeSet(newValue: T): void;
   }
-  & ParseActions<Actions>
-  & ParseProcedures<Procedures>;
+  & ParseActions<Actions>;
 
 export type HookSelectors<T, Selectors> = {
   /**
@@ -133,7 +166,7 @@ export type HookSelectors<T, Selectors> = {
    *   }
    */
   use: <ARGS extends any[], R>(
-    selector: QuarkSelector<T, ARGS, R>,
+    selector: QuarkSelector<T, R>,
     ...args: ARGS
   ) => DeepReadonly<R>;
 } & ParseHookSelectors<Selectors>;
@@ -148,9 +181,7 @@ export type Selects<T, Selectors> =
 export type Quark<
   T,
   Actions,
-  Procedures,
   Selectors,
-  Middlewares extends any[],
 > = {
   /**
    * Retrieves the data held in the quark.
@@ -162,12 +193,29 @@ export type Quark<
    * @param newVal A new data or a function that takes the previous state of the
    *   quark and returns a new one.
    */
-  set<V extends SetStateAction<T, GetMiddlewareTypes<Middlewares>>>(
+  set<V extends SetStateAction<T>>(
     newValue: V,
   ): QuarkSetResult<V>;
   /**
+   * Shorthand for `quark.set(Object.assign(quark.get(), patch)).
+   *
+   * Can take a selector as it's first argument to update a nested object.
+   *
+   * @example
+   *
+   * const q = quark({foo:1, bar:2, baz: {v:""}})
+   *
+   * q.assign({ foo: 6 });
+   * q.assign(s => s.baz, { v: "hi" });
+   */
+  assign<S extends object>(
+    select: (state: T) => S,
+    patch: Partial<S>,
+  ): QuarkSetResult<T>;
+  assign(patch: T extends object ? Partial<T> : never): QuarkSetResult<T>;
+  /**
    * Sets the state regardless of what the current active dispatch is and will
-   * not cancel any in-flight updates.
+   * not cancel any in-flight updates nor queue the update.
    */
   unsafeSet(newValue: T): void;
   /**
@@ -182,7 +230,7 @@ export type Quark<
    * - `get()` - to access the data
    * - `set()` - to updated the data
    */
-  use(): QuarkHook<T, Actions, Procedures, Middlewares>;
+  use(): QuarkHook<T, Actions>;
   /**
    * Add a listener for the state changes of the Quark. Every time the state
    * change is detected provided callback will be triggered.
@@ -210,7 +258,7 @@ export type Quark<
    * q.act.setValue("Hello");
    * console.log(q.get()); // > { value: "Hello" }
    */
-  act: ParseActions<Actions> & ParseProcedures<Procedures>;
+  act: ParseActions<Actions>;
   /**
    * Contains all the selector functions that can be used to access a part of the
    * data within the quark. Those are defined on the quark creation on the `selectors`

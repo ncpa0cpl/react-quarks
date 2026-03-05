@@ -3,7 +3,7 @@ import { CancelUpdate } from "../../Utilities/CancelUpdate";
 
 export function createCatchMiddleware(params?: {
   onCatch: (e: unknown) => void;
-}): QuarkMiddleware<any, undefined> {
+}): QuarkMiddleware<any> {
   const onCatch = params?.onCatch ?? (() => {});
 
   return (params) => {
@@ -11,7 +11,7 @@ export function createCatchMiddleware(params?: {
       const { action, resume, getState } = params;
       return resume(async function*(api) {
         try {
-          const gen = action(api);
+          const gen = await action(api);
 
           let next: IteratorResult<unknown, unknown>;
           do {
@@ -40,7 +40,8 @@ export function createCatchMiddleware(params?: {
     try {
       return params.resume(params.action);
     } catch (e) {
-      return onCatch(e);
+      onCatch(e);
+      throw new CancelUpdate();
     }
   };
 }

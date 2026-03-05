@@ -5,11 +5,11 @@ function deserialize(serializedJavascript: string) {
   return eval("(" + serializedJavascript + ")");
 }
 
-const quarkCollection = new Map<string, QuarkContext<unknown, any>>();
+const quarkCollection = new Map<string, QuarkContext<unknown>>();
 
 export const registerQuark = (
   name: string,
-  context: QuarkContext<any, any>,
+  context: QuarkContext<any>,
 ) => {
   if (quarkCollection.has(name)) {
     throw new Error(`Quark name must be unique! Duplicate name: [${name}]`);

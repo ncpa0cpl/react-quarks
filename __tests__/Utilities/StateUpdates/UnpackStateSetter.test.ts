@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vitest } from "vitest";
-import { createUpdateController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
-import { unpackStateSetter } from "../../../src/Utilities/StateUpdates/UnpackStateSetter";
+import { createCancelUpdateController } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
+import { unpackAction } from "../../../src/Utilities/StateUpdates/UnpackAction";
 import { getTestQuarkContext, sleep } from "../../helpers";
 
 describe("unpackStateSetter", () => {
   const self = getTestQuarkContext({ value: "foo" });
-  const updateController = createUpdateController(self, () => {
+  const updateController = createCancelUpdateController<string>(() => {
     // do nothing
   });
 
@@ -16,11 +16,9 @@ describe("unpackStateSetter", () => {
   it("should return the passed value if it's not a generator or a promise", () => {
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, "bar").then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("bar");
-        },
-      );
+      unpackAction(self, updater, "bar", (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      });
     });
   });
 
@@ -29,11 +27,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, generator).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("bar");
-        },
-      );
+      unpackAction(self, updater, generator, (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      });
     });
   });
 
@@ -42,11 +38,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, generator).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("bar");
-        },
-      );
+      unpackAction(self, updater, generator, (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      });
     });
   });
 
@@ -55,11 +49,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, generator).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("bar");
-        },
-      );
+      unpackAction(self, updater, generator, (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      });
     });
   });
 
@@ -68,11 +60,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, promise).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("baz");
-        },
-      );
+      unpackAction(self, updater, promise, (unpackedValue) => {
+        expect(unpackedValue).toEqual("baz");
+      });
     });
   });
 
@@ -83,13 +73,14 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     await updateController.atomicUpdate(async updater => {
-      await unpackStateSetter(
+      await unpackAction(
         self,
         updater,
         promise,
-      ).then((unpackedValue) => {
-        expect(unpackedValue).toEqual("baz");
-      });
+        (unpackedValue) => {
+          expect(unpackedValue).toEqual("baz");
+        },
+      );
     });
   });
 
@@ -108,13 +99,14 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     await updateController.atomicUpdate(async updater => {
-      await unpackStateSetter(
+      await unpackAction(
         self,
         updater,
         promise,
-      ).then((unpackedValue) => {
-        expect(unpackedValue).toEqual("baz");
-      });
+        (unpackedValue) => {
+          expect(unpackedValue).toEqual("baz");
+        },
+      );
     });
   });
 
@@ -123,11 +115,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, generator).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("qux");
-        },
-      );
+      unpackAction(self, updater, generator, (unpackedValue) => {
+        expect(unpackedValue).toEqual("qux");
+      });
     });
   });
 
@@ -136,11 +126,9 @@ describe("unpackStateSetter", () => {
 
     expect.assertions(1);
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, generator).then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("qux");
-        },
-      );
+      unpackAction(self, updater, generator, (unpackedValue) => {
+        expect(unpackedValue).toEqual("qux");
+      });
     });
   });
 
@@ -148,11 +136,9 @@ describe("unpackStateSetter", () => {
     expect.assertions(1);
 
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, "bar").then(
-        (unpackedValue) => {
-          expect(unpackedValue).toEqual("bar");
-        },
-      );
+      unpackAction(self, updater, "bar", (unpackedValue) => {
+        expect(unpackedValue).toEqual("bar");
+      });
     });
   });
 
@@ -166,11 +152,9 @@ describe("unpackStateSetter", () => {
     const onThen = vitest.fn();
 
     updateController.atomicUpdate(updater => {
-      unpackStateSetter(self, updater, promise).then(
-        (unpackedValue) => {
-          onThen();
-        },
-      );
+      unpackAction(self, updater, promise, (unpackedValue) => {
+        onThen();
+      });
     });
 
     await sleep(1);

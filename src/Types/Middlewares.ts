@@ -1,26 +1,26 @@
 import { AtomicUpdater } from "../Utilities/StateUpdates/AsyncUpdates";
-import {
-  ProcedureApi,
-  ProcedureStateSetter,
-  QuarkCustomProcedure,
-} from "./Procedures";
+import { ProcedureApi, ProcedureGenerator, QProcedure } from "./Procedures";
 import type { QuarkUpdateType, SetStateAction } from "./Quark";
 
-export type BaseQuarkMiddlewareParams<T, ET> = {
+export type GeneratorAction<T> = (
+  api: ProcedureApi<T>,
+) => ProcedureGenerator<T>;
+
+export type BaseQuarkMiddlewareParams<T> = {
   getState: () => T;
-  action: SetStateAction<T, ET>;
+  action: SetStateAction<T>;
   /**
    * Resumes the standard state update flow with the value provided in the
    * `value` argument. This argument is what any following middlewares will
    * receive.
    */
-  resume: (value: SetStateAction<T, ET>) => any;
+  resume: (value: SetStateAction<T>) => unknown | Promise<unknown>;
   /**
-   * Interrupts the standard update flow and immediately updates the state with
-   * the `value` specified in the argument. Any following middlewares will be
-   * skipped.
+   * Directly updates the state of the quark ommiting any other middlewares.
+   * This is not a replacement for the resume() function. Middleware should always either
+   * return the action on call the resume().
    */
-  set: (value: SetStateAction<T, ET>) => any;
+  set: (value: SetStateAction<T>) => any;
   /**
    * Indicates if this state update was initiated directly via `set()` method
    * call (type = 'sync') or via asynchronous state update (type = 'async').
@@ -34,25 +34,21 @@ export type BaseQuarkMiddlewareParams<T, ET> = {
   updater: AtomicUpdater<T>;
 };
 
-export type ProcedureQuarkMiddlewareParams<T, ET> = {
+export type ProcedureQuarkMiddlewareParams<T> = {
   getState: () => T;
-  action: (api: ProcedureApi<T>) => AsyncGenerator<
-    ProcedureStateSetter<T>,
-    ProcedureStateSetter<T>,
-    T
-  >;
+  action: GeneratorAction<T>;
   /**
    * Resumes the standard state update flow with the value provided in the
    * `value` argument. This argument is what any following middlewares will
    * receive.
    */
-  resume: (value: QuarkCustomProcedure<T, any[]>) => void;
+  resume: (value: QProcedure<T>) => unknown | Promise<unknown>;
   /**
-   * Interrupts the standard update flow and immediately updates the state with
-   * the `value` specified in the argument. Any following middlewares will be
-   * skipped.
+   * Directly updates the state of the quark ommiting any other middlewares.
+   * This is not a replacement for the resume() function. Middleware should always either
+   * return the action on call the resume().
    */
-  set: (value: SetStateAction<T, ET>) => void;
+  set: (value: SetStateAction<T>) => void;
   /**
    * Indicates if this state update was initiated directly via `set()` method
    * call (type = 'sync') or via asynchronous state update (type = 'async').
@@ -66,17 +62,8 @@ export type ProcedureQuarkMiddlewareParams<T, ET> = {
   updater: AtomicUpdater<T>;
 };
 
-export type QuarkMiddleware<T, ET> = (
+export type QuarkMiddleware<T> = (
   params:
-    | BaseQuarkMiddlewareParams<T, ET>
-    | ProcedureQuarkMiddlewareParams<T, ET>,
-) => any;
-
-type MiddlewareInputType<M> = M extends QuarkMiddleware<any, infer I> ? I
-  : never;
-
-export type GetMiddlewareTypes<M extends any[]> = {
-  [K in keyof M]: MiddlewareInputType<M[K]>;
-} extends Array<infer T> ? T extends undefined ? never
-  : T
-  : never;
+    | BaseQuarkMiddlewareParams<T>
+    | ProcedureQuarkMiddlewareParams<T>,
+) => T | SetStateAction<T> | GeneratorAction<T> | void | undefined;

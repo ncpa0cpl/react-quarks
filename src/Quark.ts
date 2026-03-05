@@ -1,13 +1,11 @@
 import { QuarkActions } from "./Types/Actions";
-import { QuarkConfig } from "./Types/Config";
-import { GetMiddlewareTypes, QuarkMiddleware } from "./Types/Middlewares";
-import { QuarkProcedures } from "./Types/Procedures";
+import { Config } from "./Types/Config";
+import { QuarkMiddleware } from "./Types/Middlewares";
 import { DeepReadonly, Quark, QuarkContext } from "./Types/Quark";
 import { QuarkSelector, QuarkSelectors } from "./Types/Selectors";
 import { Widen } from "./Types/Utilities";
 import { createCachedSelector } from "./Utilities/CreateCachedSelector";
 import { generateCustomActions } from "./Utilities/GenerateCustomActions";
-import { generateCustomProcedures } from "./Utilities/GenerateCustomProcedures";
 import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { generateUseHook } from "./Utilities/GenerateUseHook";
@@ -16,6 +14,8 @@ import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
 import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
 import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
+import { Immediate } from "./Utilities/StateUpdates/Immediate";
+import { unpackAction } from "./Utilities/StateUpdates/UnpackAction";
 
 /**
  * Creates a new quark object.
@@ -26,24 +26,20 @@ import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
  */
 export function quark<
   T,
-  A extends QuarkActions<T, M, ActionArgs>,
-  P extends QuarkProcedures<T, ProcedureArgs>,
-  S extends QuarkSelectors<T, SelectorArgs>,
-  M extends QuarkMiddleware<T, any>[] = never[],
-  SelectorArgs extends any[] = never[],
-  ActionArgs extends any[] = never[],
-  ProcedureArgs extends any[] = never[],
+  const A extends QuarkActions<T>,
+  const S extends QuarkSelectors<T>,
+  const M extends QuarkMiddleware<T>[],
 >(
   initValue: T,
-  config: QuarkConfig<Widen<T>, A, P, S, M> = {},
-): Quark<Widen<T>, A, P, S, M> {
-  const self: QuarkContext<T, GetMiddlewareTypes<M>> = {
+  config: Config<T, A, S, M> = {},
+): Quark<Widen<T>, A, S> {
+  const self: QuarkContext<T> = {
     value: initValue,
     subscribers: new Set(),
     middlewares: config.middlewares ?? [],
     sideEffect: config.effect as any,
     configOptions: {
-      allowRaceConditions: config.allowRaceConditions ?? false,
+      mode: config.mode ?? "cancel",
     },
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
     syncStoreSubscribe(callback: () => void) {
@@ -56,9 +52,8 @@ export function quark<
 
   const {
     set,
+    assign,
     unsafeSet,
-    bareboneSet,
-    initiateProcedure,
     initiateAction,
     updateController,
   } = generateSetter(self);
@@ -66,11 +61,6 @@ export function quark<
   const customActions = generateCustomActions(
     initiateAction,
     config?.actions ?? ({} as A),
-  );
-
-  const customProcedures = generateCustomProcedures(
-    initiateProcedure,
-    config?.procedures ?? ({} as P),
   );
 
   const selectors = Object.entries(config?.selectors ?? ({} as S)).map(
@@ -89,20 +79,21 @@ export function quark<
   const use = generateUseHook(
     self,
     customActions,
-    customProcedures,
     set,
+    assign,
     unsafeSet,
   );
 
   const subscribe = generateSubscribeFunction(self);
 
-  const quark: Quark<T, A, P, S, M> = {
+  const quark: Quark<T, A, S> = {
     set: set as any,
+    assign,
     unsafeSet,
     get,
     use,
     subscribe,
-    act: { ...customActions, ...customProcedures },
+    act: customActions,
     select: customSelectors,
   };
 
@@ -111,13 +102,22 @@ export function quark<
   }
 
   updateController.atomicUpdate((updater) => {
-    applyMiddlewares(
+    const r = applyMiddlewares(
       self,
       initValue,
       "sync",
       updater,
-      bareboneSet,
-    );
+      (action) =>
+        unpackAction(self, updater, action, (s) => {
+          return updater.update(s!);
+        }),
+    ).finally(() => {
+      updater.complete();
+    });
+
+    if (r instanceof Immediate) {
+      Immediate.unpack(r);
+    }
   });
 
   return quark as any;

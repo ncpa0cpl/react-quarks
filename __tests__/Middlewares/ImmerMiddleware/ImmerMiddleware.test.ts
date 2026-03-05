@@ -203,7 +203,7 @@ describe("ImmerMiddleware", () => {
         {
           actions: {
             setBar(api, value: string) {
-              api.setState((state) => {
+              api.set((state) => {
                 state.bar = value;
                 return state;
               });
@@ -241,7 +241,7 @@ describe("ImmerMiddleware", () => {
         {
           actions: {
             setBar(api, value: string) {
-              api.setState(state => {
+              api.set(state => {
                 expect(isDraft(state)).toEqual(true);
                 state.bar = value;
                 return state;
@@ -279,13 +279,13 @@ describe("ImmerMiddleware", () => {
         {
           actions: {
             setFoo(api, value: string) {
-              api.setState(currentState => {
+              api.set(currentState => {
                 currentState.foo = value;
                 return currentState;
               });
             },
             setBar(api, value: string) {
-              api.setState(currentState => {
+              api.set(currentState => {
                 currentState.bar = value;
                 return currentState;
               });
@@ -329,13 +329,13 @@ describe("ImmerMiddleware", () => {
         {
           actions: {
             async setFoo(api, value: Promise<string>) {
-              await api.setState(async currentState => {
+              await api.set(async currentState => {
                 currentState.foo = await value;
                 return currentState;
               });
             },
             async setBaz(api, value: Promise<string>) {
-              await api.setState(async (currentState) => {
+              await api.set(async (currentState) => {
                 currentState.baz = await value;
                 return currentState;
               });

@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import { ParseActions } from "../Types/Actions";
-import { ParseProcedures } from "../Types/Procedures";
 import {
   DeepReadonly,
+  QuarkAssignFn,
   QuarkContext,
   QuarkHook,
   QuarkSetterFn,
@@ -17,13 +18,13 @@ import {
  * @returns A React Hook function exposing this quark state and actions
  * @internal
  */
-export function generateUseHook<T, A, P, M extends any[], ET>(
-  self: QuarkContext<T, ET>,
+export function generateUseHook<T, A>(
+  self: QuarkContext<T>,
   actions: ParseActions<A>,
-  procedures: ParseProcedures<P>,
-  set: QuarkSetterFn<T, ET>,
+  set: QuarkSetterFn<T>,
+  assign: QuarkAssignFn<T>,
   unsafeSet: (newValue: T) => void,
-): () => QuarkHook<T, A, P, M> {
+): () => QuarkHook<T, A> {
   const getSnapshot = () => self.value;
 
   return () => {
@@ -32,12 +33,12 @@ export function generateUseHook<T, A, P, M extends any[], ET>(
       getSnapshot,
     ) as DeepReadonly<T>;
 
-    return {
+    return useMemo(() => ({
       set: set as any,
+      assign: assign as any,
       unsafeSet,
       value,
       ...actions,
-      ...procedures,
-    };
+    }), [value]);
   };
 }

@@ -20,7 +20,7 @@ export function createDebugHistoryMiddleware(options: {
   trace?: boolean;
   realTimeLogging?: boolean;
   useTablePrint?: boolean;
-}): QuarkMiddleware<any, undefined> {
+}): QuarkMiddleware<any> {
   const updaterSources = new WeakMap<AtomicUpdater<any>, DispatchSource>();
 
   const {
