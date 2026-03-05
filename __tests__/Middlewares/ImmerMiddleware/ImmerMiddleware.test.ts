@@ -2,17 +2,17 @@ import { act, renderHook } from "@testing-library/react-hooks";
 import { isDraft } from "immer";
 import { beforeAll, describe, expect, it, vitest } from "vitest";
 import {
+  addGlobalQuarkMiddleware,
   createImmerMiddleware,
   quark,
-  setGlobalQuarkMiddlewares,
 } from "../../../src/index";
 import { sleep } from "../../helpers";
 
 describe("ImmerMiddleware", () => {
   beforeAll(() => {
-    setGlobalQuarkMiddlewares([
+    addGlobalQuarkMiddleware(
       createImmerMiddleware({ mapAndSetSupport: true }),
-    ]);
+    );
   });
 
   describe("outside react", () => {

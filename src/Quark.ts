@@ -9,10 +9,7 @@ import { generateCustomActions } from "./Utilities/GenerateCustomActions";
 import { generateCustomSelectors } from "./Utilities/GenerateCustomSelectors";
 import { generateSubscribeFunction } from "./Utilities/GenerateSubscribeFunction";
 import { generateUseHook } from "./Utilities/GenerateUseHook";
-import {
-  getGlobalQuarkMiddlewares,
-  GlobalMiddlewareController,
-} from "./Utilities/GlobalMiddlewares";
+import { GlobalMiddlewareController } from "./Utilities/GlobalMiddlewares";
 import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
 import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
@@ -42,7 +39,7 @@ export function quark<
     middlewares: (config.middlewares ?? []).map(m => ({ m, source: "own" })),
     sideEffect: config.effect as any,
     configOptions: {
-      mode: config.mode ?? "cancel",
+      mode: config.mode ?? "queue",
     },
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
     syncStoreSubscribe(callback: () => void) {

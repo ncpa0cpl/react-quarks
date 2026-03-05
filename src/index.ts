@@ -18,6 +18,5 @@ export { CancelUpdate } from "./Utilities/CancelUpdate";
 export {
   addGlobalQuarkMiddleware,
   getGlobalQuarkMiddlewares,
-  setGlobalQuarkMiddlewares,
 } from "./Utilities/GlobalMiddlewares";
 export { hydrateQuarks, serializeQuarks } from "./Utilities/QuarksCollection";

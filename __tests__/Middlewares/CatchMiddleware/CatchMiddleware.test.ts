@@ -56,7 +56,10 @@ describe("CatchMiddleware", () => {
         expect(onCatchMock).toBeCalledTimes(0);
       });
       it("set() correctly handles asynchronous updates", async () => {
-        const q = quark("A", { middlewares: [catchMiddleware] });
+        const q = quark("A", {
+          mode: "cancel",
+          middlewares: [catchMiddleware],
+        });
 
         const promiseA = new Promise<string>((resolve) => {
           setTimeout(() => {
@@ -245,6 +248,7 @@ describe("CatchMiddleware", () => {
       });
       it("for procedures", async () => {
         const q = quark("", {
+          mode: "cancel",
           actions: {
             async *procedureA() {
               throw new Error("bar");
