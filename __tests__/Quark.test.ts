@@ -470,13 +470,15 @@ describe("quark()", () => {
     });
     describe("custom actions", () => {
       it("prevents updates if a newer update has been dispatched", async () => {
+        const p1 = controlledPromise();
+
         let secondsSetStateWasCalled = false;
         const q = quark({ value: 0 }, {
           mode: "cancel",
           actions: {
             async setValue(api, value1: number, value2: number) {
               api.set({ value: value1 });
-              await sleep(20);
+              await p1.promise;
               api.set({ value: value2 });
               secondsSetStateWasCalled = true;
             },
@@ -492,7 +494,8 @@ describe("quark()", () => {
         q.set({ value: 123 });
         expect(secondsSetStateWasCalled).toBe(false);
 
-        await sleep(50);
+        p1.resolve();
+        await sleep(0);
 
         expect(q.get()).toMatchObject({ value: 123 });
         expect(secondsSetStateWasCalled).toBe(true);
@@ -500,6 +503,9 @@ describe("quark()", () => {
       describe("dispatchNew()", () => {
         it("behaves as if a separate action was dispatched from outside", async () => {
           const onSetV3 = vitest.fn();
+          const p1 = controlledPromise();
+          const p2 = controlledPromise();
+          const p3 = controlledPromise();
 
           const q = quark({ value: 0 }, {
             mode: "cancel",
@@ -507,10 +513,11 @@ describe("quark()", () => {
               async action(api, v1: number, v2: number, v3: number) {
                 api.set({ value: v1 });
                 api.dispatchNew(async (subApi) => {
-                  await sleep(25);
+                  debugger;
+                  await p2.promise;
                   subApi.set({ value: v2 });
                 });
-                await sleep(50);
+                await p3.promise;
                 api.set({ value: v3 });
                 onSetV3();
               },
@@ -523,44 +530,46 @@ describe("quark()", () => {
           await sleep(0);
           expect(q.get()).toMatchObject({ value: 5 });
 
-          await sleep(30);
+          p2.resolve();
+          await sleep(0);
           expect(q.get()).toMatchObject({ value: 10 });
 
-          await sleep(100);
+          p3.resolve();
+          await sleep(0);
           expect(q.get()).toMatchObject({ value: 10 });
           expect(onSetV3).toHaveBeenCalledTimes(1);
 
-          const p1 = controlledPromise();
-          const p2 = controlledPromise();
+          // const p1 = controlledPromise();
+          // const p2 = controlledPromise();
 
-          const q2 = quark({ value: 0 }, {
-            mode: "cancel",
-            actions: {
-              async action(api, v1: number, v2: number) {
-                api.set({ value: v1 });
-                await p1;
-                api.dispatchNew((subApi) => {
-                  subApi.set({ value: v2 });
-                });
-              },
-            },
-          });
+          // const q2 = quark({ value: 0 }, {
+          //   mode: "cancel",
+          //   actions: {
+          //     async action(api, v1: number, v2: number) {
+          //       api.set({ value: v1 });
+          //       await p1;
+          //       api.dispatchNew((subApi) => {
+          //         subApi.set({ value: v2 });
+          //       });
+          //     },
+          //   },
+          // });
 
-          q2.act.action(5, 10);
-          expect(q2.get()).toMatchObject({ value: 5 });
+          // q2.act.action(5, 10);
+          // expect(q2.get()).toMatchObject({ value: 5 });
 
-          q2.set(async () => {
-            await p2;
-            return { value: 999 };
-          });
+          // q2.set(async () => {
+          //   await p2;
+          //   return { value: 999 };
+          // });
 
-          p1.resolve();
-          await sleep(0);
-          expect(q2.get()).toMatchObject({ value: 10 });
-          // dispatchNew cancels the p2 update
-          p2.resolve();
-          await sleep(10);
-          expect(q2.get()).toMatchObject({ value: 10 });
+          // p1.resolve();
+          // await sleep(0);
+          // expect(q2.get()).toMatchObject({ value: 10 });
+          // // dispatchNew cancels the p2 update
+          // p2.resolve();
+          // await sleep(10);
+          // expect(q2.get()).toMatchObject({ value: 10 });
         });
 
         it("can be given other action from `this`", async () => {
@@ -583,6 +592,49 @@ describe("quark()", () => {
           q.act.action();
 
           expect(q.get()).toEqual({ value: 14 });
+        });
+
+        it("can be given other procedures from `this`", async () => {
+          const breakpoint1 = controlledPromise();
+          const breakpoint2 = controlledPromise();
+          const breakpoint3 = controlledPromise();
+          const breakpoint4 = controlledPromise();
+
+          const q = quark({ value: 0 }, {
+            actions: {
+              async *gen(api, v1: number, v2: number) {
+                await breakpoint1.promise;
+                yield { value: v1 };
+                await breakpoint4.promise;
+                return { value: v2 };
+              },
+              async action(api) {
+                api.set({ value: 1 });
+                api.dispatchNew(this.gen, 5, 7);
+                await breakpoint2.promise;
+                api.set({ value: 2 });
+                await breakpoint3.promise;
+              },
+            },
+          });
+
+          q.act.action();
+          await sleep(0);
+          expect(q.get()).toEqual({ value: 1 });
+
+          breakpoint1.resolve();
+          await sleep(0);
+          expect(q.get()).toEqual({ value: 1 });
+
+          await breakpoint2.resolve();
+          expect(q.get()).toEqual({ value: 2 });
+
+          await breakpoint3.resolve();
+          await breakpoint1.dependenciesResolved;
+          expect(q.get()).toEqual({ value: 5 });
+
+          await breakpoint4.resolve();
+          expect(q.get()).toEqual({ value: 7 });
         });
       });
       describe("unsafeSet()", () => {

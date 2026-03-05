@@ -1,8 +1,8 @@
 import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { isDispatchFn } from "../IsGenerator";
 import { applyMiddlewares } from "./ApplyMiddlewares";
-import { AtomicUpdater } from "./AsyncUpdates";
-import { Immediate } from "./Immediate";
+import { AtomicUpdate } from "./AsyncUpdates";
+import { Immediate, Resolvable } from "./Immediate";
 import { resolveUpdateType } from "./ResolveUpdateType";
 
 /**
@@ -28,10 +28,10 @@ export type Thenable<T> = {
  */
 export function unpackAction<T>(
   self: QuarkContext<T>,
-  updater: AtomicUpdater<T>,
+  updater: AtomicUpdate<T>,
   action: SetStateAction<T>,
   onUnpack: (action: T) => T | void,
-): PromiseLike<T | void> {
+): Resolvable<T | void> {
   if (action instanceof Promise) {
     return action
       .then((state) => {
@@ -66,10 +66,10 @@ export function unpackAction<T>(
 
 export function unpackStateSetterSync<T>(
   self: QuarkContext<T>,
-  updater: AtomicUpdater<T>,
+  updater: AtomicUpdate<T>,
   action: SetStateAction<T>,
   onUnpack: (action: T | void) => T | void,
-): PromiseLike<T> {
+): Resolvable<T> {
   if (isDispatchFn<T>(action)) {
     return Immediate.from(() => {
       const s = action(self.value);

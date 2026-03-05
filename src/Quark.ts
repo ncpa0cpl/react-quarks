@@ -13,6 +13,7 @@ import { GlobalMiddlewareController } from "./Utilities/GlobalMiddlewares";
 import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
 import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
+import { createUpdateController } from "./Utilities/StateUpdates/AsyncUpdates";
 import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
 import { Immediate } from "./Utilities/StateUpdates/Immediate";
 import { unpackAction } from "./Utilities/StateUpdates/UnpackAction";
@@ -46,7 +47,11 @@ export function quark<
       self.subscribers.add(callback);
       return () => self.subscribers.delete(callback);
     },
+    actions: new Map(),
+    updateController: null as any,
   };
+
+  self.updateController = createUpdateController<T>(self);
 
   GlobalMiddlewareController.registerQuark(self);
 
@@ -54,12 +59,11 @@ export function quark<
     set,
     assign,
     unsafeSet,
-    initiateAction,
-    updateController,
   } = generateSetter(self);
 
   const customActions = generateCustomActions(
-    initiateAction,
+    self,
+    unsafeSet,
     config?.actions ?? ({} as A),
   );
 
@@ -104,7 +108,7 @@ export function quark<
     registerQuark(config.name, self);
   }
 
-  updateController.atomicUpdate((updater) => {
+  self.updateController.atomicUpdate((updater) => {
     const r = applyMiddlewares(
       self,
       initValue,

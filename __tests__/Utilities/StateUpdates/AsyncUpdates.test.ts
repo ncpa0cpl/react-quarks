@@ -7,14 +7,15 @@ import { getTestQuarkContext, sleep } from "../../helpers";
 describe("Async Updates", () => {
   describe("asyncUpdatesController()", () => {
     it("when allowRaceConditions option is enabled updates are not canceled", async () => {
-      const context = getTestQuarkContext({
-        configOptions: { mode: "none" },
-      });
       const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
+      const context = getTestQuarkContext({
+        configOptions: { mode: "none" },
+        setter: setStateMock,
+      });
 
-      const controller = createUpdateController<string>("none", setStateMock);
+      const controller = context.updateController;
 
       const myPromise = Promise.resolve("foo");
 
@@ -33,14 +34,15 @@ describe("Async Updates", () => {
     });
 
     it("when allowRaceConditions option is disabled updates are canceled", async () => {
-      const context = getTestQuarkContext({
-        configOptions: { mode: "cancel" },
-      });
       const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
+      const context = getTestQuarkContext({
+        configOptions: { mode: "cancel" },
+        setter: setStateMock,
+      });
 
-      const controller = createUpdateController("cancel", setStateMock);
+      const controller = context.updateController;
 
       const myPromise = Promise.resolve("foo");
 
@@ -59,14 +61,15 @@ describe("Async Updates", () => {
     });
 
     it("consecutive dispatches should cancel the previous updates", async () => {
-      const context = getTestQuarkContext({
-        configOptions: { mode: "cancel" },
-      });
       const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
+      const context = getTestQuarkContext({
+        configOptions: { mode: "cancel" },
+        setter: setStateMock,
+      });
 
-      const controller = createUpdateController("cancel", setStateMock);
+      const controller = context.updateController;
 
       const myPromise1 = sleep(30).then(() => "foo");
       const myPromise2 = sleep(20).then(() => "bar");
@@ -98,14 +101,15 @@ describe("Async Updates", () => {
     });
 
     it("consecutive dispatches should not cancel previous updates if executed in order", async () => {
-      const context = getTestQuarkContext({
-        configOptions: { mode: "cancel" },
-      });
       const setStateMock = vitest.fn((_, v: string) => {
         context.value = v;
       });
+      const context = getTestQuarkContext({
+        configOptions: { mode: "cancel" },
+        setter: setStateMock,
+      });
 
-      const controller = createUpdateController("cancel", setStateMock);
+      const controller = context.updateController;
 
       const myPromise1 = Promise.resolve("foo");
       const myPromise2 = Promise.resolve("bar");

@@ -1,44 +1,52 @@
+import { ProcedureGenerator, SetStateAction } from "../..";
 import { QuarkMiddleware } from "../../Types/Middlewares";
 import { CancelUpdate } from "../../Utilities/CancelUpdate";
 
-export function createCatchMiddleware(params?: {
+export function createCatchMiddleware<T>(params?: {
   onCatch: (e: unknown) => void;
-}): QuarkMiddleware<any> {
+}): QuarkMiddleware<T> {
   const onCatch = params?.onCatch ?? (() => {});
 
   return (params) => {
     if (params.updateType === "async-generator") {
       const { action, resume, getState } = params;
-      return resume(async function*(api) {
-        try {
-          const gen = await action(api);
+      resume(
+        async function*(api, ...args: any[]): ProcedureGenerator<T> {
+          try {
+            const gen = await action(api, ...args);
 
-          let next: IteratorResult<unknown, unknown>;
-          do {
-            next = await gen.next(getState());
-            if (next.done) {
-              return next.value;
-            }
-            yield next.value;
-          } while (!next.done);
-        } catch (e) {
-          onCatch(e);
-          throw new CancelUpdate();
-        }
-      });
+            let next: IteratorResult<SetStateAction<T>, SetStateAction<T>>;
+            do {
+              next = await gen.next(getState());
+              if (next.done) {
+                return next.value;
+              }
+              yield next.value;
+            } while (!next.done);
+          } catch (e) {
+            onCatch(e);
+            throw new CancelUpdate();
+          }
+
+          throw new Error("unreachable");
+        },
+      );
+      return;
     }
 
     if (params.action instanceof Promise) {
-      return params.resume(
+      params.resume(
         params.action.catch((err) => {
           onCatch(err);
           throw new CancelUpdate();
         }),
       );
+      return;
     }
 
     try {
-      return params.resume(params.action);
+      params.resume(params.action);
+      return;
     } catch (e) {
       onCatch(e);
       throw new CancelUpdate();

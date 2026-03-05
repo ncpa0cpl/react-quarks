@@ -1,10 +1,6 @@
-import { AtomicUpdater } from "../Utilities/StateUpdates/AsyncUpdates";
-import { ProcedureApi, ProcedureGenerator, QProcedure } from "./Procedures";
+import { AtomicUpdate } from "../Utilities/StateUpdates/AsyncUpdates";
+import { GeneratorAction } from "./Procedures";
 import type { QuarkUpdateType, SetStateAction } from "./Quark";
-
-export type GeneratorAction<T> = (
-  api: ProcedureApi<T>,
-) => ProcedureGenerator<T>;
 
 export type BaseQuarkMiddlewareParams<T> = {
   getState: () => T;
@@ -27,11 +23,11 @@ export type BaseQuarkMiddlewareParams<T> = {
    *
    * Asynchronous state updates will trigger each middleware at least two times,
    * first time when the Promise object is passed to the `set()` method (type =
-   * `sync`), and once more if the promise resolves and it's result is saved as
+   * `sync`AtomicUpdateore if the promise resolves and it's result is saved as
    * the new quark state (type = `async`).
    */
   updateType: Exclude<QuarkUpdateType, "async-generator">;
-  updater: AtomicUpdater<T>;
+  updater: AtomicUpdate<T>;
 };
 
 export type ProcedureQuarkMiddlewareParams<T> = {
@@ -42,7 +38,7 @@ export type ProcedureQuarkMiddlewareParams<T> = {
    * `value` argument. This argument is what any following middlewares will
    * receive.
    */
-  resume: (value: QProcedure<T>) => unknown | Promise<unknown>;
+  resume: (value: GeneratorAction<T>) => unknown | Promise<unknown>;
   /**
    * Directly updates the state of the quark ommiting any other middlewares.
    * This is not a replacement for the resume() function. Middleware should always either
@@ -59,7 +55,7 @@ export type ProcedureQuarkMiddlewareParams<T> = {
    * the new quark state (type = `async`).
    */
   updateType: Exclude<QuarkUpdateType, "async" | "sync" | "function">;
-  updater: AtomicUpdater<T>;
+  updater: AtomicUpdate<T>;
 };
 
 export type QuarkMiddleware<T> = (

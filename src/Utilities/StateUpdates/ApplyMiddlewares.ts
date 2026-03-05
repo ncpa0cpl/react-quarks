@@ -4,12 +4,14 @@ import {
   QuarkUpdateType,
   SetStateAction,
 } from "../../Types/Quark";
-import { AtomicUpdater } from "./AsyncUpdates";
-import { Immediate } from "./Immediate";
+import { AtomicUpdate } from "./AsyncUpdates";
+import { Immediate, Resolvable } from "./Immediate";
+import { resolveUpdateType } from "./ResolveUpdateType";
+import { unpackAction } from "./UnpackAction";
 
 class Semaphore<T> {
   wait;
-  resolve!: (value: T | PromiseLike<T>) => void;
+  resolve!: (value: T | Resolvable<T>) => void;
   reject!: (err?: any) => void;
 
   constructor() {
@@ -42,17 +44,17 @@ export function applyMiddlewares<
   self: QuarkContext<T>,
   value: A,
   type: QuarkUpdateType,
-  updater: AtomicUpdater<T>,
-  setterFn: (v: A) => PromiseLike<R>,
+  updater: AtomicUpdate<T>,
+  setterFn: (v: A) => Resolvable<R>,
 ) {
   const applyMiddlewareOfIndex = (
     index: number,
     v: A,
-  ): PromiseLike<R> => {
+  ): Resolvable<R> => {
     const nextMiddleware = self.middlewares[index];
     if (nextMiddleware) {
       let isResumed = false;
-      let resumedValue: undefined | { value: PromiseLike<any> };
+      let resumedValue: undefined | { value: Resolvable<any> };
       let semaphore: undefined | Semaphore<SetStateAction<any>>;
 
       try {
@@ -110,4 +112,22 @@ export function applyMiddlewares<
   };
 
   return applyMiddlewareOfIndex(0, value);
+}
+
+export function setWithMiddlewares<T>(
+  self: QuarkContext<T>,
+  action: SetStateAction<T>,
+  updater: AtomicUpdate<T>,
+) {
+  const type = resolveUpdateType(action);
+  return applyMiddlewares(
+    self,
+    action,
+    type,
+    updater,
+    (action2) =>
+      unpackAction(self, updater, action2, (s) => {
+        return updater.update(s!);
+      }),
+  );
 }

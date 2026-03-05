@@ -1,4 +1,7 @@
-import { Immediate } from "./Immediate";
+import { QuarkContext } from "../../Types/Quark";
+import { createEventsDebouncer } from "./EventsDispatcher";
+import { Immediate, Resolvable } from "./Immediate";
+import { processStateUpdate } from "./ProcessStateUpdate";
 
 /**
  * Controller responsible for managing asynchronous updates. By default all and
@@ -9,12 +12,12 @@ import { Immediate } from "./Immediate";
  * @internal
  */
 export type UpdateController<T> = {
-  atomicUpdate<R>(update: (updater: AtomicUpdater<T>) => R): R;
-  unsafeUpdate<R>(update: (updater: AtomicUpdater<T>) => R): R;
-  currentUpdate(): AtomicUpdater<T> | undefined;
+  atomicUpdate<R>(update: (updater: AtomicUpdate<T>) => R): R;
+  unsafeUpdate<R>(update: (updater: AtomicUpdate<T>) => R): R;
+  currentUpdate(): AtomicUpdate<T> | undefined;
 };
 
-export type AtomicUpdater<T> = {
+export type AtomicUpdate<T> = {
   update(action: T): void;
   cancel(): void;
   complete(): void;
@@ -41,14 +44,14 @@ function getNextUpdaterId() {
  * @internal
  */
 export function createCancelUpdateController<T>(
-  setState: (update: AtomicUpdater<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => void,
 ): UpdateController<T> {
-  let currentUpdate: AtomicUpdater<T> | undefined;
+  let currentUpdate: AtomicUpdate<T> | undefined;
 
-  const atomicUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
+  const atomicUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
     let prevUpdate = currentUpdate;
 
-    const updater: AtomicUpdater<T> = {
+    const updater: AtomicUpdate<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
@@ -88,8 +91,8 @@ export function createCancelUpdateController<T>(
     return update(updater);
   };
 
-  const unsafeUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
-    const updater: AtomicUpdater<T> = {
+  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+    const updater: AtomicUpdate<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
@@ -116,7 +119,7 @@ export function createCancelUpdateController<T>(
   };
 }
 
-function isPromiseLike(p: any): p is PromiseLike<any> {
+function isResolvable(p: any): p is Resolvable<any> {
   return p != null
     && (p instanceof Promise || p instanceof Immediate);
 }
@@ -144,7 +147,7 @@ function actionQueue() {
 
     try {
       const r = next();
-      if (isPromiseLike(r)) {
+      if (isResolvable(r)) {
         r.finally(onEnd);
       } else {
         onEnd();
@@ -164,7 +167,7 @@ function actionQueue() {
           run: () => {
             try {
               const r = fn();
-              if (isPromiseLike(r)) {
+              if (isResolvable(r)) {
                 r.then(res, rej);
               } else {
                 res(r);
@@ -195,19 +198,19 @@ function actionQueue() {
  * @internal
  */
 export function createQueuedUpdateController<T>(
-  setState: (update: AtomicUpdater<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => void,
 ): UpdateController<T> {
-  let currentUpdate: AtomicUpdater<T> | undefined;
+  let currentUpdate: AtomicUpdate<T> | undefined;
 
   const updateQueue = actionQueue();
 
-  const atomicUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
+  const atomicUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
     const id = getNextUpdaterId();
 
     return updateQueue.add(id, () => {
       const subQueue = actionQueue();
 
-      const updater: AtomicUpdater<T> = {
+      const updater: AtomicUpdate<T> = {
         id,
         isCanceled: false,
         update(state) {
@@ -243,8 +246,8 @@ export function createQueuedUpdateController<T>(
     });
   };
 
-  const unsafeUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
-    const updater: AtomicUpdater<T> = {
+  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+    const updater: AtomicUpdate<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
@@ -281,11 +284,11 @@ export function createQueuedUpdateController<T>(
  * @internal
  */
 export function createUnsafeUpdateController<T>(
-  setState: (update: AtomicUpdater<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => void,
 ): UpdateController<T> {
-  let currentUpdate: AtomicUpdater<T> | undefined;
+  let currentUpdate: AtomicUpdate<T> | undefined;
 
-  const unsafeUpdate = (update: (updater: AtomicUpdater<T>) => any) => {
+  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
     const updater = (currentUpdate = {
       id: getNextUpdaterId(),
       isCanceled: false,
@@ -315,9 +318,23 @@ export function createUnsafeUpdateController<T>(
 }
 
 export function createUpdateController<T>(
-  mode: "queue" | "cancel" | "none",
-  setState: (update: AtomicUpdater<T>, action: T) => void,
+  self: QuarkContext<T>,
+  overrideSetter?: (update: AtomicUpdate<T>, action: T) => any,
 ) {
+  const setState = overrideSetter ?? ((update: AtomicUpdate<T>, action: T) => {
+    const previousState = self.value;
+    self.value = action;
+
+    const { debounceEvent } = createEventsDebouncer();
+    return processStateUpdate({
+      self,
+      previousState,
+      update,
+      debounceEvent,
+    });
+  });
+
+  const { mode } = self.configOptions;
   switch (mode) {
     case "cancel":
       return createCancelUpdateController(setState);
@@ -326,5 +343,6 @@ export function createUpdateController<T>(
     case "none":
       return createUnsafeUpdateController(setState);
   }
+
   throw new Error("invalid Quark mode: " + mode);
 }
