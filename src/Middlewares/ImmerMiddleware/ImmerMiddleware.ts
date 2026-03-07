@@ -4,8 +4,10 @@ import {
   enablePatches,
   Immer,
   isDraft,
+  original,
 } from "immer";
 import { QuarkMiddleware } from "../../Types/Middlewares";
+import { isDispatchFn } from "../../Utilities/IsGenerator";
 
 export const createImmerMiddleware = (options?: {
   /**
@@ -109,6 +111,8 @@ export const createImmerMiddleware = (options?: {
   }
 
   return (params) => {
+    params.updater;
+
     if (params.updateType === "async-generator") {
       return params.action;
     }
@@ -119,7 +123,7 @@ export const createImmerMiddleware = (options?: {
       return immer.finishDraft(action);
     }
 
-    if (typeof action === "function") {
+    if (isDispatchFn(action)) {
       return resume((currentState: object) => {
         if (typeof currentState !== "object" || currentState === null) {
           return action(currentState);
@@ -130,13 +134,67 @@ export const createImmerMiddleware = (options?: {
         const actionResult = action(draft);
 
         if (isDraft(actionResult)) {
-          return immer.finishDraft(actionResult);
+          try {
+            return immer.finishDraft(actionResult);
+          } catch (err) {
+            console.error(actionResult);
+            console.error(action.toString());
+
+            throw err;
+          }
         }
 
-        return actionResult;
+        if (actionResult instanceof Promise) {
+          return actionResult.then(result => {
+            if (isDraft(result)) {
+              return immer.finishDraft(result);
+            }
+
+            return unpackNestedDrafts(result);
+          });
+        }
+
+        return unpackNestedDrafts(actionResult);
       });
     }
 
-    return action;
+    return unpackNestedDrafts(action);
   };
 };
+
+// @ts-expect-error
+const objPrototype = {}.__proto__;
+
+const alreadyUnpacked = new WeakSet<any>();
+function unpackNestedDrafts<T = unknown>(
+  v: T,
+): T {
+  if (
+    typeof v === "object"
+    && v != null
+    // @ts-expect-error
+    && (v.__proto__ === objPrototype || Array.isArray(v))
+  ) {
+    if (Object.isFrozen(v)) {
+      return v;
+    }
+
+    if (alreadyUnpacked.has(v)) {
+      return v;
+    }
+    alreadyUnpacked.add(v);
+
+    const keys = Object.keys(v) as Array<keyof typeof v>;
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]!;
+
+      if (isDraft(v[key])) {
+        v[key] = original(v[key])!;
+      }
+
+      v[key] = unpackNestedDrafts(v[key])!;
+    }
+  }
+
+  return v;
+}

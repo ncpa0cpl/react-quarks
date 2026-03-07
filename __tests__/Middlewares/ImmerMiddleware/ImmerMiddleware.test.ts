@@ -367,4 +367,265 @@ describe("ImmerMiddleware", () => {
       );
     });
   });
+
+  it("api.get() should not return a draft", async () => {
+    const q = quark({ foo: 1, bar: 2 }, {
+      actions: {
+        action(api) {
+          const state = api.get();
+          expect(isDraft(state)).toBe(false);
+
+          api.set((draft) => {
+            expect(isDraft(draft)).toBe(true);
+            return draft;
+          });
+        },
+        async *procedure(api) {
+          const state = api.get();
+          expect(isDraft(state)).toBe(false);
+
+          yield draft => {
+            expect(isDraft(draft)).toBe(true);
+            return draft;
+          };
+
+          return draft => {
+            expect(isDraft(draft)).toBe(true);
+            return draft;
+          };
+        },
+      },
+    });
+
+    expect.assertions(5);
+
+    q.act.action();
+    await q.act.procedure();
+  });
+
+  it("api.assign() doesn't accidentally leave drafts in the quark state", async () => {
+    const q = quark({ foo: 1, bar: 2, baz: { qux: 4 } }, {
+      actions: {
+        setBar(api, v: number) {
+          api.assign({ bar: v });
+        },
+        setQux(api, v: number) {
+          api.assign(
+            s => s.baz,
+            { qux: v },
+          );
+        },
+        async *procedure(api, v1: number, v2: number) {
+          yield api.assign({ bar: v1 });
+          yield api.assign(
+            s => s.baz,
+            { qux: v2 },
+          );
+          return s => s;
+        },
+      },
+    });
+
+    q.act.setBar(5);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().baz)).toBeFalsy();
+    expect(q.get()).toEqual({ foo: 1, bar: 5, baz: { qux: 4 } });
+
+    q.act.setQux(8);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().baz)).toBeFalsy();
+    expect(q.get()).toEqual({ foo: 1, bar: 5, baz: { qux: 8 } });
+
+    await q.act.procedure(11, 13);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().baz)).toBeFalsy();
+    expect(q.get()).toEqual({ foo: 1, bar: 11, baz: { qux: 13 } });
+
+    q.assign({ foo: 99 });
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().baz)).toBeFalsy();
+    expect(q.get()).toEqual({ foo: 99, bar: 11, baz: { qux: 13 } });
+
+    q.assign(s => s.baz, { qux: 0 });
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().baz)).toBeFalsy();
+    expect(q.get()).toEqual({ foo: 99, bar: 11, baz: { qux: 0 } });
+  });
+
+  it("putting draft sub-properties in a new new returned object get handled", () => {
+    const q = quark({
+      top: "hi",
+      list: [
+        { v: 1 },
+        { v: 2 },
+        { v: 3 },
+      ],
+      box: { value: 3, subbox: { value: 6 } },
+    }, {
+      actions: {
+        setAt(api, targetIdx: number, v: number) {
+          api.set(state => ({
+            ...state,
+            list: state.list.map((elem, idx) => {
+              if (idx === targetIdx) {
+                return { v };
+              }
+              return elem;
+            }),
+          }));
+        },
+        append(api, v: number) {
+          api.set(state => ({
+            ...state,
+            list: [...state.list, { v }],
+          }));
+        },
+        setBoxValue(api, value: number) {
+          api.set(state => ({
+            ...state,
+            box: {
+              ...state.box,
+              value,
+            },
+          }));
+        },
+      },
+    });
+
+    expect(q.get()).toEqual({
+      top: "hi",
+      list: [
+        { v: 1 },
+        { v: 2 },
+        { v: 3 },
+      ],
+      box: { value: 3, subbox: { value: 6 } },
+    });
+
+    q.act.setAt(1, 7);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().list)).toBeFalsy();
+    expect(isDraft(q.get().list[0])).toBeFalsy();
+    expect(isDraft(q.get().list[1])).toBeFalsy();
+    expect(isDraft(q.get().list[2])).toBeFalsy();
+    expect(isDraft(q.get().box)).toBeFalsy();
+    expect(isDraft(q.get().box.subbox)).toBeFalsy();
+    expect(q.get()).toEqual({
+      top: "hi",
+      list: [
+        { v: 1 },
+        { v: 7 },
+        { v: 3 },
+      ],
+      box: { value: 3, subbox: { value: 6 } },
+    });
+
+    q.act.append(13);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().list)).toBeFalsy();
+    expect(isDraft(q.get().list[0])).toBeFalsy();
+    expect(isDraft(q.get().list[1])).toBeFalsy();
+    expect(isDraft(q.get().list[2])).toBeFalsy();
+    expect(isDraft(q.get().list[3])).toBeFalsy();
+    expect(isDraft(q.get().box)).toBeFalsy();
+    expect(isDraft(q.get().box.subbox)).toBeFalsy();
+    expect(q.get()).toEqual({
+      top: "hi",
+      list: [
+        { v: 1 },
+        { v: 7 },
+        { v: 3 },
+        { v: 13 },
+      ],
+      box: { value: 3, subbox: { value: 6 } },
+    });
+
+    q.act.setBoxValue(69);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().list)).toBeFalsy();
+    expect(isDraft(q.get().list[0])).toBeFalsy();
+    expect(isDraft(q.get().list[1])).toBeFalsy();
+    expect(isDraft(q.get().list[2])).toBeFalsy();
+    expect(isDraft(q.get().list[3])).toBeFalsy();
+    expect(isDraft(q.get().box)).toBeFalsy();
+    expect(isDraft(q.get().box.subbox)).toBeFalsy();
+    expect(q.get()).toEqual({
+      top: "hi",
+      list: [
+        { v: 1 },
+        { v: 7 },
+        { v: 3 },
+        { v: 13 },
+      ],
+      box: { value: 69, subbox: { value: 6 } },
+    });
+  });
+
+  it("recursive object structures do not cause issues", () => {
+    const s = {
+      foo: {
+        value: "foo",
+        bar: {
+          value: "bar",
+          baz: {
+            value: "baz",
+            fooBox: {} as any,
+            barBox: {} as any,
+            bazBox: {} as any,
+          },
+          fooBox: {} as any,
+          barBox: {} as any,
+          bazBox: {} as any,
+        },
+        fooBox: {} as any,
+        barBox: {} as any,
+        bazBox: {} as any,
+      },
+      fooBox: {} as any,
+      barBox: {} as any,
+      bazBox: {} as any,
+    };
+
+    s.foo.bar.baz.fooBox = s;
+    s.foo.bar.baz.barBox = s.foo;
+    s.foo.bar.baz.bazBox = s.foo.bar;
+
+    s.foo.bar.fooBox = s;
+    s.foo.bar.barBox = s.foo;
+    s.foo.bar.bazBox = s.foo.bar;
+
+    s.foo.fooBox = s;
+    s.foo.barBox = s.foo;
+    s.foo.bazBox = s.foo.bar;
+
+    const q = quark(s);
+
+    const nextExpectedState = {
+      ...q.get(),
+      foo: {
+        ...q.get().foo,
+        value: "foo2",
+      },
+    };
+
+    q.set(state => ({
+      ...state,
+      foo: {
+        ...state.foo,
+        value: "foo2",
+      },
+    }));
+    expect(q.get()).toEqual(nextExpectedState);
+    expect(isDraft(q.get())).toBeFalsy();
+    expect(isDraft(q.get().foo)).toBeFalsy();
+    expect(isDraft(q.get().fooBox)).toBeFalsy();
+    expect(isDraft(q.get().bazBox)).toBeFalsy();
+    expect(isDraft(q.get().barBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.fooBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.bazBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.barBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.bar.fooBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.bar.bazBox)).toBeFalsy();
+    expect(isDraft(q.get().foo.bar.barBox)).toBeFalsy();
+  });
 });

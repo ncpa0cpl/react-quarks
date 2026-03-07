@@ -14,7 +14,7 @@ import {
 import { AtomicUpdate } from "./StateUpdates/AsyncUpdates";
 import { Immediate, Resolvable } from "./StateUpdates/Immediate";
 import { resolveUpdateType } from "./StateUpdates/ResolveUpdateType";
-import { unpackStateSetterSync } from "./StateUpdates/UnpackAction";
+import { unpackActionSync } from "./StateUpdates/UnpackAction";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -115,7 +115,7 @@ function makeProcedureAction<T>(
                 type,
                 update,
                 (action) =>
-                  unpackStateSetterSync(self, update, action, (newState) => {
+                  unpackActionSync(self, update, action, (newState) => {
                     update.update(newState!);
                   }),
               );
@@ -149,15 +149,26 @@ function createProcedureApi<T>(
       if (args.length === 2) {
         const [selector, patch] = args as [(s: any) => any, object];
         return (state: T & object) => {
+          if (isDraft(state)) {
+            const s = selector(state);
+            Object.assign(s, patch);
+            return state;
+          }
+
           return produce(state, draft => {
             const s = selector(draft);
             Object.assign(s, patch);
+            return draft;
           });
         };
       }
 
       const [patch] = args as [object];
       return (state: T & object) => {
+        if (isDraft(state)) {
+          Object.assign(state, patch);
+          return state;
+        }
         return Object.assign({ ...state as object }, patch);
       };
     },
@@ -207,12 +218,14 @@ function createActionApi<T>(
         return actionSet(current => {
           if (isDraft(current)) {
             const s = selector(current);
-            return Object.assign(s, patch);
+            Object.assign(s, patch);
+            return current;
           }
 
           const newValue = produce(current, draft => {
             const s = selector(draft);
             Object.assign(s, patch);
+            return draft;
           });
           return newValue;
         });
@@ -220,6 +233,11 @@ function createActionApi<T>(
 
       const [patch] = args as [object];
       return actionSet((state) => {
+        if (isDraft(state)) {
+          Object.assign(state as object, patch);
+          return state;
+        }
+
         const newValue = Object.assign({ ...state as object }, patch);
         return newValue as T;
       });

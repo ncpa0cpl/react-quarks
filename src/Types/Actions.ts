@@ -71,6 +71,11 @@ export interface ActionApi<T> {
    *    },
    *    setBazV(api, v: string) {
    *      api.assign(s => s.baz, { v });
+   *    },
+   *    async *procedure(api, to1: number, to2: string) {
+   *      // in procedures assign must be yielded
+   *      yield api.assign({ foo: to1 });
+   *      yield api.assign(s => s.baz, { v: to2 });
    *    }
    *  }
    * })
@@ -78,8 +83,8 @@ export interface ActionApi<T> {
   assign<S extends object>(
     select: (state: T) => S,
     patch: Partial<S>,
-  ): any | Promise<any>;
-  assign(patch: T extends object ? Partial<T> : never): any | Promise<any>;
+  ): any;
+  assign(patch: Partial<T>): any;
 }
 
 export type FunctionAction<T> = (

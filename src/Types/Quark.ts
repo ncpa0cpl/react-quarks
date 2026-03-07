@@ -224,7 +224,7 @@ export type Quark<
     select: (state: T) => S,
     patch: Partial<S>,
   ): QuarkSetResult<T>;
-  assign(patch: T extends object ? Partial<T> : never): QuarkSetResult<T>;
+  assign(patch: Partial<T>): QuarkSetResult<T>;
   /**
    * Sets the state regardless of what the current active dispatch is and will
    * not cancel any in-flight updates nor queue the update.

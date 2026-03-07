@@ -64,7 +64,7 @@ export function unpackAction<T>(
   return Immediate.resolve(onUnpack(action as T) as T);
 }
 
-export function unpackStateSetterSync<T>(
+export function unpackActionSync<T>(
   self: QuarkContext<T>,
   updater: AtomicUpdate<T>,
   action: SetStateAction<T>,
@@ -79,7 +79,7 @@ export function unpackStateSetterSync<T>(
         s,
         type,
         updater,
-        (v) => unpackStateSetterSync(self, updater, v, onUnpack),
+        (v) => unpackActionSync(self, updater, v, onUnpack),
       );
     });
   }
