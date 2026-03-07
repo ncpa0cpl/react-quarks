@@ -4,7 +4,7 @@ import { CancelUpdate } from "../CancelUpdate";
 import { applyMiddlewares, setWithMiddlewares } from "./ApplyMiddlewares";
 import { Immediate } from "./Immediate";
 import { resolveUpdateType } from "./ResolveUpdateType";
-import { unpackStateSetterSync } from "./UnpackAction";
+import { unpackActionSync } from "./UnpackAction";
 
 /**
  * Generates a function that allows for updating the state of the Quark.
@@ -57,8 +57,10 @@ export function generateSetter<T>(self: QuarkContext<T>) {
       return set((state) => {
         if (isDraft(state)) {
           const s = selector(state);
-          return Object.assign(s, patch);
+          Object.assign(s, patch);
+          return state;
         }
+
         const newValue = produce(state, draft => {
           const s = selector(draft as T);
           Object.assign(s, patch);
@@ -69,6 +71,10 @@ export function generateSetter<T>(self: QuarkContext<T>) {
 
     const [patch] = args;
     return set((state) => {
+      if (isDraft(state)) {
+        Object.assign(state as object, patch);
+        return state;
+      }
       return Object.assign({ ...state as object }, patch) as T;
     });
   };
@@ -81,7 +87,7 @@ export function generateSetter<T>(self: QuarkContext<T>) {
         resolveUpdateType(action),
         updater,
         (action2) => {
-          const result = unpackStateSetterSync(self, updater, action2, (s) => {
+          const result = unpackActionSync(self, updater, action2, (s) => {
             updater.update(s!);
           }).finally(() => {
             updater.complete();
