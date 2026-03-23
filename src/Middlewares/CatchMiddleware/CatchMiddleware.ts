@@ -1,55 +1,32 @@
-import { ProcedureGenerator, SetStateAction } from "../..";
 import { QuarkMiddleware } from "../../Types/Middlewares";
 import { CancelUpdate } from "../../Utilities/CancelUpdate";
 
-export function createCatchMiddleware<T>(params?: {
+export function createCatchMiddleware<T = any>(params?: {
   onCatch: (e: unknown) => void;
 }): QuarkMiddleware<T> {
   const onCatch = params?.onCatch ?? (() => {});
 
-  return (params) => {
-    if (params.updateType === "async-generator") {
-      const { action, resume, getState } = params;
-      resume(
-        async function*(api, ...args: any[]): ProcedureGenerator<T> {
-          try {
-            const gen = await action(api, ...args);
-
-            let next: IteratorResult<SetStateAction<T>, SetStateAction<T>>;
-            do {
-              next = await gen.next(getState());
-              if (next.done) {
-                return next.value;
-              }
-              yield next.value;
-            } while (!next.done);
-          } catch (e) {
-            onCatch(e);
-            throw new CancelUpdate();
-          }
-
-          throw new Error("unreachable");
-        },
-      );
-      return;
+  const errHandler = (err: unknown): never => {
+    if (err instanceof CancelUpdate) {
+      throw err;
     }
 
-    if (params.action instanceof Promise) {
-      params.resume(
-        params.action.catch((err) => {
-          onCatch(err);
-          throw new CancelUpdate();
-        }),
-      );
-      return;
-    }
+    onCatch(err);
+    throw new CancelUpdate();
+  };
 
-    try {
-      params.resume(params.action);
-      return;
-    } catch (e) {
-      onCatch(e);
-      throw new CancelUpdate();
-    }
+  return {
+    onFunction(ctx) {
+      return ctx.next(ctx.action).catch(errHandler);
+    },
+    onAction(ctx) {
+      return ctx.next(ctx.action).catch(errHandler);
+    },
+    onProcedure(ctx) {
+      return ctx.next(ctx.action).catch(errHandler);
+    },
+    onPromise(ctx) {
+      return ctx.next(ctx.action.catch(errHandler));
+    },
   };
 }

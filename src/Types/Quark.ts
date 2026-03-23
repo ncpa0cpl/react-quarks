@@ -1,3 +1,4 @@
+import { MdController } from "../Utilities/StateUpdates/ApplyMiddlewares";
 import { UpdateController } from "../Utilities/StateUpdates/AsyncUpdates";
 import { Resolvable } from "../Utilities/StateUpdates/Immediate";
 import type { ParseActions } from "./Actions";
@@ -43,6 +44,11 @@ export type QuarkConfigOptions = {
   mode: "cancel" | "queue" | "none";
 };
 
+type MiddlewareDef<T> = {
+  source: "own" | "global";
+  m: QuarkMiddleware<T>;
+};
+
 /**
  * @internal
  */
@@ -50,10 +56,8 @@ export type QuarkContext<T> = {
   value: T;
 
   readonly subscribers: Set<QuarkSubscriber<T>>;
-  readonly middlewares: {
-    source: "own" | "global";
-    m: QuarkMiddleware<T>;
-  }[];
+  readonly mdInfo: MiddlewareDef<T>[];
+  middleware: MdController<T>;
   readonly configOptions: QuarkConfigOptions;
 
   readonly sideEffect?: QuarkCustomEffect<T>;
@@ -64,15 +68,13 @@ export type QuarkContext<T> = {
   readonly actions: Map<Function, Function>;
 };
 
-export type DispatchFunc<T> =
-  | ((currentState: T) => T)
-  | ((currentState: T) => SetStateAction<T>);
+export type DispatchFunc<T> = (currentState: T) => SetStateAction<T>;
 
-export type SetStateAction<T> =
-  | T
-  | DispatchFunc<T>
+export type DispatchAsync<T> =
   | Promise<T>
   | Promise<SetStateAction<T>>;
+
+export type SetStateAction<T> = T | DispatchFunc<T> | DispatchAsync<T>;
 
 export type UnsafeSet<T> = (
   action: T | ((current: T) => T),

@@ -18,10 +18,10 @@ export type UpdateController<T> = {
 };
 
 export type AtomicUpdate<T> = {
-  update(action: T): void;
+  update(action: T): T | Promise<T | undefined> | undefined;
   cancel(): void;
   complete(): void;
-  queue(action: () => void): void;
+  queue<T>(action: () => T): T | Promise<T | undefined> | undefined;
   isCanceled: boolean;
   id: string;
 };
@@ -44,7 +44,7 @@ function getNextUpdaterId() {
  * @internal
  */
 export function createCancelUpdateController<T>(
-  setState: (update: AtomicUpdate<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => T | undefined,
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdate<T> | undefined;
 
@@ -82,6 +82,7 @@ export function createCancelUpdateController<T>(
               "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
             ),
           );
+          return undefined;
         };
       },
     };
@@ -103,7 +104,9 @@ export function createCancelUpdateController<T>(
       },
       cancel() {},
       complete() {
-        updater.update = () => {};
+        updater.update = () => {
+          return undefined;
+        };
       },
     };
 
@@ -148,7 +151,10 @@ function actionQueue() {
     try {
       const r = next();
       if (isResolvable(r)) {
-        r.finally(onEnd);
+        r
+          .finally(onEnd)
+          // prevent unhandled excpetion warnings
+          .catch(() => {});
       } else {
         onEnd();
       }
@@ -198,7 +204,7 @@ function actionQueue() {
  * @internal
  */
 export function createQueuedUpdateController<T>(
-  setState: (update: AtomicUpdate<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => T | undefined,
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdate<T> | undefined;
 
@@ -214,7 +220,7 @@ export function createQueuedUpdateController<T>(
         id,
         isCanceled: false,
         update(state) {
-          updater.queue(() => setState(updater, state));
+          return updater.queue(() => setState(updater, state));
         },
         queue(action) {
           if (updater.isCanceled) return;
@@ -235,6 +241,7 @@ export function createQueuedUpdateController<T>(
                 "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
               ),
             );
+            return undefined;
           };
         },
       };
@@ -258,7 +265,9 @@ export function createQueuedUpdateController<T>(
       },
       cancel() {},
       complete() {
-        updater.update = () => {};
+        updater.update = () => {
+          return undefined;
+        };
       },
     };
 
@@ -284,7 +293,7 @@ export function createQueuedUpdateController<T>(
  * @internal
  */
 export function createUnsafeUpdateController<T>(
-  setState: (update: AtomicUpdate<T>, action: T) => void,
+  setState: (update: AtomicUpdate<T>, action: T) => T | undefined,
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdate<T> | undefined;
 
@@ -298,7 +307,7 @@ export function createUnsafeUpdateController<T>(
           currentUpdate = undefined;
         }
       },
-      update(action) {
+      update(action): T | undefined {
         return setState(updater, action);
       },
       queue(action) {

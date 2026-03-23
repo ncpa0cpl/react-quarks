@@ -7,7 +7,6 @@ import {
   original,
 } from "immer";
 import { QuarkMiddleware } from "../../Types/Middlewares";
-import { isDispatchFn } from "../../Utilities/IsGenerator";
 
 export const createImmerMiddleware = (options?: {
   /**
@@ -110,21 +109,10 @@ export const createImmerMiddleware = (options?: {
     immer.setUseStrictIteration(options?.strictIteration);
   }
 
-  return (params) => {
-    params.updater;
-
-    if (params.updateType === "async-generator") {
-      return params.action;
-    }
-
-    const { action, resume } = params;
-
-    if (isDraft(action)) {
-      return immer.finishDraft(action);
-    }
-
-    if (isDispatchFn(action)) {
-      return resume((currentState: object) => {
+  return {
+    onFunction(ctx) {
+      const action = ctx.action;
+      return ctx.next(currentState => {
         if (typeof currentState !== "object" || currentState === null) {
           return action(currentState);
         }
@@ -156,9 +144,14 @@ export const createImmerMiddleware = (options?: {
 
         return unpackNestedDrafts(actionResult);
       });
-    }
-
-    return unpackNestedDrafts(action);
+    },
+    onValue(ctx) {
+      if (isDraft(ctx.action)) {
+        return ctx.next(immer.finishDraft(ctx.action));
+      } else {
+        return ctx.next(unpackNestedDrafts(ctx.action));
+      }
+    },
   };
 };
 

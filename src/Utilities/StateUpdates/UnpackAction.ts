@@ -1,9 +1,6 @@
-import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { isDispatchFn } from "../IsGenerator";
-import { applyMiddlewares } from "./ApplyMiddlewares";
-import { AtomicUpdate } from "./AsyncUpdates";
+import { DispatchAction } from "./ApplyMiddlewares";
 import { Immediate, Resolvable } from "./Immediate";
-import { resolveUpdateType } from "./ResolveUpdateType";
 
 /**
  * @internal
@@ -22,67 +19,80 @@ export type Thenable<T> = {
  *
  * @param self Quark context
  * @param updater Asynchronous updates controller
- * @param action Value dispatched as an update to be unpacked
+ * @param dispatch Value dispatched as an update to be unpacked
  * @param onUnpack callback invoked immediately after the action is resolved
  * @internal
  */
 export function unpackAction<T>(
-  self: QuarkContext<T>,
-  updater: AtomicUpdate<T>,
-  action: SetStateAction<T>,
-  onUnpack: (action: T) => T | void,
-): Resolvable<T | void> {
-  if (action instanceof Promise) {
-    return action
-      .then((state) => {
-        const type = resolveUpdateType(state);
-        return applyMiddlewares(
-          self,
-          state,
-          type,
-          updater,
-          (v) => unpackAction(self, updater, v, onUnpack),
-        );
-      });
-  }
-
-  if (isDispatchFn<T>(action)) {
-    return Immediate.from(() => {
-      const s = action(self.value);
-
-      const type = resolveUpdateType(s);
-      return applyMiddlewares(
-        self,
-        s,
-        type,
-        updater,
-        (v) => unpackAction(self, updater, v, onUnpack),
+  dispatch: DispatchAction<T, any>,
+  onUnpack: (action: T) => T | undefined | Promise<T | undefined>,
+): Resolvable<T | undefined> {
+  try {
+    if (dispatch.action instanceof Promise) {
+      return dispatch._middleware.applyPromise(
+        dispatch,
+        (d) => {
+          return d.action.then(next => {
+            dispatch.action = next;
+            return unpackAction(dispatch, onUnpack);
+          });
+        },
       );
-    });
-  }
+    }
 
-  return Immediate.resolve(onUnpack(action as T) as T);
+    if (isDispatchFn<T>(dispatch.action)) {
+      return dispatch._middleware.applyFunction(
+        dispatch,
+        (d) => {
+          try {
+            const s = d.action(dispatch._q.value);
+            dispatch.action = s;
+            return unpackAction(dispatch, onUnpack);
+          } catch (err) {
+            return Immediate.reject(err);
+          }
+        },
+      );
+    }
+
+    return dispatch._middleware.applyValue(
+      dispatch,
+      () => {
+        const result = onUnpack(dispatch.action as T);
+        if (result instanceof Promise) return result;
+        return Immediate.resolve(result as T);
+      },
+    );
+  } catch (err) {
+    return Immediate.reject(err);
+  }
 }
 
 export function unpackActionSync<T>(
-  self: QuarkContext<T>,
-  updater: AtomicUpdate<T>,
-  action: SetStateAction<T>,
-  onUnpack: (action: T | void) => T | void,
-): Resolvable<T> {
-  if (isDispatchFn<T>(action)) {
-    return Immediate.from(() => {
-      const s = action(self.value);
-      const type = resolveUpdateType(s);
-      return applyMiddlewares(
-        self,
-        s,
-        type,
-        updater,
-        (v) => unpackActionSync(self, updater, v, onUnpack),
+  dispatch: DispatchAction<T, any>,
+  onUnpack: (action: T) => T | undefined | Promise<T | undefined>,
+): Resolvable<T | undefined> {
+  try {
+    if (isDispatchFn<T>(dispatch.action)) {
+      return dispatch._middleware.applyFunction(
+        dispatch,
+        (d) => {
+          const s = d.action(dispatch._q.value);
+          dispatch.action = s;
+          return unpackAction(dispatch, onUnpack);
+        },
       );
-    });
-  }
+    }
 
-  return Immediate.resolve(onUnpack(action as T) as T);
+    return dispatch._middleware.applyValue(
+      dispatch,
+      () => {
+        const result = onUnpack(dispatch.action as T);
+        if (result instanceof Promise) return result;
+        return Immediate.resolve(result as T);
+      },
+    );
+  } catch (err) {
+    return Immediate.reject(err);
+  }
 }

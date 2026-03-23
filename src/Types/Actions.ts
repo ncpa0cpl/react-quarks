@@ -1,4 +1,4 @@
-import { GeneratorAction, ProcedureGenerator } from "./Procedures";
+import { ProcedureAction, ProcedureGenerator } from "./Procedures";
 import type { SetStateAction } from "./Quark";
 import type {
   FinalReturnType as ResolvedAction,
@@ -96,7 +96,7 @@ export type FunctionAction<T> = (
 
 export type QAction<T> =
   | FunctionAction<T>
-  | GeneratorAction<T>;
+  | ProcedureAction<T>;
 
 export type QuarkActions<T> = Record<string, QAction<T>>;
 

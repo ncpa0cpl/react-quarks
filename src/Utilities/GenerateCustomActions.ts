@@ -1,5 +1,5 @@
 import { isDraft, produce } from "immer";
-import { CancelUpdate, FunctionAction, GeneratorAction } from "..";
+import { CancelUpdate, FunctionAction, ProcedureAction } from "..";
 import {
   ActionApi,
   ParseActions,
@@ -8,12 +8,11 @@ import {
 } from "../Types/Actions";
 import { QuarkContext, SetStateAction, UnsafeSet } from "../Types/Quark";
 import {
-  applyMiddlewares,
+  DispatchAction,
   setWithMiddlewares,
 } from "./StateUpdates/ApplyMiddlewares";
 import { AtomicUpdate } from "./StateUpdates/AsyncUpdates";
 import { Immediate, Resolvable } from "./StateUpdates/Immediate";
-import { resolveUpdateType } from "./StateUpdates/ResolveUpdateType";
 import { unpackActionSync } from "./StateUpdates/UnpackAction";
 
 /**
@@ -70,67 +69,87 @@ function makeBasicAction<T>(
 ) {
   return (...args: any[]) =>
     self.updateController.atomicUpdate(update =>
-      after(
-        () => {
-          const { api, flush } = createActionApi(self, update, unsafeSet);
-          const result = action(api, ...args);
-          return flush(result);
-        },
-        () => update.complete(),
-      )
+      finalizeAction(update, () => {
+        const dispatch = new DispatchAction<T, any>(
+          self,
+          update,
+          "function",
+          self.middleware,
+          action,
+        );
+        return self.middleware.applyAction(
+          dispatch,
+          (d) => {
+            try {
+              const action = d.action;
+              const { api, flush, result } = createActionApi(
+                self,
+                update,
+                unsafeSet,
+              );
+              const f = flush(action(api, ...args));
+              return f.then(() => result());
+            } catch (err) {
+              return Immediate.reject(err);
+            }
+          },
+        );
+      })
     );
 }
 
 function makeProcedureAction<T>(
   self: QuarkContext<T>,
   unsafeSet: UnsafeSet<T>,
-  action: GeneratorAction<T>,
+  action: ProcedureAction<T>,
 ) {
   return (...args: any[]) =>
-    self.updateController.atomicUpdate(update => {
-      const { api } = createProcedureApi(self, update, unsafeSet);
+    self.updateController.atomicUpdate(update =>
+      finalizeAction(update, () => {
+        const dispatch = new DispatchAction<T, any>(
+          self,
+          update,
+          "function",
+          self.middleware,
+          action,
+        );
 
-      return applyMiddlewares(
-        self,
-        action,
-        "async-generator",
-        update,
-        async action => {
-          try {
-            const generator = action(api, ...args);
-            let nextUp: IteratorResult<SetStateAction<T>, SetStateAction<T>>;
-            do {
-              if (update.isCanceled) {
-                await generator.throw(new CancelUpdate());
-                break;
-              }
+        const result = self.middleware.applyProcedure(
+          dispatch,
+          async (d) => {
+            let result: T | undefined;
+            const action = d.action;
+            try {
+              const { api } = createProcedureApi(self, update, unsafeSet);
+              const generator = action(api, ...args);
+              let nextUp: IteratorResult<
+                SetStateAction<T>,
+                SetStateAction<T>
+              >;
+              do {
+                if (update.isCanceled) {
+                  await generator.throw(new CancelUpdate());
+                  break;
+                }
 
-              nextUp = await generator.next(self.value);
-              const v = nextUp.value;
+                nextUp = await generator.next(self.value);
+                dispatch.action = nextUp.value;
 
-              const type = resolveUpdateType(v);
-              applyMiddlewares(
-                self,
-                v,
-                type,
-                update,
-                (action) =>
-                  unpackActionSync(self, update, action, (newState) => {
-                    update.update(newState!);
-                  }),
-              );
-            } while (!nextUp.done);
-          } catch (err) {
-            if (CancelUpdate.isCancel(err)) {
-              return;
+                result = await unpackActionSync(dispatch, (next) => {
+                  return update.update(next!);
+                });
+              } while (!nextUp.done);
+
+              return Immediate.resolve(result ?? undefined);
+            } finally {
+              update.complete();
             }
-            throw err;
-          } finally {
-            update.complete();
-          }
-        },
-      );
-    });
+          },
+        );
+
+        return result;
+      })
+    );
 }
 
 function createProcedureApi<T>(
@@ -193,11 +212,17 @@ function createActionApi<T>(
   self: QuarkContext<T>,
   update: AtomicUpdate<T>,
   unsafeSet: UnsafeSet<T>,
-): { api: ActionApi<T>; flush<R>(then: R): Resolvable<R> } {
+): {
+  api: ActionApi<T>;
+  flush<R>(then: R): Resolvable<R>;
+  result(): Resolvable<T | undefined>;
+} {
   const pending: Promise<any>[] = [];
+  let result: Resolvable<T | undefined> | undefined;
 
   const actionSet = (action: SetStateAction<T>) => {
     const r = setWithMiddlewares(self, action, update);
+    result = r;
     if (r instanceof Promise) {
       pending.push(r);
     } else if (r instanceof Immediate) {
@@ -258,6 +283,9 @@ function createActionApi<T>(
 
   return {
     api,
+    result() {
+      return result ?? Immediate.resolve(undefined);
+    },
     flush(r) {
       if (r instanceof Promise) {
         return r.then((v) => {
@@ -275,18 +303,41 @@ function createActionApi<T>(
   };
 }
 
-function after<T>(fn: () => T, doAfter: () => void): T {
+function finalizeAction<T>(
+  update: AtomicUpdate<T>,
+  fn: () => T | undefined | Resolvable<T | undefined>,
+): T | undefined | Promise<T | undefined> {
   let isAsync = false;
+
+  const doAfter = () => {
+    update.complete();
+  };
 
   try {
     const result = fn();
     if (result instanceof Promise) {
       isAsync = true;
-      result
-        .finally(doAfter)
-        .catch(() => {});
+
+      return result
+        .catch(err => {
+          if (CancelUpdate.isCancel(err)) {
+            return undefined;
+          }
+          throw err;
+        })
+        .finally(doAfter);
     }
-    return result;
+
+    if (result instanceof Immediate) {
+      return Immediate.unpack(result as Immediate<T | undefined>);
+    }
+
+    return result as T | undefined;
+  } catch (err) {
+    if (CancelUpdate.isCancel(err)) {
+      return undefined;
+    }
+    throw err;
   } finally {
     if (!isAsync) doAfter();
   }
@@ -294,5 +345,5 @@ function after<T>(fn: () => T, doAfter: () => void): T {
 
 const isGeneratorFunction = <T>(
   v: QAction<T>,
-): v is GeneratorAction<T> =>
+): v is ProcedureAction<T> =>
   Object.prototype.toString.call(v) === "[object AsyncGeneratorFunction]";

@@ -1,5 +1,5 @@
 import { QuarkContext } from "../../Types/Quark";
-import { applyMiddlewares } from "./ApplyMiddlewares";
+import { DispatchAction } from "./ApplyMiddlewares";
 import { AtomicUpdate } from "./AsyncUpdates";
 import { resolveUpdateType } from "./ResolveUpdateType";
 import { unpackAction } from "./UnpackAction";
@@ -46,16 +46,18 @@ export function processStateUpdate<T>(params: {
           self.value,
           action => {
             const type = resolveUpdateType(action);
-            const p = applyMiddlewares(
+            const dispatch = new DispatchAction<T, any>(
               self,
-              action,
-              type,
               update,
-              (action2) =>
-                unpackAction(self, update, action2, (s) => {
-                  self.value = s;
-                }),
+              type,
+              self.middleware,
+              action,
             );
+
+            const p = unpackAction(dispatch, (s) => {
+              self.value = s;
+              return self.value;
+            });
 
             if (p instanceof Promise) {
               effectPromises.push(p);

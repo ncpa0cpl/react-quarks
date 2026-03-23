@@ -160,16 +160,14 @@ describe("quark()", () => {
     });
     describe("correctly handles middlewares", () => {
       it("middleware correctly intercepts the values set", () => {
-        const mapMiddleware: QuarkMiddleware<any> = ({
-          resume,
-          action,
-          updateType,
-        }) => {
-          if (updateType !== "async-generator" && typeof action === "number") {
-            resume({ 1: "BAR", 2: "BAZ" }[action]);
-          } else {
-            resume(action);
-          }
+        const mapMiddleware: QuarkMiddleware<string> = {
+          onValue(ctx) {
+            if (typeof ctx.action === "number") {
+              return ctx.next({ 1: "BAR", 2: "BAZ" }[ctx.action]!);
+            } else {
+              return ctx.skip();
+            }
+          },
         };
 
         const q = quark("FOO", { middlewares: [mapMiddleware] });
@@ -184,33 +182,20 @@ describe("quark()", () => {
         expect(q.get()).toEqual("QUX");
       });
       it("resume() correctly pipes results from one middleware to the next", () => {
-        const multiplyMiddleware: QuarkMiddleware<any> = ({
-          action,
-          resume,
-          updateType,
-        }) => {
-          if (updateType !== "async-generator" && typeof action === "number") {
-            return resume(action * 2);
-          }
-          resume(action);
+        const multiplyMiddleware: QuarkMiddleware<number> = {
+          onValue(ctx) {
+            return ctx.next(ctx.action * 2);
+          },
         };
-        const subtractMiddleware: QuarkMiddleware<any> = ({
-          action,
-          resume,
-          updateType,
-        }) => {
-          if (updateType !== "async-generator" && typeof action === "number") {
-            resume(action - 1);
-          } else resume(action);
+        const subtractMiddleware: QuarkMiddleware<number> = {
+          onValue(ctx) {
+            return ctx.next(ctx.action - 1);
+          },
         };
-        const squareMiddleware: QuarkMiddleware<any> = ({
-          action,
-          resume,
-          updateType,
-        }) => {
-          if (updateType !== "async-generator" && typeof action === "number") {
-            resume(action ** 2);
-          } else resume(action);
+        const squareMiddleware: QuarkMiddleware<number> = {
+          onValue(ctx) {
+            return ctx.next(ctx.action ** 2);
+          },
         };
 
         const q = quark(0, {
@@ -227,9 +212,11 @@ describe("quark()", () => {
       });
       it("global middlewares added after quark was created take effect", () => {
         const interceptedActions: any[] = [];
-        const logMd = middleware(ctx => {
-          interceptedActions.push(ctx.action);
-          return ctx.action;
+        const logMd = middleware({
+          onValue(ctx) {
+            interceptedActions.push(ctx.action);
+            return ctx.skip();
+          },
         });
 
         const q = quark({ foo: 1 });
@@ -990,7 +977,7 @@ describe("quark()", () => {
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
       });
-      it("correctly handles unsafeSet with setter function", async () => {
+      it("foobar correctly handles unsafeSet with setter function", async () => {
         const p = controlledPromise<{ value: number }>();
 
         const q = quark(
@@ -2337,7 +2324,6 @@ describe("quark()", () => {
         });
 
         await state.waitFor(() => {
-          console.log({ quark: q.get(), hook: state.result.current });
           expect(state.result.current).toBe("c");
         });
         expect(renderCount).toBe(initialRenderCount + 1);
@@ -3614,14 +3600,13 @@ describe("quark()", () => {
     });
 
     it("middleware correctly intercepts the values set in queue mode", async () => {
-      const mapMiddleware = middleware<{ value: number }>((ctx) => {
-        const { action, resume } = ctx;
-        if (typeof action === "object") {
-          // @ts-ignore
-          resume({ ...action, value: action.value * 2 });
-        }
-
-        return action;
+      const mapMiddleware = middleware<{ value: number }>({
+        onValue(ctx) {
+          if (typeof ctx.action === "object") {
+            return ctx.next({ ...ctx.action, value: ctx.action.value * 2 });
+          }
+          return ctx.skip();
+        },
       });
 
       const q = quark({ value: 1 }, {
