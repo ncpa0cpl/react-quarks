@@ -231,6 +231,61 @@ describe("CatchMiddleware", () => {
 
   describe("should fail when any errors are thrown without the middleware", () => {
     describe("outside react", () => {
+      it("for actions", () => {
+        const q = quark("", {
+          actions: {
+            action() {
+              throw new Error("in action");
+            },
+          },
+        });
+
+        expect(() => q.act.action()).toThrow(new Error("in action"));
+      });
+
+      it("for action functions", () => {
+        const q = quark("", {
+          actions: {
+            action(api) {
+              api.set(() => {
+                throw new Error("in actions func");
+              });
+            },
+          },
+        });
+
+        expect(() => q.act.action()).toThrow(new Error("in actions func"));
+      });
+
+      it("for async actions", async () => {
+        const q = quark("", {
+          actions: {
+            async action() {
+              await sleep(5);
+              throw new Error("in action");
+            },
+          },
+        });
+
+        await expect(q.act.action()).rejects.toEqual(new Error("in action"));
+      });
+
+      it("for async action functions", async () => {
+        const q = quark("", {
+          actions: {
+            async action(api) {
+              await api.set(async () => {
+                await sleep(5);
+                throw new Error("in actions func");
+              });
+            },
+          },
+        });
+
+        await expect(q.act.action()).rejects.toEqual(
+          new Error("in actions func"),
+        );
+      });
       it("for generators", () => {
         const q = quark("");
 
@@ -287,6 +342,84 @@ describe("CatchMiddleware", () => {
 
   describe("should catch any errors thrown", () => {
     describe("outside react", () => {
+      it("for actions", () => {
+        const q = quark("", {
+          actions: {
+            action() {
+              throw new Error("in action");
+            },
+          },
+          middlewares: [catchMiddleware],
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.act.action()).not.toThrow();
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith(new Error("in action"));
+      });
+
+      it("for action functions", () => {
+        const q = quark("", {
+          actions: {
+            action(api) {
+              api.set(() => {
+                throw new Error("in actions func");
+              });
+            },
+          },
+          middlewares: [catchMiddleware],
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        expect(() => q.act.action()).not.toThrow();
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith(new Error("in actions func"));
+      });
+
+      it("for async actions", async () => {
+        const q = quark("", {
+          actions: {
+            async action() {
+              await sleep(5);
+              throw new Error("in action");
+            },
+          },
+          middlewares: [catchMiddleware],
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        await expect(q.act.action()).resolves.toBeUndefined();
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith(new Error("in action"));
+      });
+
+      it("for async action functions", async () => {
+        const q = quark("", {
+          actions: {
+            async action(api) {
+              await api.set(async () => {
+                await sleep(5);
+                throw new Error("in actions func");
+              });
+            },
+          },
+          middlewares: [catchMiddleware],
+        });
+
+        expect(onCatchMock).toBeCalledTimes(0);
+
+        await expect(q.act.action()).resolves.toBeUndefined();
+
+        expect(onCatchMock).toBeCalledTimes(1);
+        expect(onCatchMock).toBeCalledWith(new Error("in actions func"));
+      });
+
       it("for generators", () => {
         const q = quark("", { middlewares: [catchMiddleware] });
 
@@ -338,7 +471,8 @@ describe("CatchMiddleware", () => {
 
         expect(onCatchMock).toBeCalledTimes(0);
 
-        await expect(q.act.procedureA()).resolves.toBeUndefined();
+        const p = q.act.procedureA();
+        await expect(p).resolves.toBeUndefined();
 
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("baz");

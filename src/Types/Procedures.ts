@@ -10,7 +10,7 @@ export type ProcedureGenerator<T> = AsyncGenerator<
   T
 >;
 
-export type GeneratorAction<T> = (
+export type ProcedureAction<T> = (
   api: ActionApi<T>,
   ...args: any[]
 ) => ProcedureGenerator<T>;
@@ -29,5 +29,5 @@ export type ParseProcedures<A> = A extends object
   : Record<never, never>;
 
 export type InitiateProcedureFn<T> = (
-  p: GeneratorAction<T>,
+  p: ProcedureAction<T>,
 ) => void;

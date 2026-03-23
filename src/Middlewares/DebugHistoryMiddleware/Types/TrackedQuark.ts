@@ -1,18 +1,25 @@
 export type HistoricalState = {
   value: unknown;
-  type: "Promise" | "Function" | "Value" | "AsyncGenerator";
+  type:
+    | "Value"
+    | "Promise"
+    | "Function"
+    | "Action"
+    | "Procedure";
 };
 
 export type DispatchSource =
-  | "Sync-Dispatch"
-  | "Async-Dispatch"
-  | "Function-Dispatch"
-  | "Async-Generator-Dispatch";
+  | "Sync"
+  | "Promise"
+  | "Function"
+  | "Action"
+  | "Procedure";
 
 export type QuarkStateChangeHistoricalEntry = {
   updateID: string;
   time: number;
   source: DispatchSource;
+  phase: DispatchSource;
   initialState: HistoricalState;
   dispatchedUpdate: HistoricalState;
   stackTrace: string | undefined;

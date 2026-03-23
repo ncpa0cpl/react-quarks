@@ -12,11 +12,8 @@ import { generateUseHook } from "./Utilities/GenerateUseHook";
 import { GlobalMiddlewareController } from "./Utilities/GlobalMiddlewares";
 import { isUpdateNecessary } from "./Utilities/IsUpdateNecessary";
 import { registerQuark } from "./Utilities/QuarksCollection";
-import { applyMiddlewares } from "./Utilities/StateUpdates/ApplyMiddlewares";
 import { createUpdateController } from "./Utilities/StateUpdates/AsyncUpdates";
 import { generateSetter } from "./Utilities/StateUpdates/GenerateSetter";
-import { Immediate } from "./Utilities/StateUpdates/Immediate";
-import { unpackAction } from "./Utilities/StateUpdates/UnpackAction";
 
 /**
  * Creates a new quark object.
@@ -37,7 +34,8 @@ export function quark<
   const self: QuarkContext<T> = {
     value: initValue,
     subscribers: new Set(),
-    middlewares: (config.middlewares ?? []).map(m => ({ m, source: "own" })),
+    mdInfo: (config.middlewares ?? []).map(m => ({ m, source: "own" })),
+    middleware: null as any,
     sideEffect: config.effect as any,
     configOptions: {
       mode: config.mode ?? "queue",
@@ -51,9 +49,8 @@ export function quark<
     updateController: null as any,
   };
 
-  self.updateController = createUpdateController<T>(self);
-
   GlobalMiddlewareController.registerQuark(self);
+  self.updateController = createUpdateController<T>(self);
 
   const {
     set,
@@ -108,24 +105,7 @@ export function quark<
     registerQuark(config.name, self);
   }
 
-  self.updateController.atomicUpdate((updater) => {
-    const r = applyMiddlewares(
-      self,
-      initValue,
-      "sync",
-      updater,
-      (action) =>
-        unpackAction(self, updater, action, (s) => {
-          return updater.update(s!);
-        }),
-    ).finally(() => {
-      updater.complete();
-    });
-
-    if (r instanceof Immediate) {
-      Immediate.unpack(r);
-    }
-  });
+  set(initValue);
 
   return quark as any;
 }

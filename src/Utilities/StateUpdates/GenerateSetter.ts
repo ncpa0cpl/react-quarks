@@ -1,10 +1,8 @@
 import { isDraft, produce } from "immer";
 import { QuarkContext, SetStateAction } from "../../Types/Quark";
 import { CancelUpdate } from "../CancelUpdate";
-import { applyMiddlewares, setWithMiddlewares } from "./ApplyMiddlewares";
+import { setWithMiddlewares } from "./ApplyMiddlewares";
 import { Immediate } from "./Immediate";
-import { resolveUpdateType } from "./ResolveUpdateType";
-import { unpackActionSync } from "./UnpackAction";
 
 /**
  * Generates a function that allows for updating the state of the Quark.
@@ -20,7 +18,7 @@ import { unpackActionSync } from "./UnpackAction";
 export function generateSetter<T>(self: QuarkContext<T>) {
   const onErr = (e: unknown) => {
     if (CancelUpdate.isCancel(e)) {
-      return;
+      return undefined;
     }
     throw e;
   };
@@ -81,25 +79,17 @@ export function generateSetter<T>(self: QuarkContext<T>) {
 
   const unsafeSet = (action: T | ((current: T) => T)) => {
     return self.updateController.unsafeUpdate(updater => {
-      return applyMiddlewares(
-        self,
-        action,
-        resolveUpdateType(action),
-        updater,
-        (action2) => {
-          const result = unpackActionSync(self, updater, action2, (s) => {
-            updater.update(s!);
-          }).finally(() => {
-            updater.complete();
-          });
+      const result = setWithMiddlewares(self, action, updater)
+        .catch(onErr)
+        .finally(() => {
+          updater.complete();
+        });
 
-          if (result instanceof Immediate) {
-            return Immediate.unpack(result);
-          }
+      if (result instanceof Immediate) {
+        return Immediate.unpack(result);
+      }
 
-          return result;
-        },
-      );
+      return result;
     });
   };
 
