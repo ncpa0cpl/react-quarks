@@ -1,5 +1,5 @@
 import { ProcedureAction, QuarkMiddleware } from "../..";
-import { FunctionAction, QAction } from "../../Types/Actions";
+import { FunctionAction } from "../../Types/Actions";
 import {
   DispatchAsync,
   DispatchFunc,
@@ -40,6 +40,9 @@ export class DispatchAction<T, Action> {
   _metadata = new Map<string, Record<string, any>>();
 
   /** @internal */
+  _actionName?: string;
+
+  /** @internal */
   public _onNext!: (action: Action) => Resolvable<T | undefined>;
 
   constructor(
@@ -51,10 +54,21 @@ export class DispatchAction<T, Action> {
     public _origin: QuarkUpdateType,
     /** @internal */
     public _middleware: MdController<T>,
+    /**
+     * Current action being dispatched, this value can change if
+     * any middleware provides a different action to the next() method.
+     */
     public action: Action,
   ) {
   }
 
+  /**
+   * Returns a object the middlewares can use to store metadata about the dispatch.
+   *
+   * @example
+   * const meta = dispatch.meta("MyMiddleware");
+   * meta["somedata"] = "";
+   */
   meta<M extends Record<string, any> = Record<string, any>>(mdkey: string): M {
     let o = this._metadata.get(mdkey);
     if (o != null) return o as M;
@@ -64,34 +78,49 @@ export class DispatchAction<T, Action> {
     return o as M;
   }
 
+  /** Returns the current value of the Quark. */
   get(): T {
     return this._q.value;
   }
 
+  /** Sets the quark value bypassing middlewares. */
   set(value: T) {
     this._update.update(value);
   }
 
+  /**
+   * Return the AtomicUpdate interface that is resposible for scheduling
+   * dispatches or cancelling them. (depending on the mode)
+   */
   update(): AtomicUpdate<T> {
     return this._update;
   }
 
+  /**
+   * Passes the action over to the next middleware, or to the Quark to complete the dispatch.
+   */
   next(action: Action) {
     return this._onNext(action);
   }
 
+  /** Alias for `dispatch.next(dispatch.action)` */
   skip() {
     return this.next(this.action);
   }
 
+  /** A string indicating where the dispatch originated from. */
   origin(): QuarkUpdateType {
     return this._origin;
+  }
+
+  /** Only defined for named actions and procedures. This is the name of the action function. */
+  actionName() {
+    return this._actionName;
   }
 }
 
 export class MdController<T> {
   constructor(
-    private _q: QuarkContext<T>,
     private mdValue: Array<QuarkMiddleware<T>>,
     private mdPromise: Array<QuarkMiddleware<T>>,
     private mdFunction: Array<QuarkMiddleware<T>>,

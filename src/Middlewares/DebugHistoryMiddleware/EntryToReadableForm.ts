@@ -18,6 +18,7 @@ const PROPERTIES_FRIENDLY_NAMES_MAP: Record<HistoryPropertiesKeys, string> = {
   stackTrace: "Stack Trace:",
   time: "Timestamp:",
   isCanceled: "Canceled:",
+  phase: "Phase:",
 };
 
 const columns: HistoryPropertiesKeys[] = [

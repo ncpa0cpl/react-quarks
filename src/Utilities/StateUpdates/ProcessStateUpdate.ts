@@ -30,10 +30,11 @@ function notifySubscribers<T>(
 export function processStateUpdate<T>(params: {
   self: QuarkContext<T>;
   previousState: T;
+  actionState: T;
   update: AtomicUpdate<T>;
   debounceEvent: (eventAction: () => void) => void;
 }) {
-  const { previousState, self, update, debounceEvent } = params;
+  const { previousState, self, update, debounceEvent, actionState } = params;
 
   const shouldUpdate = self.stateComparator(self.value, previousState);
 
@@ -71,10 +72,12 @@ export function processStateUpdate<T>(params: {
       if (effectPromises.length > 0) {
         return Promise.all(effectPromises).finally(() => {
           notifySubscribers(self, debounceEvent);
-        });
+        }).then(() => actionState);
       } else {
         notifySubscribers(self, debounceEvent);
       }
     }
   }
+
+  return actionState;
 }
