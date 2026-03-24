@@ -100,6 +100,10 @@ export class Immediate<T = void> implements Resolvable<T> {
   }
 
   static reject(e: any): Immediate<any> {
+    if (e instanceof Immediate && e.error != null) {
+      return e;
+    }
+
     const r = Object.create(Immediate.prototype);
     r.error = e;
     r.success = false;

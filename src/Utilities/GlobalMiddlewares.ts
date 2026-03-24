@@ -16,7 +16,6 @@ export class GlobalMiddlewareController {
     const mdProcedure = qmds.filter(m => "onProcedure" in m) ?? [];
 
     q.middleware = new MdController(
-      q,
       mdValue,
       mdPromise,
       mdFunction,

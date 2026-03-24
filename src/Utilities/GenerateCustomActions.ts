@@ -35,7 +35,7 @@ export function generateCustomActions<T, A extends QuarkActions<T>>(
     Object.entries(actionsObj).map(([name, impl]) => {
       impl = impl.bind(actionsObj);
       actionsObj[name as keyof A] = impl as any;
-      const action = makeAction(self, unsafeSet, impl);
+      const action = makeAction(self, unsafeSet, impl, name);
       return [name, action];
     }),
   ) as unknown as ParseActions<A>;
@@ -45,6 +45,7 @@ function makeAction<T>(
   self: QuarkContext<T>,
   unsafeSet: UnsafeSet<T>,
   action: QAction<T>,
+  name: string | undefined,
 ) {
   const preparedAction = self.actions.get(action);
   if (preparedAction) {
@@ -52,11 +53,11 @@ function makeAction<T>(
   }
 
   if (isGeneratorFunction(action)) {
-    const prepared = makeProcedureAction(self, unsafeSet, action);
+    const prepared = makeProcedureAction(self, unsafeSet, action, name);
     self.actions.set(action, prepared);
     return prepared;
   } else {
-    const prepared = makeBasicAction(self, unsafeSet, action);
+    const prepared = makeBasicAction(self, unsafeSet, action, name);
     self.actions.set(action, prepared);
     return prepared;
   }
@@ -66,6 +67,7 @@ function makeBasicAction<T>(
   self: QuarkContext<T>,
   unsafeSet: UnsafeSet<T>,
   action: FunctionAction<T>,
+  name: string | undefined,
 ) {
   return (...args: any[]) =>
     self.updateController.atomicUpdate(update =>
@@ -77,6 +79,8 @@ function makeBasicAction<T>(
           self.middleware,
           action,
         );
+        dispatch._actionName = name;
+
         return self.middleware.applyAction(
           dispatch,
           (d) => {
@@ -102,6 +106,7 @@ function makeProcedureAction<T>(
   self: QuarkContext<T>,
   unsafeSet: UnsafeSet<T>,
   action: ProcedureAction<T>,
+  name: string | undefined,
 ) {
   return (...args: any[]) =>
     self.updateController.atomicUpdate(update =>
@@ -113,6 +118,7 @@ function makeProcedureAction<T>(
           self.middleware,
           action,
         );
+        dispatch._actionName = name;
 
         const result = self.middleware.applyProcedure(
           dispatch,
@@ -198,7 +204,7 @@ function createProcedureApi<T>(
       action: QAction<T>,
       ...args: any[]
     ) {
-      return makeAction(self, unsafeSet, action)(...args);
+      return makeAction(self, unsafeSet, action, undefined)(...args);
     },
     isCanceled() {
       return update.isCanceled;
@@ -274,7 +280,7 @@ function createActionApi<T>(
       action: QAction<T>,
       ...args: any[]
     ) {
-      return makeAction(self, unsafeSet, action)(...args);
+      return makeAction(self, unsafeSet, action, undefined)(...args);
     },
     isCanceled() {
       return update.isCanceled;

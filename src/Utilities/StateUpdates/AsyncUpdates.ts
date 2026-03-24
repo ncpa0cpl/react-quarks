@@ -338,6 +338,7 @@ export function createUpdateController<T>(
     return processStateUpdate({
       self,
       previousState,
+      actionState: action,
       update,
       debounceEvent,
     });

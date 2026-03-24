@@ -4181,14 +4181,14 @@ describe("quark()", () => {
         expect(q.get()).toEqual({ inProgress: true, value: 0 });
 
         await act(async () => {
-          p1.resolve({ value: 10 });
+          await p1.resolve({ value: 10 });
           await sleep(0);
         });
 
         expect(q.get()).toEqual({ inProgress: true, value: 10 });
 
         await act(async () => {
-          p2.resolve({ value: 20 });
+          await p2.resolve({ value: 20 });
           await sleep(0);
         });
 
