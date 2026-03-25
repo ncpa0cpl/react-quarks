@@ -28,7 +28,7 @@ export const registerQuark = (
 export const serializeQuarks = () => {
   // obfuscate module name, so the compiler won't try to include this module in browser bundle
   const serializeJavascriptMdouleName = ["serialize", "javascript"].join("-");
-  // eslint-disable-next-line
+  // @ts-expect-error
   const serialize: typeof serializejs = require(serializeJavascriptMdouleName);
   return JSON.stringify(
     serialize(

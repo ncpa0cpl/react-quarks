@@ -1,3 +1,5 @@
+declare const global: any;
+
 export function addToGlobalSpace(o: object) {
   if (typeof window !== "undefined") {
     Object.assign(window, o);
