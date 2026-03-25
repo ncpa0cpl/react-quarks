@@ -103,12 +103,18 @@ export type QuarkGetterFn<T> = () => T;
 /**
  * Update type indicates where the update originates from.
  *
- * - `sync` - the update originates from a synchronous call to the `set(value)` method.
- * - `async` - the update originates from an asynchronous call to the `set(Promise<value>)` method.
- * - `async-generator` - the update originates from an asynchronous procedure.
- * - `function` - the update originates from a function call `set(() => value)`.
+ * - `value` - the update originates from a set() call with a value as the argument.
+ * - `promise` - the update originates from a set() call with a promise as the argument.
+ * - `function` - the update originates from a set() call with a function as the argument.
+ * - `action` - the update originates from a call to one of the Quark actions.
+ * - `procedure` - the update originates from a call to one of the Quark procedures.
  */
-export type QuarkUpdateType = "sync" | "async" | "async-generator" | "function";
+export type DispatchSource =
+  | "value"
+  | "promise"
+  | "function"
+  | "action"
+  | "procedure";
 
 export type QuarkSetResult<V extends SetStateAction<any>> =
   FinalReturnType<V> extends Promise<any> ? Promise<void>
