@@ -70,9 +70,11 @@ export function processStateUpdate<T>(params: {
       }
     } finally {
       if (effectPromises.length > 0) {
-        return Promise.all(effectPromises).finally(() => {
-          notifySubscribers(self, debounceEvent);
-        }).then(() => actionState);
+        return Promise.all(effectPromises)
+          .then(() => actionState)
+          .finally(() => {
+            notifySubscribers(self, debounceEvent);
+          });
       } else {
         notifySubscribers(self, debounceEvent);
       }
