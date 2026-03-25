@@ -1,19 +1,9 @@
+import { DispatchSource } from "../../../Types/Quark";
+
 export type HistoricalState = {
   value: unknown;
-  type:
-    | "Value"
-    | "Promise"
-    | "Function"
-    | "Action"
-    | "Procedure";
+  type: DispatchSource;
 };
-
-export type DispatchSource =
-  | "Sync"
-  | "Promise"
-  | "Function"
-  | "Action"
-  | "Procedure";
 
 export type QuarkStateChangeHistoricalEntry = {
   updateID: string;

@@ -75,7 +75,7 @@ function makeBasicAction<T>(
         const dispatch = new DispatchAction<T, any>(
           self,
           update,
-          "function",
+          "action",
           self.middleware,
           action,
         );
@@ -114,7 +114,7 @@ function makeProcedureAction<T>(
         const dispatch = new DispatchAction<T, any>(
           self,
           update,
-          "function",
+          "procedure",
           self.middleware,
           action,
         );

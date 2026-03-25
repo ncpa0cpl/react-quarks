@@ -3,8 +3,8 @@ import { FunctionAction } from "../../Types/Actions";
 import {
   DispatchAsync,
   DispatchFunc,
+  DispatchSource,
   QuarkContext,
-  QuarkUpdateType,
   SetStateAction,
 } from "../../Types/Quark";
 import { AtomicUpdate } from "./AsyncUpdates";
@@ -51,7 +51,7 @@ export class DispatchAction<T, Action> {
     /** @internal */
     public _update: AtomicUpdate<T>,
     /** @internal */
-    public _origin: QuarkUpdateType,
+    public _origin: DispatchSource,
     /** @internal */
     public _middleware: MdController<T>,
     /**
@@ -109,7 +109,7 @@ export class DispatchAction<T, Action> {
   }
 
   /** A string indicating where the dispatch originated from. */
-  origin(): QuarkUpdateType {
+  origin(): DispatchSource {
     return this._origin;
   }
 

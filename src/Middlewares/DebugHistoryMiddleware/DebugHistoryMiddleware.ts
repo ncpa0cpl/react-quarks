@@ -1,24 +1,18 @@
 import _cloneDeep from "lodash.clonedeep";
 import { QuarkMiddleware } from "../../Types/Middlewares";
-import { DispatchAction } from "../../Utilities/StateUpdates/ApplyMiddlewares";
-import { DispatchSource } from "./Types/TrackedQuark";
+import { DispatchSource } from "../../Types/Quark";
 import { getStateUpdateHistory } from "./UpdateHistory";
 
-function getValueType(val: any) {
-  if (val instanceof Promise) return "Promise";
-  if (typeof val === "function") return "Function";
-  return "Value";
+function getValueType(val: any): DispatchSource {
+  if (val instanceof Promise) return "promise";
+  if (typeof val === "function") return "function";
+  return "value";
 }
 
 function cloneDeep<T>(v: T): T {
   if (v instanceof Promise || typeof v === "function") return v;
   return _cloneDeep(v);
 }
-
-const MD_KEY = "DebugHistoryMiddleware";
-type Meta = {
-  source?: DispatchSource;
-};
 
 export function createDebugHistoryMiddleware(options: {
   name: string;
@@ -39,38 +33,8 @@ export function createDebugHistoryMiddleware(options: {
     useTablePrint,
   });
 
-  const getOriginSource = (
-    ctx: DispatchAction<any, any>,
-    defaultVal?: DispatchSource,
-  ) => {
-    const meta = ctx.meta<Meta>(MD_KEY);
-    if (!meta.source) {
-      if (defaultVal) {
-        meta.source = defaultVal;
-      } else {
-        switch (ctx.origin()) {
-          case "sync":
-            meta.source = "Sync";
-            break;
-          case "async":
-            meta.source = "Promise";
-            break;
-          case "async-generator":
-            meta.source = "Procedure";
-            break;
-          case "function":
-            meta.source = "Function";
-            break;
-        }
-      }
-    }
-    return meta.source!;
-  };
-
   return {
     onAction(ctx) {
-      const source = getOriginSource(ctx, "Action");
-
       const stackTrace = trace
         ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
         : undefined;
@@ -78,15 +42,15 @@ export function createDebugHistoryMiddleware(options: {
       const update = ctx.update();
       quarkHistoryTracker.addHistoryEntry({
         updateID: update.id,
-        source,
-        phase: "Action",
+        source: ctx.origin(),
+        phase: "action",
         stackTrace,
         initialState: {
-          type: "Value",
+          type: "value",
           value: cloneDeep(ctx.get()),
         },
         dispatchedUpdate: {
-          type: getValueType(ctx.action),
+          type: "action",
           value: cloneDeep(ctx.action),
         },
         isCanceled: update.isCanceled,
@@ -95,8 +59,6 @@ export function createDebugHistoryMiddleware(options: {
       return ctx.skip();
     },
     onProcedure(ctx) {
-      const source = getOriginSource(ctx, "Procedure");
-
       const stackTrace = trace
         ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
         : undefined;
@@ -104,15 +66,15 @@ export function createDebugHistoryMiddleware(options: {
       const update = ctx.update();
       quarkHistoryTracker.addHistoryEntry({
         updateID: update.id,
-        source,
-        phase: "Procedure",
+        source: ctx.origin(),
+        phase: "procedure",
         stackTrace,
         initialState: {
-          type: "Value",
+          type: "value",
           value: cloneDeep(ctx.get()),
         },
         dispatchedUpdate: {
-          type: "Procedure",
+          type: "procedure",
           value: cloneDeep(ctx.action),
         },
         isCanceled: update.isCanceled,
@@ -121,8 +83,6 @@ export function createDebugHistoryMiddleware(options: {
       return ctx.skip();
     },
     onFunction(ctx) {
-      const source = getOriginSource(ctx);
-
       const stackTrace = trace
         ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
         : undefined;
@@ -130,11 +90,11 @@ export function createDebugHistoryMiddleware(options: {
       const update = ctx.update();
       quarkHistoryTracker.addHistoryEntry({
         updateID: update.id,
-        source,
-        phase: "Function",
+        source: ctx.origin(),
+        phase: "function",
         stackTrace,
         initialState: {
-          type: "Value",
+          type: "value",
           value: cloneDeep(ctx.get()),
         },
         dispatchedUpdate: {
@@ -147,8 +107,6 @@ export function createDebugHistoryMiddleware(options: {
       return ctx.skip();
     },
     onPromise(ctx) {
-      const source = getOriginSource(ctx);
-
       const stackTrace = trace
         ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
         : undefined;
@@ -156,11 +114,11 @@ export function createDebugHistoryMiddleware(options: {
       const update = ctx.update();
       quarkHistoryTracker.addHistoryEntry({
         updateID: update.id,
-        source,
-        phase: "Promise",
+        source: ctx.origin(),
+        phase: "promise",
         stackTrace,
         initialState: {
-          type: "Value",
+          type: "value",
           value: cloneDeep(ctx.get()),
         },
         dispatchedUpdate: {
@@ -173,8 +131,6 @@ export function createDebugHistoryMiddleware(options: {
       return ctx.skip();
     },
     onValue(ctx) {
-      const source = getOriginSource(ctx);
-
       const stackTrace = trace
         ? new Error().stack?.replace(/$Error\n\sat/gi, "Called from")
         : undefined;
@@ -182,11 +138,11 @@ export function createDebugHistoryMiddleware(options: {
       const update = ctx.update();
       quarkHistoryTracker.addHistoryEntry({
         updateID: update.id,
-        source,
-        phase: "Sync",
+        source: ctx.origin(),
+        phase: "value",
         stackTrace,
         initialState: {
-          type: "Value",
+          type: "value",
           value: cloneDeep(ctx.get()),
         },
         dispatchedUpdate: {

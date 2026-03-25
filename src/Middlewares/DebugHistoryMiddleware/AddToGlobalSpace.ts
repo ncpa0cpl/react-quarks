@@ -1,9 +1,13 @@
 export function addToGlobalSpace(o: object) {
-  if (window) {
+  if (typeof window !== "undefined") {
     Object.assign(window, o);
-  } else if (global && global.window) {
+  } else if (
+    typeof global !== "undefined" && typeof global.window !== "undefined"
+  ) {
     Object.assign(global.window, o);
-  } else if (global) {
+  } else if (typeof globalThis !== "undefined") {
+    Object.assign(globalThis, o);
+  } else if (typeof global !== "undefined") {
     Object.assign(global, o);
   }
 }
