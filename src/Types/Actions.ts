@@ -1,3 +1,4 @@
+import { NoopUpdate } from "../Utilities/Utils";
 import { ProcedureAction, ProcedureGenerator } from "./Procedures";
 import type { QuarkAssignFn, SetStateAction } from "./Quark";
 import type {
@@ -81,6 +82,8 @@ export interface ActionApi<T> {
    * })
    */
   assign: QuarkAssignFn<T, any>;
+  /** Can be yielded or returned from a procedure when no state updates are to be made. */
+  noop(): NoopUpdate;
 }
 
 export type FunctionAction<T> = (

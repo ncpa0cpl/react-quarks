@@ -60,23 +60,27 @@ export function createCancelUpdateController<T>(
   const createUpdate = () => {
     let prevUpdate = currentUpdate;
 
-    const updater: AtomicUpdate<T> = {
+    const cancelPrevious = () => {
+      prevUpdate?.cancel();
+      prevUpdate = undefined;
+    };
+
+    const updater = {
       id: getNextUpdaterId(),
       isCanceled: false,
-      update(state) {
-        prevUpdate?.cancel();
-        prevUpdate = undefined;
+      cancelPrevious,
+      update(state: T): Resolvable<T | undefined> {
+        cancelPrevious();
 
         if (updater.isCanceled) return Immediate.resolve(undefined);
         return Immediate.resolve(setState(updater, state));
       },
-      queue(action) {
+      queue<T>(action: () => T): Resolvable<T | undefined> {
         if (updater.isCanceled) return Immediate.resolve(undefined);
         return Immediate.resolve(action());
       },
-      cancel() {
-        prevUpdate?.cancel();
-        prevUpdate = undefined;
+      cancel(): void {
+        cancelPrevious();
 
         updater.isCanceled = true;
 
@@ -84,7 +88,7 @@ export function createCancelUpdateController<T>(
           updater.children[k].cancel();
         }
       },
-      complete() {
+      complete(): void {
         prevUpdate = undefined;
         if (currentUpdate === updater) {
           currentUpdate = undefined;
@@ -101,6 +105,7 @@ export function createCancelUpdateController<T>(
           updater.children[k].complete();
         }
       },
+      children: undefined as AtomicUpdate<T>["children"],
     };
 
     currentUpdate = updater;
@@ -152,15 +157,26 @@ export function createCancelUpdateController<T>(
       return {
         atomicUpdate(runUpdate) {
           const updater = createUpdate();
-          return waitForChildren(updater, children).then((u) => {
-            const r = runUpdate(u);
+          const c = requestChildUpdaters(children);
+
+          // in this scenario we cannot lazily cancel updates,
+          // since the child updaters may lock the action execution
+          // until the previous action is completed
+          updater.cancelPrevious();
+
+          return c.then((cu) => {
+            updater.children = cu;
+            const r = runUpdate(updater);
             return r;
           });
         },
         unsafeUpdate(runUpdate) {
           const updater = createUnsafeUpdate();
-          return waitForChildren(updater, children).then((u) => {
-            const r = runUpdate(u);
+          const c = requestChildUpdaters(children);
+
+          return c.then((cu) => {
+            updater.children = cu;
+            const r = runUpdate(updater);
             return r;
           });
         },
@@ -253,9 +269,10 @@ function actionQueue() {
 
           queue.push({
             id,
-            run() {
+            async run() {
               start.resolve();
-              return end!.promise;
+              await end!.promise;
+              return;
             },
           });
 
@@ -266,7 +283,11 @@ function actionQueue() {
         return Immediate.resolve();
       },
       unlock() {
-        onEnd();
+        if (end) {
+          end.resolve();
+        } else {
+          onEnd();
+        }
       },
     };
   };
@@ -396,22 +417,26 @@ export function createQueuedUpdateController<T>(
       return {
         atomicUpdate(runUpdate) {
           const id = getNextUpdaterId();
+          const c = requestChildUpdaters(children);
 
           return updateQueue.add(id, () => {
             const updater = createUpdate(id);
-            return waitForChildren(updater, children).then((u) => {
-              const r = runUpdate(u);
+            return c.then((cu) => {
+              updater.children = cu;
+              const r = runUpdate(updater);
               return r;
             });
           });
         },
         unsafeUpdate(runUpdate) {
           const id = getNextUpdaterId();
+          const c = requestChildUpdaters(children);
 
           return updateQueue.add(id, () => {
             const updater = createUnsafeUpdate();
-            return waitForChildren(updater, children).then((u) => {
-              const r = runUpdate(u);
+            return c.then((cu) => {
+              updater.children = cu;
+              const r = runUpdate(updater);
               return r;
             });
           });
@@ -542,8 +567,7 @@ export function createUpdateController<T>(
   throw new Error("invalid Quark mode: " + mode);
 }
 
-function waitForChildren<T>(
-  updater: AtomicUpdate<T>,
+function requestChildUpdaters(
   subControllers: Record<string, UpdateController<any>>,
 ) {
   const childUpdates = Object.entries(
@@ -553,7 +577,6 @@ function waitForChildren<T>(
   );
 
   return Immediate.all(childUpdates).then(c => {
-    updater.children = Object.fromEntries(c);
-    return updater;
+    return Object.fromEntries(c);
   });
 }

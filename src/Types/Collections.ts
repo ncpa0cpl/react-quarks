@@ -1,24 +1,51 @@
-import { ParseActions } from "../Types/Actions";
-import { DeepReadonly, Quark, Selects, SetStateAction } from "../Types/Quark";
-import { QuarkType, Rewrap } from "../Types/Utilities";
+import { NoopUpdate } from "../Utilities/Utils";
+import { ParseActions } from "./Actions";
+import { DeepReadonly, Quark, Selects, SetStateAction } from "./Quark";
+import { QuarkType, Rewrap } from "./Utilities";
+
+export type CollectionSetterApi<Q extends BaseCollection<any>> = {
+  [K in keyof Q]: (action: SetStateAction<QuarkType<Q[K]>>) => any;
+};
+
+export type CollectinoSetter<Q extends BaseCollection<any>> = (
+  api: CollectionSetterApi<Q>,
+) => [k: string, action: any];
 
 export type BaseCollection<T> = Record<string, Quark<T, any, any>>;
+
+export type CollectionProcedureGenerator<Q extends BaseCollection<any>> =
+  AsyncGenerator<
+    CollectinoSetter<Q> | NoopUpdate,
+    CollectinoSetter<Q> | NoopUpdate,
+    void
+  >;
 
 export type CollectionActionApi<
   Q extends BaseCollection<any>,
 > = Rewrap<
   & {
     isCanceled(): boolean;
+    /** Can be yielded or returned from a procedure when no state updates are to be made. */
+    noop(): NoopUpdate;
   }
   & {
     [K in keyof Q]: CollectionQuarkActionApi<QuarkType<Q[K]>>;
   }
 >;
 
-export type CollectionAction<Q extends BaseCollection<any>> = (
+export type CollectionProcedureAction<Q extends BaseCollection<any>> = (
+  api: CollectionActionApi<Q>,
+  ...args: any[]
+) => CollectionProcedureGenerator<Q>;
+
+export type CollectionFuncAction<Q extends BaseCollection<any>> = (
   api: CollectionActionApi<Q>,
   ...args: any[]
 ) => void | Promise<void>;
+
+export type CollectionAction<Q extends BaseCollection<any>> =
+  | CollectionFuncAction<Q>
+  | CollectionProcedureAction<Q>;
 
 export type SelectableCollection<Q extends BaseCollection<any>> = {
   [K in keyof Q]: QuarkType<Q[K]>;
@@ -47,9 +74,9 @@ export type CollectionConfig<
   selectors?: Selectors;
 };
 
-export type CollectionHook<T, Actions> =
+export type CollectionHook<Q extends BaseCollection<any>, Actions> =
   & {
-    value: DeepReadonly<T>;
+    value: DeepReadonly<SelectableCollection<Q>>;
     set(
       setter: (api: CollectionActionApi<Q>) => void | Promise<void>,
     ): void | Promise<void>;
@@ -77,7 +104,7 @@ export type Collection<
    * - `get()` - to access the data
    * - `set()` - to updated the data
    */
-  use(): CollectionHook<SelectableCollection<Q>, Actions>;
+  use(): CollectionHook<Q, Actions>;
   /**
    * Contains all the mutation functions that can be used to update the data within the
    * quark. Those are defined on the quark creation on the `actions` and `procedures`
@@ -162,3 +189,14 @@ export interface CollectionQuarkActionApi<T> {
   ): any;
   assign(patch: Partial<T>): any;
 }
+
+export type CollectionProcedureApi<Q extends BaseCollection<any>> = {
+  /**
+   * Get the current state of the quark.
+   */
+  get(): SelectableCollection<Q>;
+  isCanceled(): boolean;
+  set(
+    setter: (api: CollectionActionApi<Q>) => void | Promise<void>,
+  ): any;
+};

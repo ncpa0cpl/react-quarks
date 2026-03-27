@@ -90,6 +90,62 @@ export class Immediate<T = void> implements Resolvable<T> {
     return v as T;
   }
 
+  static catch<T, T2>(
+    fn: () => T | Resolvable<T>,
+    onErr: (err: unknown) => T2,
+  ): T | T2 | Resolvable<T | T2> {
+    try {
+      const v = fn();
+      if (v instanceof Promise || v instanceof Immediate) {
+        return v.catch(onErr);
+      }
+      return v;
+    } catch (err) {
+      return onErr(err);
+    }
+  }
+
+  static finally<T>(
+    fn: () => T | Resolvable<T>,
+    onFinally: () => void,
+  ): T | Resolvable<T> {
+    let isAsync = false;
+    try {
+      const v = fn();
+      if (v instanceof Promise || v instanceof Immediate) {
+        isAsync = true;
+        return v.finally(onFinally);
+      }
+      return v;
+    } finally {
+      if (!isAsync) {
+        onFinally();
+      }
+    }
+  }
+
+  static catchFinally<T, T2>(
+    fn: () => T | Resolvable<T>,
+    onErr: (err: unknown) => T2,
+    onFinally: () => void,
+  ): T | T2 | Resolvable<T | T2> {
+    let isAsync = false;
+    try {
+      const v = fn();
+      if (v instanceof Promise || v instanceof Immediate) {
+        isAsync = true;
+        return v.catch(onErr).finally(onFinally);
+      }
+      return v;
+    } catch (err) {
+      return onErr(err);
+    } finally {
+      if (!isAsync) {
+        onFinally();
+      }
+    }
+  }
+
   static resolve(): Resolvable<void>;
   static resolve<R = void>(
     v: Promise<R> | Immediate<R> | Resolvable<R> | R,

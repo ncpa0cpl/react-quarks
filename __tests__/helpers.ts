@@ -3,9 +3,9 @@ import {
   QuarkConfigOptions,
   QuarkContext,
   QuarkCustomEffect,
-  QuarkMiddleware,
   QuarkSubscriber,
 } from "../src";
+import { MdController } from "../src/Utilities/StateUpdates/ApplyMiddlewares";
 import {
   AtomicUpdate,
   createUpdateController,
@@ -38,12 +38,14 @@ export function getTestQuarkContext<T = string>(params?: {
   configOptions?: QuarkConfigOptions;
   sideEffect?: QuarkCustomEffect<T>;
   subscribers?: Set<QuarkSubscriber<T>>;
+  immediateSubscribers?: Set<QuarkSubscriber<T>>;
   setter?: (update: AtomicUpdate<T>, action: T) => any;
 }): QuarkContext<T> {
   const {
     configOptions = { mode: params?.configOptions?.mode ?? "cancel" },
     stateComparator = () => true,
     subscribers = new Set<QuarkSubscriber<T>>(),
+    immediateSubscribers = new Set<QuarkSubscriber<T>>(),
     value = "" as any as T,
     sideEffect,
     setter,
@@ -53,8 +55,10 @@ export function getTestQuarkContext<T = string>(params?: {
     value,
     stateComparator,
     configOptions,
-    middlewares: [],
+    mdInfo: [],
+    middleware: new MdController([], [], [], [], []),
     subscribers,
+    immediateSubscribers,
     sideEffect,
     actions: new Map(),
     updateController: null as any,
@@ -160,7 +164,7 @@ export function controlledPromise<T = void>() {
   const awaiting = Semaphore<Promise<any>>();
 
   return {
-    promise: <PromiseLike<T>> {
+    promise: <Promise<T>> {
       then(onfulfilled, onrejected) {
         const r = promise.then(onfulfilled, onrejected);
         awaiting.resolve(r.then(() => {}, () => {}));

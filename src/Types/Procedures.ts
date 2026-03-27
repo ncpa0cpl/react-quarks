@@ -1,12 +1,13 @@
 import { ActionApi } from "..";
+import { NoopUpdate } from "../Utilities/Utils";
 import { SetStateAction } from "./Quark";
 import { IsLiteral, KeysOf } from "./Utilities";
 
 export type ProcedureStateSetter<T> = T | ((draft: T) => T);
 
 export type ProcedureGenerator<T> = AsyncGenerator<
-  SetStateAction<T>,
-  SetStateAction<T>,
+  SetStateAction<T> | NoopUpdate,
+  SetStateAction<T> | NoopUpdate,
   T
 >;
 
