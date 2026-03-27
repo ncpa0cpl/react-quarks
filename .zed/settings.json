@@ -1,7 +1,10 @@
 {
   "languages": {
     "JavaScript": {
-      "language_servers": ["vtsls"],
+      "language_servers": ["typescript-language-server"],
+      "code_actions_on_format": {
+        "source.removeUnusedImports": true,
+      },
       "formatter": {
         "external": {
           "command": "dprint",
@@ -10,7 +13,10 @@
       },
     },
     "TypeScript": {
-      "language_servers": ["vtsls"],
+      "language_servers": ["typescript-language-server"],
+      "code_actions_on_format": {
+        "source.removeUnusedImports": true,
+      },
       "formatter": {
         "external": {
           "command": "dprint",
@@ -19,7 +25,10 @@
       },
     },
     "TSX": {
-      "language_servers": ["vtsls"],
+      "language_servers": ["typescript-language-server"],
+      "code_actions_on_format": {
+        "source.removeUnusedImports": true,
+      },
       "formatter": {
         "external": {
           "command": "dprint",

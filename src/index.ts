@@ -1,3 +1,10 @@
+export { collection } from "./Collection";
+export type {
+  BaseCollection,
+  CollectionAction,
+  CollectionActionApi,
+  CollectionConfig,
+} from "./Collections/Types";
 export * from "./Middlewares/CatchMiddleware/CatchMiddleware";
 export * from "./Middlewares/DebugHistoryMiddleware/DebugHistoryMiddleware";
 export * from "./Middlewares/ImmerMiddleware/ImmerMiddleware";

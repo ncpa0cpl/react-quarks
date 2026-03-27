@@ -25,7 +25,7 @@ export type Thenable<T> = {
  */
 export function unpackAction<T>(
   dispatch: DispatchAction<T, any>,
-  onUnpack: (action: T) => T | undefined | Promise<T | undefined>,
+  onUnpack: (action: T) => Resolvable<T | undefined>,
 ): Resolvable<T | undefined> {
   try {
     if (dispatch.action instanceof Promise) {
@@ -59,8 +59,7 @@ export function unpackAction<T>(
       dispatch,
       () => {
         const result = onUnpack(dispatch.action as T);
-        if (result instanceof Promise) return result;
-        return Immediate.resolve(result as T);
+        return result;
       },
     );
   } catch (err) {
@@ -70,7 +69,7 @@ export function unpackAction<T>(
 
 export function unpackActionSync<T>(
   dispatch: DispatchAction<T, any>,
-  onUnpack: (action: T) => T | undefined | Promise<T | undefined>,
+  onUnpack: (action: T) => Resolvable<T | undefined>,
 ): Resolvable<T | undefined> {
   try {
     if (isDispatchFn<T>(dispatch.action)) {
@@ -88,8 +87,7 @@ export function unpackActionSync<T>(
       dispatch,
       () => {
         const result = onUnpack(dispatch.action as T);
-        if (result instanceof Promise) return result;
-        return Immediate.resolve(result as T);
+        return result;
       },
     );
   } catch (err) {

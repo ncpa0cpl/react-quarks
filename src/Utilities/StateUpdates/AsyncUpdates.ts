@@ -1,7 +1,14 @@
 import { QuarkContext } from "../../Types/Quark";
+import { Semaphore } from "../Utils";
 import { createEventsDebouncer } from "./EventsDispatcher";
 import { Immediate, Resolvable } from "./Immediate";
 import { processStateUpdate } from "./ProcessStateUpdate";
+
+type UpdateControllerBase<T> = {
+  atomicUpdate<R>(update: (updater: AtomicUpdate<T>) => R): Resolvable<R>;
+  unsafeUpdate<R>(update: (updater: AtomicUpdate<T>) => R): Resolvable<R>;
+  currentUpdate(): AtomicUpdate<T> | undefined;
+};
 
 /**
  * Controller responsible for managing asynchronous updates. By default all and
@@ -11,19 +18,21 @@ import { processStateUpdate } from "./ProcessStateUpdate";
  *
  * @internal
  */
-export type UpdateController<T> = {
-  atomicUpdate<R>(update: (updater: AtomicUpdate<T>) => R): R;
-  unsafeUpdate<R>(update: (updater: AtomicUpdate<T>) => R): R;
-  currentUpdate(): AtomicUpdate<T> | undefined;
+export type UpdateController<T> = UpdateControllerBase<T> & {
+  createAtomicUpdateObject(): Resolvable<AtomicUpdate<T>>;
+  with(
+    childControllers: Record<string, UpdateController<any>>,
+  ): UpdateControllerBase<T>;
 };
 
 export type AtomicUpdate<T> = {
-  update(action: T): T | Promise<T | undefined> | undefined;
+  update(action: T): Resolvable<T | undefined>;
   cancel(): void;
   complete(): void;
-  queue<T>(action: () => T): T | Promise<T | undefined> | undefined;
+  queue<T>(action: () => T): Resolvable<T | undefined>;
   isCanceled: boolean;
   id: string;
+  children?: Record<string, AtomicUpdate<any>>;
 };
 
 const MAX_ID = Number.MAX_SAFE_INTEGER - 2;
@@ -48,7 +57,7 @@ export function createCancelUpdateController<T>(
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdate<T> | undefined;
 
-  const atomicUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+  const createUpdate = () => {
     let prevUpdate = currentUpdate;
 
     const updater: AtomicUpdate<T> = {
@@ -58,18 +67,22 @@ export function createCancelUpdateController<T>(
         prevUpdate?.cancel();
         prevUpdate = undefined;
 
-        if (updater.isCanceled) return;
-        return setState(updater, state);
+        if (updater.isCanceled) return Immediate.resolve(undefined);
+        return Immediate.resolve(setState(updater, state));
       },
       queue(action) {
-        if (updater.isCanceled) return;
-        return action();
+        if (updater.isCanceled) return Immediate.resolve(undefined);
+        return Immediate.resolve(action());
       },
       cancel() {
         prevUpdate?.cancel();
         prevUpdate = undefined;
 
         updater.isCanceled = true;
+
+        for (const k in updater.children) {
+          updater.children[k].cancel();
+        }
       },
       complete() {
         prevUpdate = undefined;
@@ -82,42 +95,79 @@ export function createCancelUpdateController<T>(
               "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
             ),
           );
-          return undefined;
+          return Immediate.resolve(undefined);
         };
+        for (const k in updater.children) {
+          updater.children[k].complete();
+        }
       },
     };
 
     currentUpdate = updater;
 
-    return update(updater);
+    return updater;
   };
 
-  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+  const createUnsafeUpdate = () => {
     const updater: AtomicUpdate<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
-        return setState(updater, state);
+        return Immediate.resolve(setState(updater, state));
       },
       queue(action) {
-        return action();
+        return Immediate.resolve(action());
       },
-      cancel() {},
+      cancel() {
+        for (const k in updater.children) {
+          updater.children[k].cancel();
+        }
+      },
       complete() {
         updater.update = () => {
-          return undefined;
+          return Immediate.resolve(undefined);
         };
+        for (const k in updater.children) {
+          updater.children[k].complete();
+        }
       },
     };
-
-    return update(updater);
+    return updater;
   };
 
   return {
-    atomicUpdate,
-    unsafeUpdate,
+    atomicUpdate(update: (updater: AtomicUpdate<T>) => any) {
+      return update(createUpdate());
+    },
+    unsafeUpdate(update: (updater: AtomicUpdate<T>) => any) {
+      return update(createUnsafeUpdate());
+    },
     currentUpdate() {
       return currentUpdate;
+    },
+    createAtomicUpdateObject() {
+      return Immediate.resolve(createUpdate());
+    },
+    with(children) {
+      return {
+        atomicUpdate(runUpdate) {
+          const updater = createUpdate();
+          return waitForChildren(updater, children).then((u) => {
+            const r = runUpdate(u);
+            return r;
+          });
+        },
+        unsafeUpdate(runUpdate) {
+          const updater = createUnsafeUpdate();
+          return waitForChildren(updater, children).then((u) => {
+            const r = runUpdate(u);
+            return r;
+          });
+        },
+        currentUpdate() {
+          return currentUpdate;
+        },
+      };
     },
   };
 }
@@ -145,7 +195,7 @@ function actionQueue() {
     }
   };
 
-  const processNext = <R>(next: () => Promise<R> | R) => {
+  const processNext = <R>(next: () => Resolvable<R> | R): Resolvable<R> => {
     isProcessing = true;
 
     try {
@@ -158,14 +208,17 @@ function actionQueue() {
       } else {
         onEnd();
       }
-      return r;
+      return Immediate.resolve(r);
     } catch (err) {
       onEnd();
       throw err;
     }
   };
 
-  const queueAdd = <R>(id: string, fn: () => Promise<R> | R) => {
+  const queueAdd = <R>(
+    id: string,
+    fn: () => Resolvable<R> | R,
+  ): Resolvable<R> => {
     if (isProcessing || queue.length > 0) {
       return new Promise<R>((res, rej) => {
         queue.push({
@@ -189,8 +242,38 @@ function actionQueue() {
     return processNext(fn);
   };
 
+  const addControlled = (id: string) => {
+    let end: Semaphore | undefined;
+
+    return {
+      lock(): Resolvable<void> {
+        if (isProcessing || queue.length > 0) {
+          const start = new Semaphore();
+          end = new Semaphore();
+
+          queue.push({
+            id,
+            run() {
+              start.resolve();
+              return end!.promise;
+            },
+          });
+
+          return start.promise;
+        }
+
+        isProcessing = true;
+        return Immediate.resolve();
+      },
+      unlock() {
+        onEnd();
+      },
+    };
+  };
+
   return {
     add: queueAdd,
+    addControlled,
   };
 }
 
@@ -210,68 +293,89 @@ export function createQueuedUpdateController<T>(
 
   const updateQueue = actionQueue();
 
+  const createUpdate = (id: string, onComplete?: () => void) => {
+    const subQueue = actionQueue();
+
+    const updater: AtomicUpdate<T> = {
+      id,
+      isCanceled: false,
+      update(state) {
+        return updater.queue(() => setState(updater, state));
+      },
+      queue(action) {
+        if (updater.isCanceled) return Immediate.resolve(undefined);
+        return subQueue.add(id, () => {
+          if (updater.isCanceled) {
+            return;
+          }
+          return action();
+        });
+      },
+      cancel() {
+        updater.isCanceled = true;
+        for (const k in updater.children) {
+          updater.children[k].cancel();
+        }
+      },
+      complete() {
+        updater.update = () => {
+          console.warn(
+            new Error(
+              "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
+            ),
+          );
+          return Immediate.resolve(undefined);
+        };
+        for (const k in updater.children) {
+          updater.children[k].complete();
+        }
+        onComplete?.();
+      },
+    };
+
+    currentUpdate = updater;
+    return updater;
+  };
+
   const atomicUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
     const id = getNextUpdaterId();
 
     return updateQueue.add(id, () => {
-      const subQueue = actionQueue();
-
-      const updater: AtomicUpdate<T> = {
-        id,
-        isCanceled: false,
-        update(state) {
-          return updater.queue(() => setState(updater, state));
-        },
-        queue(action) {
-          if (updater.isCanceled) return;
-          return subQueue.add(id, () => {
-            if (updater.isCanceled) {
-              return;
-            }
-            return action();
-          });
-        },
-        cancel() {
-          updater.isCanceled = true;
-        },
-        complete() {
-          updater.update = () => {
-            console.warn(
-              new Error(
-                "An update has been made after the action has completed. Make sure to perform state updates before the action returns.",
-              ),
-            );
-            return undefined;
-          };
-        },
-      };
-
-      currentUpdate = updater;
-
+      const updater = createUpdate(id);
       const r = update(updater);
       return r;
     });
   };
 
-  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+  const createUnsafeUpdate = () => {
     const updater: AtomicUpdate<T> = {
       id: getNextUpdaterId(),
       isCanceled: false,
       update(state) {
-        return setState(updater, state);
+        return Immediate.resolve(setState(updater, state));
       },
       queue(action) {
-        return action();
+        return Immediate.resolve(action());
       },
-      cancel() {},
+      cancel() {
+        for (const k in updater.children) {
+          updater.children[k].cancel();
+        }
+      },
       complete() {
         updater.update = () => {
-          return undefined;
+          return Immediate.resolve(undefined);
         };
+        for (const k in updater.children) {
+          updater.children[k].complete();
+        }
       },
     };
+    return updater;
+  };
 
-    return update(updater);
+  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
+    return update(createUnsafeUpdate());
   };
 
   return {
@@ -279,6 +383,43 @@ export function createQueuedUpdateController<T>(
     unsafeUpdate,
     currentUpdate() {
       return currentUpdate;
+    },
+    createAtomicUpdateObject() {
+      const id = getNextUpdaterId();
+      const q = updateQueue.addControlled(id);
+      return q.lock().then(() => {
+        const u = createUpdate(id, () => q.unlock());
+        return u;
+      });
+    },
+    with(children) {
+      return {
+        atomicUpdate(runUpdate) {
+          const id = getNextUpdaterId();
+
+          return updateQueue.add(id, () => {
+            const updater = createUpdate(id);
+            return waitForChildren(updater, children).then((u) => {
+              const r = runUpdate(u);
+              return r;
+            });
+          });
+        },
+        unsafeUpdate(runUpdate) {
+          const id = getNextUpdaterId();
+
+          return updateQueue.add(id, () => {
+            const updater = createUnsafeUpdate();
+            return waitForChildren(updater, children).then((u) => {
+              const r = runUpdate(u);
+              return r;
+            });
+          });
+        },
+        currentUpdate() {
+          return currentUpdate;
+        },
+      };
     },
   };
 }
@@ -297,31 +438,75 @@ export function createUnsafeUpdateController<T>(
 ): UpdateController<T> {
   let currentUpdate: AtomicUpdate<T> | undefined;
 
-  const unsafeUpdate = (update: (updater: AtomicUpdate<T>) => any) => {
-    const updater = (currentUpdate = {
-      id: getNextUpdaterId(),
-      isCanceled: false,
-      cancel() {},
-      complete() {
-        if (currentUpdate === updater) {
-          currentUpdate = undefined;
-        }
-      },
-      update(action): T | undefined {
-        return setState(updater, action);
-      },
-      queue(action) {
-        return action();
-      },
-    });
-    return update(updater);
+  const createUpdateFactory =
+    (subControllers?: Record<string, UpdateController<any>>) => () => {
+      const updater: AtomicUpdate<T> = (currentUpdate = {
+        id: getNextUpdaterId(),
+        isCanceled: false,
+        cancel() {
+          for (const k in updater.children) {
+            updater.children[k].cancel();
+          }
+        },
+        complete() {
+          if (currentUpdate === updater) {
+            currentUpdate = undefined;
+          }
+          for (const k in updater.children) {
+            updater.children[k].complete();
+          }
+        },
+        update(action) {
+          return Immediate.resolve(setState(updater, action));
+        },
+        queue(action) {
+          return Immediate.resolve(action());
+        },
+      });
+
+      if (subControllers) {
+        const childUpdates = Object.entries(
+          subControllers ?? {},
+        ).map(([k, c]) =>
+          c.createAtomicUpdateObject().then((up) => [k, up] as const)
+        );
+
+        return Immediate.all(childUpdates).then(c => {
+          updater.children = Object.fromEntries(c);
+          return updater;
+        });
+      }
+
+      return Immediate.resolve(updater);
+    };
+
+  const createUpdate = createUpdateFactory();
+
+  const set = (update: (updater: AtomicUpdate<T>) => any) => {
+    return createUpdate().then((u) => update(u));
   };
 
   return {
-    atomicUpdate: unsafeUpdate,
-    unsafeUpdate: unsafeUpdate,
+    atomicUpdate: set,
+    unsafeUpdate: set,
+    createAtomicUpdateObject: createUpdate,
     currentUpdate() {
       return currentUpdate;
+    },
+    with(subControllers) {
+      const createUpdate = createUpdateFactory(subControllers);
+
+      const set = (update: (updater: AtomicUpdate<T>) => any) => {
+        return createUpdate().then((u) => update(u));
+      };
+
+      return {
+        atomicUpdate: set,
+        unsafeUpdate: set,
+        currentUpdate() {
+          return currentUpdate;
+        },
+      };
     },
   };
 }
@@ -355,4 +540,20 @@ export function createUpdateController<T>(
   }
 
   throw new Error("invalid Quark mode: " + mode);
+}
+
+function waitForChildren<T>(
+  updater: AtomicUpdate<T>,
+  subControllers: Record<string, UpdateController<any>>,
+) {
+  const childUpdates = Object.entries(
+    subControllers ?? {},
+  ).map(([k, c]) =>
+    c.createAtomicUpdateObject().then((up) => [k, up] as const)
+  );
+
+  return Immediate.all(childUpdates).then(c => {
+    updater.children = Object.fromEntries(c);
+    return updater;
+  });
 }
