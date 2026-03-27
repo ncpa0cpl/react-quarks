@@ -34,6 +34,7 @@ export function quark<
   const self: QuarkContext<T> = {
     value: initValue,
     subscribers: new Set(),
+    immediateSubscribers: new Set(),
     mdInfo: (config.middlewares ?? []).map(m => ({ m, source: "own" })),
     middleware: null as any,
     sideEffect: config.effect as any,
@@ -108,4 +109,9 @@ export function quark<
   set(initValue);
 
   return quark as any;
+}
+
+export function getContext<T>(q: Quark<T, any, any>): QuarkContext<T> {
+  // @ts-expect-error
+  return q.__context;
 }

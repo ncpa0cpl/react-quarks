@@ -17,6 +17,17 @@ export function setWithMiddlewares<T>(
   action: SetStateAction<T>,
   updater: AtomicUpdate<T>,
 ) {
+  return setWithMiddlewaresAndSetter(self, action, updater, s => {
+    return updater.update(s);
+  });
+}
+
+export function setWithMiddlewaresAndSetter<T>(
+  self: QuarkContext<T>,
+  action: SetStateAction<T>,
+  updater: AtomicUpdate<T>,
+  setter: (s: T) => Resolvable<T | undefined>,
+) {
   try {
     const type = resolveUpdateType(action);
     const dispatch = new DispatchAction<T, any>(
@@ -27,9 +38,7 @@ export function setWithMiddlewares<T>(
       action,
     );
 
-    return unpackAction(dispatch, (s) => {
-      return updater.update(s);
-    });
+    return unpackAction(dispatch, setter);
   } catch (err) {
     return Immediate.reject(err);
   }

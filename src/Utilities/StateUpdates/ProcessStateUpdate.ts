@@ -1,6 +1,7 @@
 import { QuarkContext } from "../../Types/Quark";
 import { DispatchAction } from "./ApplyMiddlewares";
 import { AtomicUpdate } from "./AsyncUpdates";
+import { Immediate } from "./Immediate";
 import { resolveUpdateType } from "./ResolveUpdateType";
 import { unpackAction } from "./UnpackAction";
 
@@ -8,6 +9,17 @@ function notifySubscribers<T>(
   self: QuarkContext<T>,
   debounceEvent: (eventAction: () => void) => void,
 ) {
+  for (const subscriber of self.immediateSubscribers) {
+    try {
+      subscriber(self.value);
+    } catch (err) {
+      console.error(
+        `One of the Quark subscribers returned with an error (${subscriber.name}):`,
+        err,
+      );
+    }
+  }
+
   return debounceEvent(() => {
     for (const subscriber of self.subscribers) {
       try {
@@ -57,7 +69,7 @@ export function processStateUpdate<T>(params: {
 
             const p = unpackAction(dispatch, (s) => {
               self.value = s;
-              return self.value;
+              return Immediate.resolve(self.value);
             });
 
             if (p instanceof Promise) {

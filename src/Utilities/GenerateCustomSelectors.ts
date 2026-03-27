@@ -6,6 +6,7 @@ import {
   createBasicCachedSelector,
   createCachedSelector,
 } from "./CreateCachedSelector";
+import { capitalize } from "./Utils";
 
 /**
  * Generate `selector` React Hooks based on the selectors defined in the Quark
@@ -30,7 +31,7 @@ export function generateCustomSelectors<
       return [
         selectorName,
         (...args: any[]) => selectorMethod(self.value, ...args),
-      ];
+      ] as const;
     });
 
   const hooks = selectors.map(([selectorName, selector]) => {
@@ -64,8 +65,11 @@ function createStandaloneSelectorHook<T>(self: QuarkContext<T>) {
   };
 }
 
-function hookifySelector<T, R>(
-  self: QuarkContext<T>,
+export function hookifySelector<T, R>(
+  self: {
+    syncStoreSubscribe: (callback: () => void) => () => boolean;
+    value: T;
+  },
   selector: (state: T, ...args: any[]) => R,
 ) {
   const initCachedSelector = () => createBasicCachedSelector(selector);
@@ -77,8 +81,4 @@ function hookifySelector<T, R>(
       () => select(self.value, ...args),
     );
   };
-}
-
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }

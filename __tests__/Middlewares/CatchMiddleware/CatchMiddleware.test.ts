@@ -17,7 +17,7 @@ describe("CatchMiddleware", () => {
   const onCatchMock = vitest.fn();
   const catchMiddleware = createCatchMiddleware({ onCatch: onCatchMock });
 
-  global.console.error = vitest.fn();
+  globalThis.console.error = vitest.fn();
 
   beforeEach(() => {
     vitest.resetAllMocks();

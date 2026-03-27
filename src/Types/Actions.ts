@@ -1,5 +1,5 @@
 import { ProcedureAction, ProcedureGenerator } from "./Procedures";
-import type { SetStateAction } from "./Quark";
+import type { QuarkAssignFn, SetStateAction } from "./Quark";
 import type {
   FinalReturnType as ResolvedAction,
   IsLiteral,
@@ -80,11 +80,7 @@ export interface ActionApi<T> {
    *  }
    * })
    */
-  assign<S extends object>(
-    select: (state: T) => S,
-    patch: Partial<S>,
-  ): any;
-  assign(patch: Partial<T>): any;
+  assign: QuarkAssignFn<T, any>;
 }
 
 export type FunctionAction<T> = (
@@ -107,7 +103,7 @@ export type ParseSingleAction<A> = A extends
 
 export type ActionReturn<R> = R extends AsyncGenerator | Promise<any>
   ? Promise<void>
-  : void;
+  : void | Promise<void>;
 
 export type ParseActions<A> = A extends object
   ? IsLiteral<KeysOf<A>> extends true ? {
