@@ -152,15 +152,21 @@ export function createCancelUpdateController<T>(
       return {
         atomicUpdate(runUpdate) {
           const updater = createUpdate();
-          return waitForChildren(updater, children).then((u) => {
-            const r = runUpdate(u);
+          const c = requestChildUpdaters(children);
+
+          return c.then((cu) => {
+            updater.children = cu;
+            const r = runUpdate(updater);
             return r;
           });
         },
         unsafeUpdate(runUpdate) {
           const updater = createUnsafeUpdate();
-          return waitForChildren(updater, children).then((u) => {
-            const r = runUpdate(u);
+          const c = requestChildUpdaters(children);
+
+          return c.then((cu) => {
+            updater.children = cu;
+            const r = runUpdate(updater);
             return r;
           });
         },
@@ -396,22 +402,26 @@ export function createQueuedUpdateController<T>(
       return {
         atomicUpdate(runUpdate) {
           const id = getNextUpdaterId();
+          const c = requestChildUpdaters(children);
 
           return updateQueue.add(id, () => {
             const updater = createUpdate(id);
-            return waitForChildren(updater, children).then((u) => {
-              const r = runUpdate(u);
+            return c.then((cu) => {
+              updater.children = cu;
+              const r = runUpdate(updater);
               return r;
             });
           });
         },
         unsafeUpdate(runUpdate) {
           const id = getNextUpdaterId();
+          const c = requestChildUpdaters(children);
 
           return updateQueue.add(id, () => {
             const updater = createUnsafeUpdate();
-            return waitForChildren(updater, children).then((u) => {
-              const r = runUpdate(u);
+            return c.then((cu) => {
+              updater.children = cu;
+              const r = runUpdate(updater);
               return r;
             });
           });
@@ -542,8 +552,7 @@ export function createUpdateController<T>(
   throw new Error("invalid Quark mode: " + mode);
 }
 
-function waitForChildren<T>(
-  updater: AtomicUpdate<T>,
+function requestChildUpdaters(
   subControllers: Record<string, UpdateController<any>>,
 ) {
   const childUpdates = Object.entries(
@@ -553,7 +562,6 @@ function waitForChildren<T>(
   );
 
   return Immediate.all(childUpdates).then(c => {
-    updater.children = Object.fromEntries(c);
-    return updater;
+    return Object.fromEntries(c);
   });
 }

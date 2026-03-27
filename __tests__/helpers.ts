@@ -3,7 +3,6 @@ import {
   QuarkConfigOptions,
   QuarkContext,
   QuarkCustomEffect,
-  QuarkMiddleware,
   QuarkSubscriber,
 } from "../src";
 import {
@@ -160,7 +159,7 @@ export function controlledPromise<T = void>() {
   const awaiting = Semaphore<Promise<any>>();
 
   return {
-    promise: <PromiseLike<T>> {
+    promise: <Promise<T>> {
       then(onfulfilled, onrejected) {
         const r = promise.then(onfulfilled, onrejected);
         awaiting.resolve(r.then(() => {}, () => {}));
