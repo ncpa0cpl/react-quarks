@@ -1,3 +1,8 @@
+type Awaited<T> = T extends { then(onfulfilled: infer F, ...args: any[]): any }
+  ? F extends ((value: infer V, ...args: any[]) => any) ? Awaited<V>
+  : never
+  : T;
+
 export interface Resolvable<T> {
   finally(cb: () => void): Resolvable<T>;
   catch<T2>(cb: (e: unknown) => T2): Resolvable<T | T2>;
@@ -20,44 +25,30 @@ export interface Resolvable<T> {
   ): Resolvable<TResult1 | TResult2>;
 }
 
-type ImmediateType<T> = T extends Resolvable<infer U> ? U : T;
-
-type MapImmediates<T extends Resolvable<any>[]> = T extends
-  [infer First, ...infer Rest extends Resolvable<any>[]]
-  ? [ImmediateType<First>, ...MapImmediates<Rest>]
-  : [];
-
 export class Immediate<T = void> implements Resolvable<T> {
-  static all<const T extends Resolvable<any>[]>(
-    ...resolvables: T
-  ): Resolvable<MapImmediates<T>> {
-    const promises: Promise<[idx: number, value: unknown]>[] = [];
-    const results = [] as MapImmediates<T>;
+  static all<const T>(
+    resolvables: Resolvable<T>[],
+  ): Resolvable<T[]> {
+    const promises: Promise<any>[] = [];
+    const results = [] as Array<T>;
 
     for (let i = 0; i < resolvables.length; i++) {
       const imm = resolvables[i];
       if (imm instanceof Immediate) {
-        if (imm.error) {
-          return Immediate.reject(imm.error);
+        if ((imm as Immediate).error) {
+          return Immediate.reject((imm as Immediate).error);
         } else {
-          results[i] = imm.value;
+          results[i] = (imm as Immediate<T>).value!;
         }
       } else {
-        const placeholder = Symbol("promise_placeholder");
-        results[i] = placeholder;
-
-        const promise = imm as Promise<unknown>;
-        promises.push(promise.then((v) => [i, v]));
+        promises.push((imm as Promise<any>).then(result => {
+          results[i] = result;
+        }));
       }
     }
 
     if (promises.length > 0) {
-      return Promise.all(promises).then(presults => {
-        for (const [idx, value] of presults) {
-          results[idx] = value;
-        }
-        return results;
-      });
+      return Promise.all(promises).then(() => results);
     }
 
     return Immediate.resolve(results);
@@ -86,10 +77,25 @@ export class Immediate<T = void> implements Resolvable<T> {
     }
     return v;
   }
-  static resolve(): Immediate<void>;
-  static resolve<T = void>(v: T): Immediate<T>;
-  static resolve(v?: any): Immediate<any> {
+
+  static unpackTry<T>(v: T | Resolvable<T>): T | Promise<T> {
+    if (v instanceof Promise) {
+      return v;
+    }
+
     if (v instanceof Immediate) {
+      return Immediate.unpack(v as Immediate<T>);
+    }
+
+    return v as T;
+  }
+
+  static resolve(): Resolvable<void>;
+  static resolve<R = void>(
+    v: Promise<R> | Immediate<R> | Resolvable<R> | R,
+  ): Resolvable<Awaited<R>>;
+  static resolve(v?: any): Resolvable<any> {
+    if (v instanceof Immediate || v instanceof Promise) {
       return v;
     }
 
@@ -123,18 +129,19 @@ export class Immediate<T = void> implements Resolvable<T> {
       this.success = false;
     }
   }
-  public then<U = T, U2 = never>(
+
+  public then<TResult1 = T, TResult2 = never>(
     onfulfilled?:
-      | ((value: T) => U | Resolvable<U>)
+      | ((value: T) => TResult1 | PromiseLike<TResult1>)
       | undefined
       | null,
     onrejected?:
-      | ((reason: any) => U2 | Resolvable<U2>)
+      | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
       | null,
-  ): Resolvable<U | U2> {
+  ): Resolvable<TResult1 | TResult2> {
     if (this.success) {
-      return new Immediate<U>(() => {
+      return new Immediate<TResult1 | TResult2>(() => {
         const r = onfulfilled?.(this.value!) ?? this.value;
         return r as any;
       });
@@ -142,19 +149,19 @@ export class Immediate<T = void> implements Resolvable<T> {
       // @ts-expect-error
       return this.catch(onrejected);
     }
-    return this as any as Immediate<U>;
+    return this as any as Immediate<TResult1 | TResult2>;
   }
 
-  public catch<U>(cb: (err: Error) => U): Immediate<T | U> {
+  public catch<T2>(cb: (e: unknown) => T2): Resolvable<T | T2> {
     if (!this.success) {
-      return new Immediate<U>(() => {
+      return new Immediate<T2>(() => {
         return cb(this.error!);
       });
     }
     return this;
   }
 
-  public finally<U>(cb: () => U): Immediate<T> {
+  public finally(cb: () => void): Resolvable<T> {
     try {
       cb();
     } catch (e) {

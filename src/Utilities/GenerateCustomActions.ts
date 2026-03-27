@@ -7,6 +7,7 @@ import {
   QuarkActions,
 } from "../Types/Actions";
 import { QuarkContext, SetStateAction, UnsafeSet } from "../Types/Quark";
+import { createAssign } from "./CreateAssign";
 import {
   DispatchAction,
   setWithMiddlewares,
@@ -70,35 +71,37 @@ function makeBasicAction<T>(
   name: string | undefined,
 ) {
   return (...args: any[]) =>
-    self.updateController.atomicUpdate(update =>
-      finalizeAction(update, () => {
-        const dispatch = new DispatchAction<T, any>(
-          self,
-          update,
-          "action",
-          self.middleware,
-          action,
-        );
-        dispatch._actionName = name;
+    Immediate.unpackTry(
+      self.updateController.atomicUpdate(update =>
+        finalizeAction(update, () => {
+          const dispatch = new DispatchAction<T, any>(
+            self,
+            update,
+            "action",
+            self.middleware,
+            action,
+          );
+          dispatch._actionName = name;
 
-        return self.middleware.applyAction(
-          dispatch,
-          (d) => {
-            try {
-              const action = d.action;
-              const { api, flush, result } = createActionApi(
-                self,
-                update,
-                unsafeSet,
-              );
-              const f = flush(action(api, ...args));
-              return f.then(() => result());
-            } catch (err) {
-              return Immediate.reject(err);
-            }
-          },
-        );
-      })
+          return self.middleware.applyAction(
+            dispatch,
+            (d) => {
+              try {
+                const action = d.action;
+                const { api, flush, result } = createActionApi(
+                  self,
+                  update,
+                  unsafeSet,
+                );
+                const f = flush(action(api, ...args));
+                return f.then(() => result());
+              } catch (err) {
+                return Immediate.reject(err);
+              }
+            },
+          );
+        })
+      ),
     );
 }
 
@@ -109,52 +112,54 @@ function makeProcedureAction<T>(
   name: string | undefined,
 ) {
   return (...args: any[]) =>
-    self.updateController.atomicUpdate(update =>
-      finalizeAction(update, () => {
-        const dispatch = new DispatchAction<T, any>(
-          self,
-          update,
-          "procedure",
-          self.middleware,
-          action,
-        );
-        dispatch._actionName = name;
+    Immediate.unpackTry(
+      self.updateController.atomicUpdate(update =>
+        finalizeAction(update, () => {
+          const dispatch = new DispatchAction<T, any>(
+            self,
+            update,
+            "procedure",
+            self.middleware,
+            action,
+          );
+          dispatch._actionName = name;
 
-        const result = self.middleware.applyProcedure(
-          dispatch,
-          async (d) => {
-            let result: T | undefined;
-            const action = d.action;
-            try {
-              const { api } = createProcedureApi(self, update, unsafeSet);
-              const generator = action(api, ...args);
-              let nextUp: IteratorResult<
-                SetStateAction<T>,
-                SetStateAction<T>
-              >;
-              do {
-                if (update.isCanceled) {
-                  await generator.throw(new CancelUpdate());
-                  break;
-                }
+          const result = self.middleware.applyProcedure(
+            dispatch,
+            async (d) => {
+              let result: T | undefined;
+              const action = d.action;
+              try {
+                const { api } = createProcedureApi(self, update, unsafeSet);
+                const generator = action(api, ...args);
+                let nextUp: IteratorResult<
+                  SetStateAction<T>,
+                  SetStateAction<T>
+                >;
+                do {
+                  if (update.isCanceled) {
+                    await generator.throw(new CancelUpdate());
+                    break;
+                  }
 
-                nextUp = await generator.next(self.value);
-                dispatch.action = nextUp.value;
+                  nextUp = await generator.next(self.value);
+                  dispatch.action = nextUp.value;
 
-                result = await unpackActionSync(dispatch, (next) => {
-                  return update.update(next!);
-                });
-              } while (!nextUp.done);
+                  result = await unpackActionSync(dispatch, (next) => {
+                    return update.update(next!);
+                  });
+                } while (!nextUp.done);
 
-              return Immediate.resolve(result ?? undefined);
-            } finally {
-              update.complete();
-            }
-          },
-        );
+                return Immediate.resolve(result);
+              } finally {
+                update.complete();
+              }
+            },
+          );
 
-        return result;
-      })
+          return result;
+        })
+      ),
     );
 }
 
@@ -170,7 +175,7 @@ function createProcedureApi<T>(
     set(t) {
       return () => t;
     },
-    assign(...args: any[]) {
+    assign(...args: any[]): any {
       if (args.length === 2) {
         const [selector, patch] = args as [(s: any) => any, object];
         return (state: T & object) => {
@@ -229,50 +234,17 @@ function createActionApi<T>(
   const actionSet = (action: SetStateAction<T>) => {
     const r = setWithMiddlewares(self, action, update);
     result = r;
-    if (r instanceof Promise) {
-      pending.push(r);
-    } else if (r instanceof Immediate) {
-      return Immediate.unpack(r);
-    }
-    return r;
+    return Immediate.unpackTry(r);
   };
+
+  const assign = createAssign<T>(actionSet);
 
   const api: ActionApi<T> = {
     get() {
       return self.value;
     },
     set: actionSet,
-    assign(...args: any[]) {
-      if (args.length === 2) {
-        const [selector, patch] = args as [(s: any) => any, object];
-
-        return actionSet(current => {
-          if (isDraft(current)) {
-            const s = selector(current);
-            Object.assign(s, patch);
-            return current;
-          }
-
-          const newValue = produce(current, draft => {
-            const s = selector(draft);
-            Object.assign(s, patch);
-            return draft;
-          });
-          return newValue;
-        });
-      }
-
-      const [patch] = args as [object];
-      return actionSet((state) => {
-        if (isDraft(state)) {
-          Object.assign(state as object, patch);
-          return state;
-        }
-
-        const newValue = Object.assign({ ...state as object }, patch);
-        return newValue as T;
-      });
-    },
+    assign,
     unsafeSet(state) {
       return unsafeSet(state);
     },
@@ -311,42 +283,18 @@ function createActionApi<T>(
 
 function finalizeAction<T>(
   update: AtomicUpdate<T>,
-  fn: () => T | undefined | Resolvable<T | undefined>,
-): T | undefined | Promise<T | undefined> {
-  let isAsync = false;
-
-  const doAfter = () => {
-    update.complete();
-  };
-
-  try {
-    const result = fn();
-    if (result instanceof Promise) {
-      isAsync = true;
-
-      return result
-        .catch(err => {
-          if (CancelUpdate.isCancel(err)) {
-            return undefined;
-          }
-          throw err;
-        })
-        .finally(doAfter);
-    }
-
-    if (result instanceof Immediate) {
-      return Immediate.unpack(result as Immediate<T | undefined>);
-    }
-
-    return result as T | undefined;
-  } catch (err) {
-    if (CancelUpdate.isCancel(err)) {
-      return undefined;
-    }
-    throw err;
-  } finally {
-    if (!isAsync) doAfter();
-  }
+  fn: () => Resolvable<T | undefined>,
+): Resolvable<T | undefined> {
+  return fn()
+    .catch(err => {
+      if (CancelUpdate.isCancel(err)) {
+        return undefined;
+      }
+      throw err;
+    })
+    .finally(() => {
+      update.complete();
+    });
 }
 
 const isGeneratorFunction = <T>(

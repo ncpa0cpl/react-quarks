@@ -55,6 +55,7 @@ type MiddlewareDef<T> = {
 export type QuarkContext<T> = {
   value: T;
 
+  readonly immediateSubscribers: Set<QuarkSubscriber<T>>;
   readonly subscribers: Set<QuarkSubscriber<T>>;
   readonly mdInfo: MiddlewareDef<T>[];
   middleware: MdController<T>;
@@ -91,12 +92,10 @@ export type QuarkSetterFn<QuarkType> = (
   newValue: SetStateAction<QuarkType>,
 ) => void;
 
-export type QuarkAssignFn<T> =
-  | ((
-    select: (state: T) => any,
-    patch: Partial<any>,
-  ) => QuarkSetResult<T>)
-  | ((patch: T extends object ? Partial<T> : never) => QuarkSetResult<T>);
+export interface QuarkAssignFn<T, R = QuarkSetResult<T>> {
+  (patch: Partial<T>): R;
+  (select: (state: T) => any, patch: Partial<any>): R;
+}
 
 export type QuarkGetterFn<T> = () => T;
 
@@ -228,11 +227,7 @@ export type Quark<
    * q.assign({ foo: 6 });
    * q.assign(s => s.baz, { v: "hi" });
    */
-  assign<S extends object>(
-    select: (state: T) => S,
-    patch: Partial<S>,
-  ): QuarkSetResult<T>;
-  assign(patch: Partial<T>): QuarkSetResult<T>;
+  assign: QuarkAssignFn<T>;
   /**
    * Sets the state regardless of what the current active dispatch is and will
    * not cancel any in-flight updates nor queue the update.
