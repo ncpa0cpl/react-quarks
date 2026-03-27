@@ -1011,6 +1011,50 @@ describe("quark()", () => {
         await sleep(0);
         expect(q.get()).toMatchObject({ inProgress: false, value: 5 });
       });
+      it("noop", async () => {
+        const p = controlledPromise<number>();
+        const p2 = controlledPromise();
+
+        const q = quark(
+          2,
+          {
+            actions: {
+              async *endWithNoop(api) {
+                yield p.promise;
+                return api.noop();
+              },
+              async *noopInTheMiddle(api) {
+                yield -1;
+                yield api.noop();
+                await p2.promise;
+                yield -2;
+                return -3;
+              },
+            },
+          },
+        );
+
+        const procd = q.act.endWithNoop();
+
+        await sleep(0);
+
+        expect(q.get()).toEqual(2);
+
+        await p.resolve(5);
+        await procd;
+
+        expect(q.get()).toEqual(5);
+
+        const prcd2 = q.act.noopInTheMiddle();
+
+        await sleep(1);
+        expect(q.get()).toEqual(-1);
+
+        await p2.resolve();
+        await prcd2;
+
+        expect(q.get()).toEqual(-3);
+      });
     });
     describe("assign helper", () => {
       it("applies a patch correctly", () => {
@@ -1340,10 +1384,11 @@ describe("quark()", () => {
       expect(state.result.current.value).toMatchObject({ value: 0 });
 
       await act(async () => {
-        state.result.current.incrementAsync();
-        await state.waitFor(() => {
-          expect(state.result.current.value).toMatchObject({ value: 1 });
-        });
+        await state.result.current.incrementAsync();
+      });
+
+      await state.waitFor(() => {
+        expect(state.result.current.value).toMatchObject({ value: 1 });
       });
     });
     it("use() correctly triggers custom effects when local set is called", async () => {
@@ -4173,8 +4218,9 @@ describe("quark()", () => {
 
         expect(q.get()).toEqual({ inProgress: true, value: 0 });
 
+        let fetchValue: any;
         await act(async () => {
-          q.act.fetchValue();
+          fetchValue = q.act.fetchValue();
           await sleep(0);
         });
 
@@ -4189,7 +4235,7 @@ describe("quark()", () => {
 
         await act(async () => {
           await p2.resolve({ value: 20 });
-          await sleep(0);
+          await fetchValue;
         });
 
         // In queue mode, all updates are applied in order

@@ -50,33 +50,6 @@ export function generateSetter<T>(self: QuarkContext<T>) {
    * to the new value.
    */
   const assign = createAssign(set);
-  //   (...args: [Partial<T>] | [(v: T) => any, any]) => {
-  //   if (args.length === 2) {
-  //     const [selector, patch] = args;
-  //     return set((state) => {
-  //       if (isDraft(state)) {
-  //         const s = selector(state);
-  //         Object.assign(s, patch);
-  //         return state;
-  //       }
-
-  //       const newValue = produce(state, draft => {
-  //         const s = selector(draft as T);
-  //         Object.assign(s, patch);
-  //       });
-  //       return newValue;
-  //     });
-  //   }
-
-  //   const [patch] = args;
-  //   return set((state) => {
-  //     if (isDraft(state)) {
-  //       Object.assign(state as object, patch);
-  //       return state;
-  //     }
-  //     return Object.assign({ ...state as object }, patch) as T;
-  //   });
-  // };
 
   const unsafeSet = (action: T | ((current: T) => T)) => {
     return self.updateController.unsafeUpdate(updater => {

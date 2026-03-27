@@ -1,5 +1,5 @@
 import { describe, expect, it, vitest } from "vitest";
-import { AtomicUpdater } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
+import { AtomicUpdate } from "../../../src/Utilities/StateUpdates/AsyncUpdates";
 import { createEventsDebouncer } from "../../../src/Utilities/StateUpdates/EventsDispatcher";
 import { processStateUpdate } from "../../../src/Utilities/StateUpdates/ProcessStateUpdate";
 import { getTestQuarkContext, sleep } from "../../helpers";
@@ -14,20 +14,23 @@ describe("processStateUpdate", () => {
 
     const setFnMock = vitest.fn();
 
+    self.value = "bar";
+
     processStateUpdate({
       self,
-      previousState: "bar",
+      previousState: "foo",
+      actionState: "bar",
       update: {
         queue(action) {
           return action();
         },
-      } as AtomicUpdater<any>,
+      } as AtomicUpdate<any>,
       debounceEvent: vitest.fn(),
     });
 
     expect(self.sideEffect).toHaveBeenCalledWith(
-      "bar",
       "foo",
+      "bar",
       expect.any(Function),
     );
   });
@@ -41,12 +44,13 @@ describe("processStateUpdate", () => {
 
     processStateUpdate({
       self,
-      previousState: "bar",
+      previousState: "foo",
+      actionState: "bar",
       update: {
         queue(action) {
           return action();
         },
-      } as AtomicUpdater<any>,
+      } as AtomicUpdate<any>,
       debounceEvent: vitest.fn(),
     });
 
@@ -69,12 +73,13 @@ describe("processStateUpdate", () => {
 
     processStateUpdate({
       self,
-      previousState: "bar",
+      previousState: "foo",
+      actionState: "bar",
       update: {
         queue(action) {
           return action();
         },
-      } as AtomicUpdater<any>,
+      } as AtomicUpdate<string>,
       debounceEvent: dispatchEventMock,
     });
 
@@ -111,12 +116,13 @@ describe("processStateUpdate", () => {
 
     processStateUpdate({
       self,
-      previousState: "bar",
+      previousState: "foo",
+      actionState: "bar",
       update: {
         queue(action) {
           return action();
         },
-      } as AtomicUpdater<any>,
+      } as AtomicUpdate<any>,
       debounceEvent: debounceEvent,
     });
 

@@ -1,4 +1,3 @@
-import { isDraft, produce } from "immer";
 import { CancelUpdate, FunctionAction, ProcedureAction } from "..";
 import {
   ActionApi,
@@ -8,13 +7,11 @@ import {
 } from "../Types/Actions";
 import { QuarkContext, SetStateAction, UnsafeSet } from "../Types/Quark";
 import { createAssign } from "./CreateAssign";
-import {
-  DispatchAction,
-  setWithMiddlewares,
-} from "./StateUpdates/ApplyMiddlewares";
+import { DispatchAction } from "./StateUpdates/ApplyMiddlewares";
 import { AtomicUpdate } from "./StateUpdates/AsyncUpdates";
 import { Immediate, Resolvable } from "./StateUpdates/Immediate";
-import { unpackActionSync } from "./StateUpdates/UnpackAction";
+import { unpackAction } from "./StateUpdates/UnpackAction";
+import { isGeneratorFunction, NoopUpdate } from "./Utils";
 
 /**
  * Generates 'action' function based on the actions defined in the Quark config.
@@ -90,11 +87,12 @@ function makeBasicAction<T>(
                 const action = d.action;
                 const { api, flush, result } = createActionApi(
                   self,
+                  dispatch,
                   update,
                   unsafeSet,
                 );
-                const f = flush(action(api, ...args));
-                return f.then(() => result());
+                const a = action(api, ...args);
+                return flush(a).then(() => result());
               } catch (err) {
                 return Immediate.reject(err);
               }
@@ -133,8 +131,8 @@ function makeProcedureAction<T>(
                 const { api } = createProcedureApi(self, update, unsafeSet);
                 const generator = action(api, ...args);
                 let nextUp: IteratorResult<
-                  SetStateAction<T>,
-                  SetStateAction<T>
+                  SetStateAction<T> | NoopUpdate,
+                  SetStateAction<T> | NoopUpdate
                 >;
                 do {
                   if (update.isCanceled) {
@@ -143,9 +141,14 @@ function makeProcedureAction<T>(
                   }
 
                   nextUp = await generator.next(self.value);
+
+                  if (nextUp.value instanceof NoopUpdate) {
+                    continue;
+                  }
+
                   dispatch.action = nextUp.value;
 
-                  result = await unpackActionSync(dispatch, (next) => {
+                  result = await unpackAction(dispatch, (next) => {
                     return update.update(next!);
                   });
                 } while (!nextUp.done);
@@ -169,39 +172,16 @@ function createProcedureApi<T>(
   unsafeSet: UnsafeSet<T>,
 ): { api: ActionApi<T> } {
   const api: ActionApi<T> = {
+    noop() {
+      return new NoopUpdate();
+    },
     get() {
       return self.value;
     },
     set(t) {
       return () => t;
     },
-    assign(...args: any[]): any {
-      if (args.length === 2) {
-        const [selector, patch] = args as [(s: any) => any, object];
-        return (state: T & object) => {
-          if (isDraft(state)) {
-            const s = selector(state);
-            Object.assign(s, patch);
-            return state;
-          }
-
-          return produce(state, draft => {
-            const s = selector(draft);
-            Object.assign(s, patch);
-            return draft;
-          });
-        };
-      }
-
-      const [patch] = args as [object];
-      return (state: T & object) => {
-        if (isDraft(state)) {
-          Object.assign(state, patch);
-          return state;
-        }
-        return Object.assign({ ...state as object }, patch);
-      };
-    },
+    assign: createAssign(action => () => action),
     unsafeSet(state) {
       return unsafeSet(state);
     },
@@ -221,6 +201,7 @@ function createProcedureApi<T>(
 
 function createActionApi<T>(
   self: QuarkContext<T>,
+  dispatch: DispatchAction<T, any>,
   update: AtomicUpdate<T>,
   unsafeSet: UnsafeSet<T>,
 ): {
@@ -232,14 +213,29 @@ function createActionApi<T>(
   let result: Resolvable<T | undefined> | undefined;
 
   const actionSet = (action: SetStateAction<T>) => {
-    const r = setWithMiddlewares(self, action, update);
+    if (action instanceof NoopUpdate) {
+      return undefined;
+    }
+
+    dispatch.action = action;
+    const r = unpackAction(dispatch, s => {
+      return update.update(s);
+    });
+
+    if (r instanceof Promise) {
+      pending.push(r);
+    }
+
     result = r;
     return Immediate.unpackTry(r);
   };
 
-  const assign = createAssign<T>(actionSet);
+  const assign = createAssign(actionSet);
 
   const api: ActionApi<T> = {
+    noop() {
+      return new NoopUpdate();
+    },
     get() {
       return self.value;
     },
@@ -296,8 +292,3 @@ function finalizeAction<T>(
       update.complete();
     });
 }
-
-const isGeneratorFunction = <T>(
-  v: QAction<T>,
-): v is ProcedureAction<T> =>
-  Object.prototype.toString.call(v) === "[object AsyncGeneratorFunction]";

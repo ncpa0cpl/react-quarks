@@ -38,7 +38,7 @@ export function generateCustomSelectors<
     return [
       "use" + capitalize(selectorName as string),
       hookifySelector(self, selector),
-    ];
+    ] as const;
   });
 
   return Object.fromEntries(

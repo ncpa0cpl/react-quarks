@@ -48,7 +48,7 @@ export function processStateUpdate<T>(params: {
 }) {
   const { previousState, self, update, debounceEvent, actionState } = params;
 
-  const shouldUpdate = self.stateComparator(self.value, previousState);
+  const shouldUpdate = self.stateComparator(previousState, self.value);
 
   if (shouldUpdate) {
     const effectPromises: Promise<any>[] = [];
