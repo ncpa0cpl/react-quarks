@@ -47,17 +47,16 @@
   },
   "devDependencies": {
     "@testing-library/react-hooks": "^8.0.1",
-    "@types/axios": "^0.14.4",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/luxon": "^3.7.1",
     "@types/node": "^22.2.0",
     "@types/react": "^19.1.9",
     "@types/serialize-javascript": "^5.0.4",
     "@types/use-sync-external-store": "^1.5.0",
-    "dprint": "^0.53.0",
+    "dprint": "^0.53.1",
     "esbuild": "^0.27.4",
     "git-hook-tasks": "git+https://github.com/ncpa0cpl/git-hook-tasks#0.0.1",
-    "happy-dom": "^20.8.8",
+    "happy-dom": "^20.8.9",
     "husky": "^8.0.3",
     "oxlint": "^1.57.0",
     "react": "^19.1.1",
@@ -66,7 +65,7 @@
     "serialize-javascript": "^7.0.4",
     "simple-git": "^3.33.0",
     "typescript": "6.0.2",
-    "vitest": "^4.1.1"
+    "vitest": "^4.1.2"
   },
   "packageManager": "yarn@1.22.19",
   "sideEffects": false
