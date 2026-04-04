@@ -506,7 +506,7 @@ describe("CatchMiddleware", () => {
         expect(q2.get()).toEqual("B");
         expect(onCatchMock).toBeCalledTimes(1);
         expect(onCatchMock).toBeCalledWith("ERR");
-        expect(procedureRes).resolves.toBeUndefined();
+        await expect(procedureRes).resolves.toBeUndefined();
       });
     });
     describe("within react", () => {
