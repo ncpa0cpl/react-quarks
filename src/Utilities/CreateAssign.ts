@@ -7,7 +7,7 @@ export function createAssign<T, R>(
   const assign = (
     ...args: [patch: Partial<T>] | [
       select: (state: T) => any,
-      patch: Partial<any>,
+      patch: Partial<any> | ((prev: any) => Partial<any>),
     ]
   ) => {
     if (args.length === 2) {
@@ -16,13 +16,13 @@ export function createAssign<T, R>(
       return actionSet(current => {
         if (isDraft(current)) {
           const s = selector(current);
-          Object.assign(s, patch);
+          Object.assign(s, typeof patch === "function" ? patch(s) : patch);
           return current;
         }
 
         const newValue = produce(current, draft => {
           const s = selector(draft as T);
-          Object.assign(s, patch);
+          Object.assign(s, typeof patch === "function" ? patch(s) : patch);
           return draft;
         });
         return newValue;

@@ -5,6 +5,7 @@ export * from "./Middlewares/DebugHistoryMiddleware/DebugHistoryMiddleware";
 export * from "./Middlewares/ImmerMiddleware/ImmerMiddleware";
 export * from "./Middlewares/ImmutableStateMiddleware/ImmutableStateMiddleware";
 export { quark } from "./Quark";
+export { rest } from "./Rest";
 export { composeSelectors } from "./SelectorCompose";
 export type * from "./Types/Actions";
 export type * from "./Types/Collections";

@@ -94,7 +94,16 @@ export type QuarkSetterFn<QuarkType> = (
 
 export interface QuarkAssignFn<T, R = QuarkSetResult<T>> {
   (patch: Partial<T>): R;
-  (select: (state: T) => any, patch: Partial<any>): R;
+
+  <S extends object>(
+    select: (state: T) => S,
+    patch: (prev: S) => Partial<S>,
+  ): R;
+
+  <S extends object>(
+    select: (state: T) => S,
+    patch: Partial<S>,
+  ): R;
 }
 
 export type QuarkGetterFn<T> = () => T;
