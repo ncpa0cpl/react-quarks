@@ -131,4 +131,40 @@ export type Config<T, A, S, M> = {
    *   takes place.
    */
   shouldUpdate?: QuarkComparatorFn;
+  /**
+   * By default quark updates will not work with React's View Transitions.
+   *
+   * Enabling this option allows driving View Transitions through the Quark state,
+   * as long as the dispatched action is synchronous.
+   *
+   * When enabled dispatches must not happen during rendering, just like the React's
+   * `setState` function.
+   *
+   * @example
+   *
+   * import { startTransition, ViewTransition } from "react";
+   *
+   * const showPage = quark(false, { enableTransitions: true })
+   *
+   * function App() {
+   *   const show = showPage.use().value
+   *
+   *   const handleClick = () => {
+   *     startTransition(() => {
+   *       showPage.set(true);
+   *     });
+   *   }
+   *
+   *   return (
+   *     <div>
+   *       {show
+   *         ? <ViewTransition>
+   *             <p>Hello</p>
+   *           </ViewTransition>
+   *         : null}
+   *     </div>
+   *   )
+   * }
+   */
+  enableTransitions?: boolean;
 };

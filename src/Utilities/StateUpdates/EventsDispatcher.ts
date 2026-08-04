@@ -19,7 +19,11 @@ function microtask() {
   };
 }
 
-export function createEventsDebouncer() {
+export function createEventsDebouncer(opts: { immediate?: boolean }) {
+  if (opts.immediate) {
+    return { debounceEvent: (action: () => void) => action() };
+  }
+
   let lastMicrotask: Microtask | undefined;
 
   const debounceEvent = (action: () => void) => {

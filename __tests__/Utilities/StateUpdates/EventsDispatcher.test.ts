@@ -4,7 +4,7 @@ import { sleep } from "../../helpers";
 
 describe("createEventsDispatcher", () => {
   it("should only execute the latest dispatched event when multiple actions are dispatched simultaneously", async () => {
-    const events = createEventsDebouncer();
+    const events = createEventsDebouncer({ immediate: false });
 
     const ev1 = vitest.fn();
     const ev2 = vitest.fn();
@@ -28,7 +28,7 @@ describe("createEventsDispatcher", () => {
   });
 
   it("should allow for all dispatched events to execute if not dispatched simultaneously", async () => {
-    const events = createEventsDebouncer();
+    const events = createEventsDebouncer({ immediate: false });
 
     const ev1 = vitest.fn();
     const ev2 = vitest.fn();

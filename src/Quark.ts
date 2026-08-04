@@ -40,6 +40,7 @@ export function quark<
     sideEffect: config.effect as any,
     configOptions: {
       mode: config.mode ?? "queue",
+      syncImmediate: config.enableTransitions,
     },
     stateComparator: config.shouldUpdate ?? isUpdateNecessary,
     syncStoreSubscribe(callback: () => void) {
@@ -51,7 +52,9 @@ export function quark<
   };
 
   GlobalMiddlewareController.registerQuark(self);
-  self.updateController = createUpdateController<T>(self);
+  self.updateController = createUpdateController<T>(self, undefined, {
+    immediate: config.enableTransitions,
+  });
 
   const {
     set,

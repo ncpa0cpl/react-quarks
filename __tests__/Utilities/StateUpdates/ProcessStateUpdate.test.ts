@@ -61,7 +61,7 @@ describe("processStateUpdate", () => {
     const subOne = vitest.fn();
     const subTwo = vitest.fn();
 
-    const { debounceEvent } = createEventsDebouncer();
+    const { debounceEvent } = createEventsDebouncer({ immediate: false });
     const self = getTestQuarkContext({
       value: "foo",
       stateComparator: () => true,
@@ -112,7 +112,7 @@ describe("processStateUpdate", () => {
       subscribers: new Set([subOne, subTwo, subThree]),
     });
 
-    const { debounceEvent } = createEventsDebouncer();
+    const { debounceEvent } = createEventsDebouncer({ immediate: false });
 
     processStateUpdate({
       self,

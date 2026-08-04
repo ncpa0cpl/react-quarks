@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import { ParseActions } from "../Types/Actions";
 import {
@@ -26,6 +26,27 @@ export function generateUseHook<T, A>(
   unsafeSet: (newValue: T) => void,
 ): () => QuarkHook<T, A> {
   const getSnapshot = () => self.value;
+
+  if (self.configOptions.syncImmediate) {
+    return () => {
+      const [value, setValue] = useState(getSnapshot);
+
+      useEffect(() => {
+        const unsub = self.syncStoreSubscribe(() => {
+          setValue(getSnapshot);
+        });
+        return () => void unsub();
+      }, []);
+
+      return useMemo(() => ({
+        set: set as any,
+        assign: assign as any,
+        unsafeSet,
+        value,
+        ...actions,
+      }), [value]);
+    };
+  }
 
   return () => {
     const value = useSyncExternalStore(

@@ -538,13 +538,14 @@ export function createUnsafeUpdateController<T>(
 
 export function createUpdateController<T>(
   self: QuarkContext<T>,
-  overrideSetter?: (update: AtomicUpdate<T>, action: T) => any,
+  overrideSetter: undefined | ((update: AtomicUpdate<T>, action: T) => any),
+  opts: { immediate?: boolean },
 ) {
   const setState = overrideSetter ?? ((update: AtomicUpdate<T>, action: T) => {
     const previousState = self.value;
     self.value = action;
 
-    const { debounceEvent } = createEventsDebouncer();
+    const { debounceEvent } = createEventsDebouncer(opts);
     return processStateUpdate({
       self,
       previousState,

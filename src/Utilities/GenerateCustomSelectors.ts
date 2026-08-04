@@ -50,6 +50,32 @@ export function generateCustomSelectors<
 }
 
 function createStandaloneSelectorHook<T>(self: QuarkContext<T>) {
+  if (self.configOptions.syncImmediate) {
+    return <ARGS extends any[], R>(
+      selector: QuarkSelector<T, R>,
+      ...args: ARGS
+    ) => {
+      const [cachedSelector] = React.useState(() =>
+        createCachedSelector(selector)
+      );
+
+      const [value, setValue] = React.useState(() =>
+        cachedSelector(self.value, ...args)
+      );
+
+      const sub = React.useEffectEvent(() => {
+        setValue(() => cachedSelector(self.value, ...args));
+      });
+
+      React.useEffect(() => {
+        const unsub = self.syncStoreSubscribe(sub);
+        return () => void unsub();
+      }, []);
+
+      return value;
+    };
+  }
+
   return <ARGS extends any[], R>(
     selector: QuarkSelector<T, R>,
     ...args: ARGS

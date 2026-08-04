@@ -42,6 +42,7 @@ export type QuarkConfigOptions = {
    * - `none` - all updates are always applied, in the order they resolve
    */
   mode: "cancel" | "queue" | "none";
+  syncImmediate?: boolean;
 };
 
 type MiddlewareDef<T> = {
