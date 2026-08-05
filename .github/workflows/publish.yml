@@ -1,50 +1,46 @@
-name: Publish
+name: Release Package
 
 permissions:
+  id-token: write # Required for OIDC
+  contents: read
   repository-projects: write
 
 on:
-  release:
-    types: [released]
+  push:
+    branches:
+      - release
 
 env:
   NPM_TOKEN: ""
 
 jobs:
-  publish:
+  build-and-publish:
     permissions:
+      id-token: write # Required for OIDC
       packages: write
       contents: write
       pull-requests: write
       issues: write
       repository-projects: write
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
+          ref: master
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Node Environment
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          cache: "yarn"
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+      - name: Update npm
+        run: npm install -g npm@latest
       - name: Install dependencies
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
-      - name: Build
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: build
-      - name: Test
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: git-hook-tasks pre-push
+        run: .yarn/releases/yarn-1.22.19.cjs install --frozen-lockfile
+      - name: Validating syntax
+        run: .yarn/releases/yarn-1.22.19.cjs test:tsc
+      - name: Running unit tests
+        run: .yarn/releases/yarn-1.22.19.cjs test:unit
+      - name: Building
+        run: .yarn/releases/yarn-1.22.19.cjs build
       - name: Publish
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
-          TAG_NAME: ${{ github.event.release.tag_name }}
-        run: ./scripts/publish.sh
+        run: npm publish --access public

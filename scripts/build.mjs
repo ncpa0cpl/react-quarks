@@ -1,17 +1,18 @@
-import esbuild from "esbuild";
-import pkgJson from "../package.json" with { type: "json" };
+import { build } from "@ncpa0cpl/nodepack";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const p = (...fpath) => path.resolve(__dirname, "..", ...fpath);
 
 async function main() {
-  await esbuild.build({
-    entryPoints: ["src/index.ts"],
-    bundle: true,
-    platform: "browser",
-    outfile: "dist/index.js",
-    minify: false,
-    format: "esm",
-    external: Object.keys(pkgJson.dependencies).concat(
-      Object.keys(pkgJson.peerDependencies),
-    ),
+  await build({
+    formats: ["cjs", "esm", "legacy"],
+    outDir: p("dist"),
+    srcDir: p("src"),
+    target: "esnext",
+    declarations: true,
+    tsConfig: p("tsconfig.json"),
   });
 }
 
