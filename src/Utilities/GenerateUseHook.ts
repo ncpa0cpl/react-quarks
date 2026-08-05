@@ -31,6 +31,7 @@ export function generateUseHook<T, A>(
       const [value, setValue] = useState(getSnapshot);
 
       useEffect(() => {
+        setValue(getSnapshot);
         const unsub = self.syncStoreSubscribe(() => {
           setValue(getSnapshot);
         });

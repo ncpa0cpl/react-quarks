@@ -67,6 +67,7 @@ function createStandaloneSelectorHook<T>(self: QuarkContext<T>) {
       });
 
       React.useEffect(() => {
+        sub();
         const unsub = self.syncStoreSubscribe(sub);
         return () => void unsub();
       }, []);
