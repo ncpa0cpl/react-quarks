@@ -182,7 +182,7 @@ function unpackNestedDrafts<T = unknown>(
       const key = keys[i]!;
 
       if (isDraft(v[key])) {
-        v[key] = original(v[key])!;
+        v[key] = original(v[key] as any)!;
       }
 
       v[key] = unpackNestedDrafts(v[key])!;

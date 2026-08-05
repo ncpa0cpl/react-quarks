@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { useSyncExternalStore } from "use-sync-external-store";
+import { useMemo, useSyncExternalStore } from "react";
 import { CancelUpdate, ParseActions } from ".";
 import { getContext } from "./Quark";
 import {

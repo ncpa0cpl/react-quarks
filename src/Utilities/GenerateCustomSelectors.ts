@@ -1,5 +1,4 @@
-import React from "react";
-import { useSyncExternalStore } from "use-sync-external-store/shim";
+import React, { useSyncExternalStore } from "react";
 import { QuarkContext, Selects } from "../Types/Quark";
 import { QuarkSelector, QuarkSelectors } from "../Types/Selectors";
 import {

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSyncExternalStore } from "use-sync-external-store/shim";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ParseActions } from "../Types/Actions";
 import {
   DeepReadonly,
