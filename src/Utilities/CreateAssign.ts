@@ -1,9 +1,9 @@
 import { isDraft, produce } from "immer";
-import { QuarkAssignFn, QuarkSetResult, SetStateAction } from "../Types/Quark";
+import { QuarkSetResult, SetStateAction, WithAssign } from "../Types/Quark";
 
 export function createAssign<T, R>(
   actionSet: (action: SetStateAction<T>) => R,
-): QuarkAssignFn<T> {
+): WithAssign<T, any>["assign"] {
   const assign = <U extends object>(
     ...args: [patch: Partial<T>] | [
       select: (state: T) => U,

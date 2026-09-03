@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ParseActions } from "../Types/Actions";
 import {
   DeepReadonly,
-  QuarkAssignFn,
   QuarkContext,
   QuarkHook,
   QuarkSetterFn,
+  WithAssign,
 } from "../Types/Quark";
 
 /**
@@ -21,7 +21,7 @@ export function generateUseHook<T, A>(
   self: QuarkContext<T>,
   actions: ParseActions<A>,
   set: QuarkSetterFn<T>,
-  assign: QuarkAssignFn<T>,
+  assign: WithAssign<T, any>["assign"],
   unsafeSet: (newValue: T) => void,
 ): () => QuarkHook<T, A> {
   const getSnapshot = () => self.value;
