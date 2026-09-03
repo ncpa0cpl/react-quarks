@@ -1,7 +1,7 @@
 {
   "languages": {
     "JavaScript": {
-      "language_servers": ["typescript-language-server"],
+      "language_servers": ["typescript-ls"],
       "code_actions_on_format": {
         "source.removeUnusedImports": true,
       },
@@ -13,7 +13,7 @@
       },
     },
     "TypeScript": {
-      "language_servers": ["typescript-language-server"],
+      "language_servers": ["typescript-ls"],
       "code_actions_on_format": {
         "source.removeUnusedImports": true,
       },
@@ -25,7 +25,7 @@
       },
     },
     "TSX": {
-      "language_servers": ["typescript-language-server"],
+      "language_servers": ["typescript-ls"],
       "code_actions_on_format": {
         "source.removeUnusedImports": true,
       },

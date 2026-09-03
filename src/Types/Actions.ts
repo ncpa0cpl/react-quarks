@@ -1,13 +1,13 @@
 import { NoopUpdate } from "../Utilities/Utils";
 import { ProcedureAction, ProcedureGenerator } from "./Procedures";
-import type { QuarkAssignFn, SetStateAction } from "./Quark";
+import type { SetStateAction, WithAssign } from "./Quark";
 import type {
   FinalReturnType as ResolvedAction,
   IsLiteral,
   KeysOf,
 } from "./Utilities";
 
-export interface ActionApi<T> {
+export interface ActionApi<T> extends WithAssign<T, any> {
   /**
    * Get the current state of the quark.
    */
@@ -56,32 +56,6 @@ export interface ActionApi<T> {
    */
   unsafeSet(state: T | ((current: T) => T)): void;
   isCanceled(): boolean;
-  /**
-   * Shorthand for `api.set(Object.assign(api.get(), patch)).
-   *
-   * Can take a selector as it's first argument to update a nested object.
-   *
-   * Just like set, within procedures must be yielded or returned to take effect.
-   *
-   * @example
-   *
-   * quark({foo:1, bar:2, baz: {v:""}}, {
-   *  actions: {
-   *    setFoo(api, to: number) {
-   *      api.assign({ foo: to });
-   *    },
-   *    setBazV(api, v: string) {
-   *      api.assign(s => s.baz, { v });
-   *    },
-   *    async *procedure(api, to1: number, to2: string) {
-   *      // in procedures assign must be yielded
-   *      yield api.assign({ foo: to1 });
-   *      yield api.assign(s => s.baz, { v: to2 });
-   *    }
-   *  }
-   * })
-   */
-  assign: QuarkAssignFn<T, any>;
   /** Can be yielded or returned from a procedure when no state updates are to be made. */
   noop(): NoopUpdate;
 }

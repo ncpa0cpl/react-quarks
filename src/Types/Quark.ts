@@ -1,3 +1,4 @@
+import { Draft } from "immer";
 import { MdController } from "../Utilities/StateUpdates/ApplyMiddlewares";
 import { UpdateController } from "../Utilities/StateUpdates/AsyncUpdates";
 import { Resolvable } from "../Utilities/StateUpdates/Immediate";
@@ -93,9 +94,66 @@ export type QuarkSetterFn<QuarkType> = (
   newValue: SetStateAction<QuarkType>,
 ) => void;
 
-export interface QuarkAssignFn<T, R = QuarkSetResult<T>> {
-  (patch: Partial<T>): R;
-  (select: (state: T) => any, patch: Partial<any>): R;
+export interface WithAssign<T, R = QuarkSetResult<T>> {
+  /**
+   * Shorthand for `api.set(Object.assign(api.get(), patch)).
+   *
+   * Can take a selector as it's first argument to update a nested object.
+   *
+   * Just like set, within procedures must be yielded or returned to take effect.
+   *
+   * @example
+   *
+   * quark({foo:1, bar:2, baz: {v:""}}, {
+   *  actions: {
+   *    setFoo(api, to: number) {
+   *      api.assign({ foo: to });
+   *    },
+   *    setBazV(api, v: string) {
+   *      api.assign(s => s.baz, { v });
+   *    },
+   *    async *procedure(api, to1: number, to2: string) {
+   *      // in procedures assign must be yielded
+   *      yield api.assign({ foo: to1 });
+   *      yield api.assign(s => s.baz, { v: to2 });
+   *    }
+   *  }
+   * })
+   */
+  assign(patch: Partial<T>): R;
+  /**
+   * Shorthand for `api.set(Object.assign(api.get(), patch)).
+   *
+   * Can take a selector as it's first argument to update a nested object.
+   *
+   * Just like set, within procedures must be yielded or returned to take effect.
+   *
+   * @example
+   *
+   * const q = quark({foo:1, bar:2, baz: {v:""}}, {
+   *  actions: {
+   *    setFoo(api, to: number) {
+   *      api.assign({ foo: to });
+   *    },
+   *    setBazV(api, v: string) {
+   *      api.assign(s => s.baz, { v });
+   *    },
+   *    async *procedure(api, to1: number, to2: string) {
+   *      // in procedures assign must be yielded
+   *      yield api.assign({ foo: to1 });
+   *      yield api.assign(s => s.baz, { v: to2 });
+   *    }
+   *  }
+   * })
+   *
+   * // also available on the quark itself
+   * q.assign({ foo: 1 })
+   */
+  assign<U extends object>(
+    select: (state: T) => U,
+    patchFactory: (draft: Draft<U>) => void,
+  ): R;
+  assign<U extends object>(select: (state: T) => U, patch: Partial<U>): R;
 }
 
 export type QuarkGetterFn<T> = () => T;
@@ -228,7 +286,7 @@ export type Quark<
    * q.assign({ foo: 6 });
    * q.assign(s => s.baz, { v: "hi" });
    */
-  assign: QuarkAssignFn<T>;
+  // assign: QuarkAssignFn<T>;
   /**
    * Sets the state regardless of what the current active dispatch is and will
    * not cancel any in-flight updates nor queue the update.
@@ -292,4 +350,4 @@ export type Quark<
    * console.log(q.select.reversed()); // > "olleH"
    */
   select: Selects<T, Selectors>;
-};
+} & WithAssign<T, QuarkSetResult<T>>;

@@ -4,14 +4,34 @@ import { QuarkAssignFn, QuarkSetResult, SetStateAction } from "../Types/Quark";
 export function createAssign<T, R>(
   actionSet: (action: SetStateAction<T>) => R,
 ): QuarkAssignFn<T> {
-  const assign = (
+  const assign = <U extends object>(
     ...args: [patch: Partial<T>] | [
-      select: (state: T) => any,
-      patch: Partial<any>,
+      select: (state: T) => U,
+      patch: Partial<U>,
+    ] | [
+      select: (state: T) => U,
+      patchGenerator: (u: U) => void,
     ]
   ) => {
     if (args.length === 2) {
       const [selector, patch] = args;
+
+      if (typeof patch === "function") {
+        return actionSet(current => {
+          if (isDraft(current)) {
+            let s = selector(current);
+            patch(s);
+            return current;
+          }
+
+          const newValue = produce(current, draft => {
+            const s = selector(draft as T);
+            patch(s);
+            return draft;
+          });
+          return newValue;
+        }) as QuarkSetResult<T>;
+      }
 
       return actionSet(current => {
         if (isDraft(current)) {

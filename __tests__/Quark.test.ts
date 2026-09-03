@@ -1084,6 +1084,49 @@ describe("quark()", () => {
           foo: { bar: { baz: { value: "VALUE", x: 3 }, x: 2 }, x: 1 },
           topVal: "BOTTOM",
         });
+
+        q.assign(
+          s => s.foo.bar,
+          bar => {
+            bar.x = 666;
+          },
+        );
+
+        expect(q.get()).toEqual({
+          foo: {
+            bar: {
+              baz: {
+                value: "VALUE",
+                x: 3,
+              },
+              x: 666,
+            },
+            x: 1,
+          },
+          topVal: "BOTTOM",
+        });
+
+        q.assign(
+          s => s.foo,
+          foo => {
+            foo.bar.baz.x = 555;
+            foo.x = -2;
+          },
+        );
+
+        expect(q.get()).toEqual({
+          foo: {
+            bar: {
+              baz: {
+                value: "VALUE",
+                x: 555,
+              },
+              x: 666,
+            },
+            x: -2,
+          },
+          topVal: "BOTTOM",
+        });
       });
       it("in actions and procedures", async () => {
         const p = controlledPromise<number[]>();
@@ -1194,6 +1237,71 @@ describe("quark()", () => {
         q.assign({});
 
         expect(q.get()).toEqual(beforeAssign);
+      });
+      it("with patch factory in actions and procedures", async () => {
+        const p = controlledPromise<number[]>();
+
+        const q = quark({
+          v1: "v1",
+          v2: {
+            v3: "v3",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+            ],
+          },
+        }, {
+          actions: {
+            setV3(api) {
+              api.assign(s => s.v2, v2 => {
+                v2.v3 = "foobarbaz";
+                v2.v4.push({ v5: "v5.3" });
+              });
+            },
+            async *proc(api) {
+              yield api.assign(s => s.v2.v4, v4 => {
+                v4.splice(0, v4.length);
+              });
+              return api.get();
+            },
+          },
+        });
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "v3",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+            ],
+          },
+        });
+
+        q.act.setV3();
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "foobarbaz",
+            v4: [
+              { v5: "v5.1" },
+              { v5: "v5.2" },
+              { v5: "v5.3" },
+            ],
+          },
+        });
+
+        q.act.proc();
+        await sleep(0);
+
+        expect(q.get()).toEqual({
+          v1: "v1",
+          v2: {
+            v3: "foobarbaz",
+            v4: [],
+          },
+        });
       });
       it("with arrays", () => {
         const q = quark({
