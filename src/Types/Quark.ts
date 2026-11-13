@@ -275,19 +275,6 @@ export type Quark<
     newValue: V,
   ): QuarkSetResult<V>;
   /**
-   * Shorthand for `quark.set(Object.assign(quark.get(), patch)).
-   *
-   * Can take a selector as it's first argument to update a nested object.
-   *
-   * @example
-   *
-   * const q = quark({foo:1, bar:2, baz: {v:""}})
-   *
-   * q.assign({ foo: 6 });
-   * q.assign(s => s.baz, { v: "hi" });
-   */
-  // assign: QuarkAssignFn<T>;
-  /**
    * Sets the state regardless of what the current active dispatch is and will
    * not cancel any in-flight updates nor queue the update.
    */
